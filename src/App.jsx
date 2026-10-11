@@ -582,10 +582,7 @@ export default function App() {
               seller={seller}
               storesCount={stores.length}
               freezersCount={freezers.length}
-              onOpenSupervision={() => setActiveTab("supervision")}
-              onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
-              onOpenAdminCatalog={() => setActiveOperationalModal("admin")}
-              onOpenScanner={() => setIsScannerOpen(true)}
+              onUpdateSeller={setSeller}
               onLockSession={handleLockSession}
             />
           )}

@@ -288,21 +288,41 @@ export default function SellerRouteMapModal({
   // Real street routing state & cache via OSRM
   const [roadRoute, setRoadRoute] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const roadRouteRef = useRef(null);
+  const lastFetchedTargetStoreIdRef = useRef(null);
+  const lastFetchedOriginRef = useRef(null);
+
+  useEffect(() => {
+    roadRouteRef.current = roadRoute;
+  }, [roadRoute]);
 
   // Fetch true turn-by-turn road geometry adhering to real street network
   useEffect(() => {
     if (!activeStore || !isOpen) return;
 
-    const cacheKey = `${sellerLat.toFixed(4)},${sellerLng.toFixed(4)}->${activeStore.lat.toFixed(4)},${activeStore.lng.toFixed(4)}`;
+    const currentOrigin = { lat: sellerLat, lng: sellerLng };
+    const prevOrigin = lastFetchedOriginRef.current;
+    const sameTarget = lastFetchedTargetStoreIdRef.current === activeStore.id;
+
+    // If we already have a valid street route for this store and vendor hasn't moved significantly (> 140m), keep route stable
+    if (sameTarget && prevOrigin && roadRouteRef.current?.coordinates?.length > 1) {
+      const movedDist = calculateDistanceMeters(prevOrigin.lat, prevOrigin.lng, currentOrigin.lat, currentOrigin.lng);
+      if (movedDist < 140) {
+        return;
+      }
+    }
+
+    const cacheKey = `${sellerLat.toFixed(3)},${sellerLng.toFixed(3)}->${activeStore.lat.toFixed(4)},${activeStore.lng.toFixed(4)}`;
 
     if (routesCacheRef.current[cacheKey]) {
       setRoadRoute(routesCacheRef.current[cacheKey]);
+      lastFetchedTargetStoreIdRef.current = activeStore.id;
+      lastFetchedOriginRef.current = currentOrigin;
       return;
     }
 
     let isCancelled = false;
     setIsLoadingRoute(true);
-    setRoadRoute(null);
 
     const fetchRoadRoute = async () => {
       try {
@@ -323,13 +343,16 @@ export default function SellerRouteMapModal({
           routesCacheRef.current[cacheKey] = routeResult;
           if (!isCancelled) {
             setRoadRoute(routeResult);
+            lastFetchedTargetStoreIdRef.current = activeStore.id;
+            lastFetchedOriginRef.current = currentOrigin;
           }
         } else {
           throw new Error("No route found");
         }
       } catch (err) {
         console.warn("OSRM routing fallback:", err);
-        if (!isCancelled) {
+        // Only fallback if there is NO route yet; never wipe out an existing valid street route
+        if (!isCancelled && !roadRouteRef.current?.coordinates) {
           const dist = calculateDistanceMeters(sellerLat, sellerLng, activeStore.lat, activeStore.lng);
           setRoadRoute({
             coordinates: [[sellerLat, sellerLng], [activeStore.lat, activeStore.lng]],
@@ -349,7 +372,7 @@ export default function SellerRouteMapModal({
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, activeStore, sellerLat, sellerLng]);
+  }, [isOpen, activeStore?.id, mapLocationMode]);
 
   // Real driving distance and time
   const streetDistanceMeters = roadRoute?.distanceMeters || activeStore?.distanceMeters || 900;
@@ -382,7 +405,7 @@ export default function SellerRouteMapModal({
     return Math.min(100, Math.round((navProgressIndex / (roadRoute.coordinates.length - 1)) * 100));
   }, [hasArrived, roadRoute, navProgressIndex]);
 
-  // Watch GPS on modal mount with real-time tracking
+  // Watch GPS on modal mount with real-time street snapping
   useEffect(() => {
     if (!isOpen) return;
     handleGetLivePhoneGps();
@@ -399,7 +422,7 @@ export default function SellerRouteMapModal({
             initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
           }
 
-          // In REAL GPS navigation mode: update marker & route directly from satellite stream
+          // In REAL GPS navigation mode: update marker & snap route smoothly along streets
           if (isNavigating && navType === "real_gps") {
             if (carMarkerRef.current) {
               carMarkerRef.current.setLatLng([latitude, longitude]);
@@ -409,12 +432,42 @@ export default function SellerRouteMapModal({
             }
 
             const currentTarget = activeStoreRef.current;
-            // Update remaining line from real seller position to active store
-            if (currentTarget && remainingLineRef.current) {
-              remainingLineRef.current.setLatLngs([
+            const currentRouteCoords = roadRouteRef.current?.coordinates;
+
+            if (currentRouteCoords && currentRouteCoords.length > 1) {
+              // Find closest waypoint on the planned street route to snap vehicle progress
+              let closestIdx = 0;
+              let minDistance = Infinity;
+              for (let i = 0; i < currentRouteCoords.length; i++) {
+                const pt = currentRouteCoords[i];
+                const d = calculateDistanceMeters(latitude, longitude, pt[0], pt[1]);
+                if (d < minDistance) {
+                  minDistance = d;
+                  closestIdx = i;
+                }
+              }
+
+              // Update nav progress index so progress bar and counters sync
+              setNavProgressIndex(closestIdx);
+
+              // Snapped remaining path: starts at vehicle GPS and strictly follows the remaining street corners
+              const remainingPoints = [
                 [latitude, longitude],
-                [currentTarget.lat, currentTarget.lng]
-              ]);
+                ...currentRouteCoords.slice(closestIdx + 1)
+              ];
+
+              if (remainingLineRef.current) {
+                remainingLineRef.current.setLatLngs(remainingPoints);
+              }
+              if (remainingGlowRef.current) {
+                remainingGlowRef.current.setLatLngs(remainingPoints);
+              }
+              if (coveredLineRef.current && closestIdx > 0) {
+                coveredLineRef.current.setLatLngs([
+                  ...currentRouteCoords.slice(0, closestIdx),
+                  [latitude, longitude]
+                ]);
+              }
             }
 
             // Real-time geofence arrival detection
@@ -881,7 +934,7 @@ export default function SellerRouteMapModal({
                       {liveRemainingMeters > 0 ? `A ${liveRemainingMeters}m` : "Llegando"}
                     </span>
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">
-                      {isPaused ? "En Pausa" : `~${35 * navSpeed} km/h`}
+                      {navType === "real_gps" ? "GPS Satélite" : (isPaused ? "En Pausa" : `~${35 * navSpeed} km/h`)}
                     </span>
                   </div>
                   <span className="text-xs text-slate-300 font-medium truncate max-w-[150px] block mt-0.5">
@@ -890,31 +943,48 @@ export default function SellerRouteMapModal({
                 </div>
               </div>
 
-              {/* Controls: Speed, Pause, FastForward, Stop */}
+              {/* Controls: In simulated mode show Speed/Pause/FastForward; in real GPS mode show Stop and Recenter */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  onClick={handleCycleSpeed}
-                  className="tap-effect h-8 px-2 rounded-xl bg-slate-800 text-emerald-400 border border-slate-700 text-[11px] font-extrabold hover:bg-slate-700 transition cursor-pointer"
-                  title="Cambiar velocidad de animación"
-                >
-                  {navSpeed}x
-                </button>
+                {navType === "simulated" ? (
+                  <>
+                    <button
+                      onClick={handleCycleSpeed}
+                      className="tap-effect h-8 px-2 rounded-xl bg-slate-800 text-emerald-400 border border-slate-700 text-[11px] font-extrabold hover:bg-slate-700 transition cursor-pointer"
+                      title="Cambiar velocidad de animación"
+                    >
+                      {navSpeed}x
+                    </button>
 
-                <button
-                  onClick={handleTogglePause}
-                  className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-white border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
-                  title={isPaused ? "Reanudar viaje" : "Pausar viaje"}
-                >
-                  {isPaused ? <Play className="w-3.5 h-3.5 fill-white text-white" /> : <Pause className="w-3.5 h-3.5 fill-white text-white" />}
-                </button>
+                    <button
+                      onClick={handleTogglePause}
+                      className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-white border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
+                      title={isPaused ? "Reanudar viaje" : "Pausar viaje"}
+                    >
+                      {isPaused ? <Play className="w-3.5 h-3.5 fill-white text-white" /> : <Pause className="w-3.5 h-3.5 fill-white text-white" />}
+                    </button>
 
-                <button
-                  onClick={handleFastForwardArrival}
-                  className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-sky-400 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
-                  title="Simular llegada inmediata"
-                >
-                  <FastForward className="w-3.5 h-3.5" />
-                </button>
+                    <button
+                      onClick={handleFastForwardArrival}
+                      className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-sky-400 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
+                      title="Simular llegada inmediata"
+                    >
+                      <FastForward className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (phoneGpsLocation && mapInstanceRef.current) {
+                        mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.5 });
+                      }
+                    }}
+                    className="tap-effect h-8 px-2.5 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold hover:bg-emerald-900 transition cursor-pointer flex items-center gap-1"
+                    title="Recentrar en mi ubicación GPS"
+                  >
+                    <LocateFixed className="w-3.5 h-3.5" />
+                    <span>Recentrar</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleStopNavigation}
