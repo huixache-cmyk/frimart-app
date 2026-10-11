@@ -58,6 +58,7 @@ export default function SellerRouteMapModal({
 
   // Live Navigation State
   const [isNavigating, setIsNavigating] = useState(false);
+  const [navType, setNavType] = useState("real_gps"); // 'real_gps' | 'simulated'
   const [isPaused, setIsPaused] = useState(false);
   const [navProgressIndex, setNavProgressIndex] = useState(0);
   const [hasArrived, setHasArrived] = useState(false);
@@ -74,7 +75,7 @@ export default function SellerRouteMapModal({
   const [phoneGpsLocation, setPhoneGpsLocation] = useState(null);
   const [isLocatingPhone, setIsLocatingPhone] = useState(false);
   const [phoneGpsError, setPhoneGpsError] = useState("");
-  // Auto-center and fit bounds once live GPS is acquired
+  const initialGpsAnchorRef = useRef(null);
   const hasInitiallyCenteredGpsRef = useRef(false);
 
   // Request high-accuracy GPS position from the phone
@@ -91,6 +92,9 @@ export default function SellerRouteMapModal({
         const { latitude, longitude, accuracy } = pos.coords;
         const coords = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
         setPhoneGpsLocation(coords);
+        if (!initialGpsAnchorRef.current) {
+          initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
+        }
         setIsLocatingPhone(false);
 
         if (mapInstanceRef.current) {
@@ -106,7 +110,7 @@ export default function SellerRouteMapModal({
     );
   };
 
-  // Watch GPS on modal mount
+  // Watch GPS on modal mount with real-time tracking
   useEffect(() => {
     if (!isOpen) return;
     handleGetLivePhoneGps();
@@ -116,16 +120,54 @@ export default function SellerRouteMapModal({
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude, longitude, accuracy } = pos.coords;
-          setPhoneGpsLocation({ lat: latitude, lng: longitude, accuracy: Math.round(accuracy) });
+          const newGps = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
+          setPhoneGpsLocation(newGps);
+
+          if (!initialGpsAnchorRef.current) {
+            initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
+          }
+
+          // In REAL GPS navigation mode: update marker & route directly from satellite stream
+          if (isNavigating && navType === "real_gps") {
+            if (carMarkerRef.current) {
+              carMarkerRef.current.setLatLng([latitude, longitude]);
+            }
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.panTo([latitude, longitude], { animate: true, duration: 0.3 });
+            }
+
+            // Update remaining line from real seller position to active store
+            if (activeStore && remainingLineRef.current) {
+              remainingLineRef.current.setLatLngs([
+                [latitude, longitude],
+                [activeStore.lat, activeStore.lng]
+              ]);
+            }
+
+            // Real-time geofence arrival detection
+            if (activeStore) {
+              const dist = calculateDistanceMeters(latitude, longitude, activeStore.lat, activeStore.lng);
+              const radar = activeStore.geofenceRadius || 100;
+              if (dist <= radar) {
+                setHasArrived(true);
+                setIsNavigating(false);
+                if (window.navigator?.vibrate) {
+                  try { window.navigator.vibrate([150, 100, 250]); } catch (e) {}
+                }
+              }
+            }
+          }
         },
-        (err) => {},
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+        (err) => {
+          console.warn("GPS watch position error:", err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
       );
     }
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     };
-  }, [isOpen]);
+  }, [isOpen, isNavigating, navType, activeStore]);
 
   // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo'
   const [mapLocationMode, setMapLocationMode] = useState("real_phone_gps");
@@ -168,7 +210,12 @@ export default function SellerRouteMapModal({
         { id: "STORE-CUN-04", code: "50PLZ", name: "OXXO Plaza Las Américas", address: "Av. Tulum Sur #260, Cancún", lat: 21.1465, lng: -86.8225, status: "pending", freezersCount: 1, freezerIds: ["FRM-0198"], geofenceRadius: 60 }
       ];
     }
-    if (!isUsingRealPhoneGps) return stores;
+    if (mapLocationMode === "ags_route" || !isUsingRealPhoneGps) return stores;
+
+    // Use stationary initial anchor so destination pins remain 100% fixed while the user walks
+    const anchorLat = initialGpsAnchorRef.current?.lat || phoneGpsLocation?.lat || sellerLat;
+    const anchorLng = initialGpsAnchorRef.current?.lng || phoneGpsLocation?.lng || sellerLng;
+
     const localOffsets = [
       { lat: 0.0032, lng: 0.0038 },   // ~450m NE
       { lat: -0.0041, lng: 0.0052 },  // ~650m SE
@@ -180,11 +227,11 @@ export default function SellerRouteMapModal({
       const offset = localOffsets[idx % localOffsets.length];
       return {
         ...store,
-        lat: sellerLat + offset.lat,
-        lng: sellerLng + offset.lng
+        lat: anchorLat + offset.lat,
+        lng: anchorLng + offset.lng
       };
     });
-  }, [stores, isUsingRealPhoneGps, isCancunMode, sellerLat, sellerLng]);
+  }, [stores, isUsingRealPhoneGps, isCancunMode, mapLocationMode]);
 
   // Switch between Real Phone GPS, Aguascalientes Route, and Cancun Demo modes
   const handleSwitchMode = (newMode) => {
@@ -371,21 +418,27 @@ export default function SellerRouteMapModal({
   const streetDistanceMeters = roadRoute?.distanceMeters || activeStore?.distanceMeters || 900;
   const streetDrivingMinutes = roadRoute?.durationMinutes || Math.max(1, Math.round(streetDistanceMeters / 450));
 
-  // Current car coordinates along route
+  // Current car coordinates: live phone GPS in real navigation, or road route in simulation
   const currentCarCoord = useMemo(() => {
-    if (roadRoute?.coordinates && navProgressIndex > 0 && navProgressIndex < roadRoute.coordinates.length) {
+    // In simulated demo mode, advance along virtual road coordinates
+    if (isNavigating && navType === "simulated" && roadRoute?.coordinates && navProgressIndex > 0 && navProgressIndex < roadRoute.coordinates.length) {
       return roadRoute.coordinates[navProgressIndex];
     }
+    // In real GPS mode or while standing, vehicle marker strictly matches the phone's live GPS
+    if (phoneGpsLocation) {
+      return [phoneGpsLocation.lat, phoneGpsLocation.lng];
+    }
     return [sellerLat, sellerLng];
-  }, [roadRoute, navProgressIndex, sellerLat, sellerLng]);
+  }, [roadRoute, navProgressIndex, isNavigating, navType, phoneGpsLocation, sellerLat, sellerLng]);
 
   // Real-time remaining distance in meters to store
   const liveRemainingMeters = useMemo(() => {
     if (!activeStore) return 0;
     if (hasArrived) return 0;
-    if (!isNavigating && navProgressIndex === 0) return streetDistanceMeters;
-    return Math.round(calculateDistanceMeters(currentCarCoord[0], currentCarCoord[1], activeStore.lat, activeStore.lng));
-  }, [isNavigating, hasArrived, navProgressIndex, currentCarCoord, activeStore, streetDistanceMeters]);
+    const curLat = currentCarCoord[0];
+    const curLng = currentCarCoord[1];
+    return Math.round(calculateDistanceMeters(curLat, curLng, activeStore.lat, activeStore.lng));
+  }, [hasArrived, currentCarCoord, activeStore]);
 
   // Percentage of route covered
   const progressPercent = useMemo(() => {
@@ -658,9 +711,9 @@ export default function SellerRouteMapModal({
     }
   };
 
-  // TRIP NAVIGATION TICKER: Moves car smoothly along street route
+  // TRIP NAVIGATION TICKER: Moves car smoothly along street route (ONLY in simulated demo mode)
   useEffect(() => {
-    if (!isNavigating || isPaused || hasArrived || !roadRoute?.coordinates || roadRoute.coordinates.length < 2) {
+    if (!isNavigating || navType !== "simulated" || isPaused || hasArrived || !roadRoute?.coordinates || roadRoute.coordinates.length < 2) {
       if (navIntervalRef.current) {
         clearInterval(navIntervalRef.current);
         navIntervalRef.current = null;
@@ -729,20 +782,37 @@ export default function SellerRouteMapModal({
         navIntervalRef.current = null;
       }
     };
-  }, [isNavigating, isPaused, hasArrived, roadRoute, navSpeed, activeStore]);
+  }, [isNavigating, navType, isPaused, hasArrived, roadRoute, navSpeed, activeStore]);
 
   // Trip Controls
-  const handleStartNavigation = () => {
-    if (!roadRoute?.coordinates || roadRoute.coordinates.length < 2) return;
+  const handleStartRealGpsNavigation = () => {
     if (activeStore?.id) {
       handleSelectTargetStore(activeStore.id, false);
     }
+    setNavType("real_gps");
     setIsNavigating(true);
     setIsPaused(false);
     setHasArrived(false);
     setNavProgressIndex(0);
 
-    // Zoom camera in on the car
+    // Refresh live satellite coordinates immediately
+    handleGetLivePhoneGps();
+    if (mapInstanceRef.current && phoneGpsLocation) {
+      mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.6 });
+    }
+  };
+
+  const handleStartSimulatedNavigation = () => {
+    if (!roadRoute?.coordinates || roadRoute.coordinates.length < 2) return;
+    if (activeStore?.id) {
+      handleSelectTargetStore(activeStore.id, false);
+    }
+    setNavType("simulated");
+    setIsNavigating(true);
+    setIsPaused(false);
+    setHasArrived(false);
+    setNavProgressIndex(0);
+
     const startCoord = roadRoute.coordinates[0];
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo(startCoord, 17, { duration: 0.8 });
@@ -763,7 +833,8 @@ export default function SellerRouteMapModal({
     setNavProgressIndex(0);
     setHasArrived(false);
     if (carMarkerRef.current) {
-      carMarkerRef.current.setLatLng([sellerLat, sellerLng]);
+      const resetCoord = phoneGpsLocation ? [phoneGpsLocation.lat, phoneGpsLocation.lng] : [sellerLat, sellerLng];
+      carMarkerRef.current.setLatLng(resetCoord);
     }
     if (mapInstanceRef.current) {
       fitMapBounds(mapInstanceRef.current);
@@ -771,18 +842,14 @@ export default function SellerRouteMapModal({
   };
 
   const handleFastForwardArrival = () => {
-    if (!roadRoute?.coordinates) return;
-    const lastIndex = roadRoute.coordinates.length - 1;
-    const destCoord = roadRoute.coordinates[lastIndex];
-    setNavProgressIndex(lastIndex);
-    if (carMarkerRef.current) {
-      carMarkerRef.current.setLatLng(destCoord);
-    }
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo(destCoord, 16, { duration: 0.5 });
-    }
     setHasArrived(true);
     setIsNavigating(false);
+    if (carMarkerRef.current && activeStore) {
+      carMarkerRef.current.setLatLng([activeStore.lat, activeStore.lng]);
+    }
+    if (mapInstanceRef.current && activeStore) {
+      mapInstanceRef.current.flyTo([activeStore.lat, activeStore.lng], 17, { duration: 0.6 });
+    }
   };
 
   // Center on car
@@ -1046,58 +1113,128 @@ export default function SellerRouteMapModal({
               </div>
             ) : isNavigating ? (
               /* B. ACTIVE TRIP NAVIGATION HUD: Real-time progress tracking */
-              <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-xl space-y-3 animate-fade-in">
-                {/* Trip Progress Bar */}
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      Progreso de Ruta: {progressPercent}%
+              navType === "real_gps" ? (
+                /* B1. REAL GPS SATELLITE HUD */
+                <div className="p-4 rounded-[22px] bg-slate-950 text-white border border-emerald-500/40 shadow-2xl space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="font-extrabold text-emerald-400 uppercase tracking-wider text-[11px]">
+                        Navegación GPS en Vivo
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-mono text-[10px] font-bold">
+                      ±{phoneGpsLocation?.accuracy || 4}m satélite
                     </span>
-                    <span className="font-bold text-[#059669] font-mono">
-                      Restan {liveRemainingMeters}m
+                  </div>
+
+                  <div className="flex items-baseline justify-between">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <span className="text-[10px] text-slate-400 block uppercase font-bold truncate">Destino fijado</span>
+                      <h4 className="font-black text-sm text-white line-clamp-1 truncate">{activeStore.name}</h4>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight block">
+                        {liveRemainingMeters}m
+                      </span>
+                      <span className="text-[10px] text-slate-400 block font-medium">distancia real</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px] text-slate-300">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+                      <span className="truncate">Rastreando el movimiento real de tu celular...</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (phoneGpsLocation && mapInstanceRef.current) {
+                          mapInstanceRef.current.panTo([phoneGpsLocation.lat, phoneGpsLocation.lng], { animate: true });
+                        }
+                      }}
+                      className="tap-effect px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/30 text-[10px] shrink-0 ml-2 cursor-pointer"
+                    >
+                      Centrar en mí
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={handleFastForwardArrival}
+                      className="tap-effect flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Forzar Llegada (Dentro de Radar)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleStopNavigation}
+                      className="tap-effect h-9 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer border border-slate-700"
+                    >
+                      Detener
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* B2. SIMULATED VIRTUAL DEMO HUD */
+                <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-xl space-y-3 animate-fade-in">
+                  {/* Trip Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                        Simulación de Ruta: {progressPercent}%
+                      </span>
+                      <span className="font-bold text-[#059669] font-mono">
+                        Restan {liveRemainingMeters}m
+                      </span>
+                    </div>
+                    
+                    {/* Visual Progress Bar */}
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                      <div 
+                        className="h-full bg-gradient-to-r from-emerald-600 to-[#10b981] rounded-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Target Store & Geofence Status */}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                    <div className="leading-snug min-w-0 pr-2">
+                      <h4 className="font-bold text-slate-900 text-sm line-clamp-1 truncate">{activeStore.name}</h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-1 truncate">{activeStore.address}</p>
+                    </div>
+
+                    <span className="shrink-0 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                      Radar: {activeStore.geofenceRadius || 120}m
                     </span>
                   </div>
-                  
-                  {/* Visual Progress Bar */}
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-600 to-[#10b981] rounded-full transition-all duration-300"
-                      style={{ width: `${progressPercent}%` }}
-                    />
+
+                  {/* Action buttons during simulated navigation */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleFastForwardArrival}
+                      className="tap-effect flex-1 h-9 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      <FastForward className="w-3.5 h-3.5" />
+                      <span>Llegar Inmediatamente</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleStopNavigation}
+                      className="tap-effect h-9 px-3 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Detener
+                    </button>
                   </div>
                 </div>
-
-                {/* Target Store & Geofence Status */}
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                  <div className="leading-snug">
-                    <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{activeStore.name}</h4>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">{activeStore.address}</p>
-                  </div>
-
-                  <span className="shrink-0 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                    Radar: {activeStore.geofenceRadius || 120}m
-                  </span>
-                </div>
-
-                {/* Action buttons during navigation */}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={handleFastForwardArrival}
-                    className="tap-effect flex-1 h-9 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    <FastForward className="w-3.5 h-3.5" />
-                    <span>Llegar Inmediatamente</span>
-                  </button>
-
-                  <button
-                    onClick={handleStopNavigation}
-                    className="tap-effect h-9 px-3 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    Detener
-                  </button>
-                </div>
-              </div>
+              )
             ) : (
               /* C. DEFAULT PRE-TRIP HUD: Overview & Iniciar Viaje Button */
               <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-xl space-y-3">
@@ -1152,7 +1289,7 @@ export default function SellerRouteMapModal({
                     </div>
                     <p className="text-xs text-slate-500 line-clamp-1">
                       {isUsingRealPhoneGps 
-                        ? `A ${Math.round(activeStore.distanceMeters)}m de tu ubicación • Simulación en tu zona` 
+                        ? `A ${Math.round(activeStore.distanceMeters)}m de tu ubicación real (GPS)` 
                         : activeStore.address}
                     </p>
                   </div>
@@ -1189,44 +1326,62 @@ export default function SellerRouteMapModal({
                   ))}
                 </div>
 
-                {/* Action Buttons: 1) Iniciar Viaje (Primary) | 2) Iniciar Visita | 3) Planograma */}
-                <div className="pt-2 flex items-center gap-2 border-t border-slate-100">
-                  {/* Botón Principal: Iniciar Viaje */}
-                  <button
-                    onClick={handleStartNavigation}
-                    disabled={isLoadingRoute}
-                    className="tap-effect flex-1 h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-[#059669] text-white text-xs font-extrabold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-md hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50"
-                  >
-                    <Navigation className="w-4 h-4 -rotate-45 stroke-[2.5] animate-pulse" />
-                    <span>Iniciar Viaje</span>
-                  </button>
-
-                  {/* Botón Visitar directo */}
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onSelectStore(activeStore);
-                    }}
-                    className="tap-effect h-10 px-3 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
-                    title="Registrar o ver detalle de visita"
-                  >
-                    <span>Visitar</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Planogram Shortcut if has freezer */}
-                  {activeStore.freezersCount > 0 && (
+                {/* Action Buttons: 1) Iniciar Viaje GPS Real | 2) Simular Recorrido | 3) Visitar */}
+                <div className="pt-2 flex flex-col gap-2 border-t border-slate-100">
+                  <div className="flex items-center gap-2">
+                    {/* Botón Principal: Navegación GPS Real */}
                     <button
+                      type="button"
+                      onClick={handleStartRealGpsNavigation}
+                      className="tap-effect flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-700 text-white text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:brightness-110 active:scale-98"
+                    >
+                      <Navigation className="w-4 h-4 -rotate-45 stroke-[2.5] animate-pulse" />
+                      <span>Iniciar Viaje (GPS Real en Vivo)</span>
+                    </button>
+
+                    {/* Botón Simular Virtual (Demo) */}
+                    <button
+                      type="button"
+                      onClick={handleStartSimulatedNavigation}
+                      disabled={isLoadingRoute}
+                      className="tap-effect h-11 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                      title="Simular recorrido virtual de la ruta"
+                    >
+                      <FastForward className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">Simular</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Botón Visitar directo */}
+                    <button
+                      type="button"
                       onClick={() => {
                         onClose();
-                        onOpenPlanogram(activeStore.freezerIds[0]);
+                        onSelectStore(activeStore);
                       }}
-                      className="tap-effect h-10 px-2.5 rounded-xl bg-emerald-50 text-[#059669] border border-emerald-300 text-xs font-semibold flex items-center gap-1 hover:bg-emerald-100 transition cursor-pointer"
-                      title="Auditar Planograma de Congelador"
+                      className="tap-effect flex-1 h-9 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
                     >
-                      <Snowflake className="w-3.5 h-3.5" />
+                      <span>Entrar a Tienda</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
-                  )}
+
+                    {/* Planogram Shortcut if has freezer */}
+                    {activeStore.freezersCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onOpenPlanogram(activeStore.freezerIds[0]);
+                        }}
+                        className="tap-effect h-9 px-3 rounded-xl bg-emerald-50 text-[#059669] border border-emerald-300 text-xs font-semibold flex items-center gap-1 hover:bg-emerald-100 transition cursor-pointer"
+                        title="Auditar Planograma de Congelador"
+                      >
+                        <Snowflake className="w-3.5 h-3.5" />
+                        <span>Planograma</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
