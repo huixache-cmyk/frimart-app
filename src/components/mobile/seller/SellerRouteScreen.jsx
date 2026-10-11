@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Search, 
   MapPin, 
@@ -29,10 +29,19 @@ export default function SellerRouteScreen({
   onOpenPlanogramForFreezer,
   onOpenQuickSale,
   onOpenScanner,
-  onOpenMap
+  onOpenMap,
+  selectedRouteFilter = "all",
+  onSelectRouteFilter
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'pending' | 'in_progress' | 'completed'
+  const [routeFilter, setRouteFilter] = useState(selectedRouteFilter || "all");
+
+  useEffect(() => {
+    if (selectedRouteFilter) {
+      setRouteFilter(selectedRouteFilter);
+    }
+  }, [selectedRouteFilter]);
 
   // Current target store synchronized across Map and Route list
   const currentTargetStore = useMemo(() => {
@@ -43,7 +52,7 @@ export default function SellerRouteScreen({
   const percentSales = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
   const estimatedCommission = Math.round(goal.currentAmount * goal.commissionRate);
 
-  // Filter stores based on search and status
+  // Filter stores based on search, status, and route
   const filteredStores = useMemo(() => {
     return stores.filter((store) => {
       const matchesSearch = 
@@ -56,9 +65,13 @@ export default function SellerRouteScreen({
       if (statusFilter === "in_progress") return store.status === "in_progress";
       if (statusFilter === "completed") return store.status === "completed";
 
+      if (routeFilter !== "all") {
+        if (store.routeId && store.routeId !== routeFilter) return false;
+      }
+
       return true;
     });
-  }, [stores, searchTerm, statusFilter]);
+  }, [stores, searchTerm, statusFilter, routeFilter]);
 
   // Status counts for buttons
   const counts = {
@@ -247,6 +260,34 @@ export default function SellerRouteScreen({
         </div>
       )}
 
+      {/* 4.5. Selector de Rutas de Campo Aguascalientes */}
+      <div className="px-4 mb-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          {[
+            { id: "all", label: "Todas las Rutas Ags", count: stores.length },
+            { id: "RUTA-01", label: "Ruta 01 • Juan Pablo Morales", count: stores.filter(s => s.routeId === "RUTA-01").length },
+            { id: "RUTA-02", label: "Ruta 02 • Carlos Estrada", count: stores.filter(s => s.routeId === "RUTA-02").length },
+            { id: "RUTA-03", label: "Ruta 03 • María Elena", count: stores.filter(s => s.routeId === "RUTA-03").length }
+          ].map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => {
+                setRouteFilter(r.id);
+                onSelectRouteFilter?.(r.id);
+              }}
+              className={`tap-effect px-3 py-1.5 rounded-full font-bold whitespace-nowrap border text-xs transition cursor-pointer shadow-2xs ${
+                routeFilter === r.id
+                  ? "bg-sky-900 text-white border-sky-900 ring-2 ring-sky-900/20"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {r.label} ({r.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 5. Well-Defined Store Cards with 16px Flexbox Gap */}
       <div className="px-4 flex flex-col gap-4" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {filteredStores.map((store) => {
@@ -262,7 +303,7 @@ export default function SellerRouteScreen({
 
           return (
             <div 
-              key={store.id}
+              key={store.id} 
               className={`p-4 rounded-[22px] transition-all duration-200 space-y-3 ${
                 isCurrentTarget
                   ? "bg-gradient-to-b from-emerald-50/60 via-white to-white border-2 border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
@@ -298,6 +339,16 @@ export default function SellerRouteScreen({
                       {store.name}
                     </h3>
                   </div>
+
+                  {/* Route & Vendor badge */}
+                  {(store.routeName || store.vendorName) && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200">
+                        {store.routeName || "Ruta Ags"} • {store.vendorName || "Vendedor Asignado"}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2">
                     {store.address}
                   </p>

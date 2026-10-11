@@ -17,17 +17,31 @@ import {
   Square,
   Award,
   Truck,
-  ShieldCheck
+  ShieldCheck,
+  QrCode,
+  Store,
+  Layers,
+  MapPin,
+  Users,
+  PlusCircle
 } from "lucide-react";
+import NewStoreOnboardingModal from "../../supervisor/NewStoreOnboardingModal";
 
 export default function SellerProfileScreen({
+  currentUser,
   seller,
   storesCount = 7,
   freezersCount = 3,
   onUpdateSeller,
-  onLockSession
+  onLockSession,
+  onOpenBatchGenerator,
+  onAddNewStore,
+  stores = []
 }) {
-  const [modalType, setModalType] = useState(null); // 'supervisor_contact' | 'cold_protocol' | 'account_settings' | 'shift_confirm'
+  const isSupervisor = currentUser?.role === "supervisor";
+
+  const [modalType, setModalType] = useState(null); // 'supervisor_contact' | 'cold_protocol' | 'account_settings'
+  const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
   
   // Shift state persisted in localStorage
   const [isShiftActive, setIsShiftActive] = useState(() => {
@@ -42,7 +56,10 @@ export default function SellerProfileScreen({
   // Toggle Shift Handler
   const handleToggleShift = () => {
     if (isShiftActive) {
-      if (confirm("¿Deseas finalizar tu turno de ruta de hoy? Se registrará el cierre de jornada y el resumen de visitas en el CEDIS.")) {
+      const promptMsg = isSupervisor 
+        ? "¿Deseas finalizar tu turno de supervisión de campo de hoy? Se guardará el reporte operativo en el CEDIS Aguascalientes."
+        : "¿Deseas finalizar tu turno de ruta de hoy? Se registrará el cierre de jornada y el resumen de visitas en el CEDIS.";
+      if (confirm(promptMsg)) {
         setIsShiftActive(false);
         localStorage.setItem("frimart_shift_active", "false");
         alert("Turno finalizado con éxito. Jornada cerrada.");
@@ -54,7 +71,7 @@ export default function SellerProfileScreen({
       setShiftStartTime(timeStr);
       localStorage.setItem("frimart_shift_active", "true");
       localStorage.setItem("frimart_shift_start", timeStr);
-      alert(`¡Turno iniciado a las ${timeStr}! Buen viaje en tu ruta.`);
+      alert(`¡Turno iniciado a las ${timeStr}! Buen viaje en tu jornada.`);
     }
   };
 
@@ -66,10 +83,14 @@ export default function SellerProfileScreen({
       reader.onload = (event) => {
         const newAvatarUrl = event.target?.result;
         if (newAvatarUrl && onUpdateSeller) {
-          const updated = { ...seller, avatar: newAvatarUrl };
+          const targetObj = isSupervisor ? currentUser : seller;
+          const updated = { ...targetObj, avatar: newAvatarUrl };
           onUpdateSeller(updated);
           try {
             localStorage.setItem("frimart_seller", JSON.stringify(updated));
+            if (isSupervisor) {
+              localStorage.setItem("frimart_active_session", JSON.stringify(updated));
+            }
           } catch (err) {}
           alert("¡Foto de perfil actualizada con éxito!");
         }
@@ -80,33 +101,43 @@ export default function SellerProfileScreen({
 
   // Default avatars to choose from
   const AVATAR_OPTIONS = [
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
     "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
     "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80"
   ];
 
   const handleSelectPredefinedAvatar = (url) => {
     if (onUpdateSeller) {
-      const updated = { ...seller, avatar: url };
+      const targetObj = isSupervisor ? currentUser : seller;
+      const updated = { ...targetObj, avatar: url };
       onUpdateSeller(updated);
       try {
         localStorage.setItem("frimart_seller", JSON.stringify(updated));
+        if (isSupervisor) {
+          localStorage.setItem("frimart_active_session", JSON.stringify(updated));
+        }
       } catch (err) {}
       alert("Foto de perfil actualizada.");
     }
   };
 
+  // Active display profile info
+  const profileName = isSupervisor ? (currentUser?.name || "Ing. Roberto Almanza") : seller.name;
+  const profileAvatar = isSupervisor ? (currentUser?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80") : seller.avatar;
+  const profileSubtitle = isSupervisor ? "Supervisor de Rutas y Operaciones Frimart" : seller.route;
+  const profileCedis = isSupervisor ? (currentUser?.cedisName || "CEDIS Aguascalientes (1205)") : seller.cedis;
+
   return (
-    <div className="pb-32 bg-white min-h-screen font-sans">
+    <div className="pb-32 bg-white min-h-screen font-sans animate-fade-in">
       {/* 1. Header */}
       <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-slate-100">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Perfil de Vendedor
+            {isSupervisor ? "Perfil de Supervisor" : "Perfil de Vendedor"}
           </h1>
           <p className="text-xs text-slate-500 font-medium">
-            Panel Operativo de Ruta Frimart
+            {isSupervisor ? "Panel de Supervisión y Mando Operativo Ags" : "Panel Operativo de Ruta Frimart"}
           </p>
         </div>
 
@@ -126,13 +157,13 @@ export default function SellerProfileScreen({
         <div className="relative flex items-center gap-3.5 p-4 rounded-3xl bg-slate-50 border border-slate-200/80 shadow-xs">
           <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-emerald-500/40 shrink-0 group">
             <img 
-              src={seller.avatar} 
-              alt={seller.name} 
+              src={profileAvatar} 
+              alt={profileName} 
               className="w-full h-full object-cover" 
             />
             <button
               onClick={() => setModalType("account_settings")}
-              className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+              className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white cursor-pointer"
               title="Cambiar foto de perfil"
             >
               <Camera className="w-5 h-5" />
@@ -142,51 +173,86 @@ export default function SellerProfileScreen({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <h2 className="font-extrabold text-slate-900 text-base truncate">
-                {seller.name}
+                {profileName}
               </h2>
             </div>
-            <p className="text-xs text-slate-500 font-medium truncate">{seller.route}</p>
+            <p className="text-xs text-slate-500 font-medium truncate">{profileSubtitle}</p>
             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
-                {seller.cedis}
+                {profileCedis}
               </span>
               <span className="text-[11px] text-slate-400 font-medium">
-                • {storesCount} Tiendas Asignadas
+                {isSupervisor 
+                  ? "• 3 Vendedores Asignados"
+                  : `• ${storesCount} Tiendas Asignadas`
+                }
               </span>
             </div>
           </div>
         </div>
 
-        {/* 3. Monthly Sales & Commission Performance */}
-        <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-md space-y-3 relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="px-2.5 py-0.5 rounded-full bg-slate-950/40 text-emerald-200 text-[10px] font-black tracking-wider uppercase border border-white/20">
-              MES EN CURSO
-            </span>
-            <div className="flex items-center gap-1 text-[11px] text-emerald-100 font-medium">
-              <Award className="w-3.5 h-3.5 text-amber-300" />
-              <span>Rendimiento Oro</span>
+        {/* 3. Performance Banner */}
+        {isSupervisor ? (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-sky-900 via-slate-900 to-slate-950 text-white shadow-md space-y-3 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-sky-200 text-[10px] font-black tracking-wider uppercase border border-white/20">
+                SUPERVISIÓN AGUASCALIENTES
+              </span>
+              <div className="flex items-center gap-1 text-[11px] text-sky-200 font-medium">
+                <Users className="w-3.5 h-3.5 text-sky-300" />
+                <span>3 Rutas de Campo Activas</span>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-2xl font-black font-mono">
+                $92,950.00 MXN
+              </div>
+              <p className="text-xs text-sky-200/90 mt-0.5">
+                Venta acumulada del equipo hoy en Zona Aguascalientes.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-white/20 text-xs">
+              <span className="text-sky-200">
+                Meta de Zona: <strong>80.1% alcanzado</strong>
+              </span>
+              <span className="text-white font-bold">
+                347 cajas entregadas
+              </span>
             </div>
           </div>
-
-          <div>
-            <div className="text-2xl font-black font-mono">
-              $18,450.00 MXN
+        ) : (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-md space-y-3 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-950/40 text-emerald-200 text-[10px] font-black tracking-wider uppercase border border-white/20">
+                MES EN CURSO
+              </span>
+              <div className="flex items-center gap-1 text-[11px] text-emerald-100 font-medium">
+                <Award className="w-3.5 h-3.5 text-amber-300" />
+                <span>Rendimiento Oro</span>
+              </div>
             </div>
-            <p className="text-xs text-emerald-100/90 mt-0.5">
-              Comisión acumulada del mes por colocación y resurtido en ruta.
-            </p>
-          </div>
 
-          <div className="pt-2 flex items-center justify-between border-t border-white/20 text-xs">
-            <span className="text-emerald-200">
-              Cumplimiento: <strong>94% de cuota</strong>
-            </span>
-            <span className="text-white font-bold">
-              342 cajas entregadas
-            </span>
+            <div>
+              <div className="text-2xl font-black font-mono">
+                $18,450.00 MXN
+              </div>
+              <p className="text-xs text-emerald-100/90 mt-0.5">
+                Comisión acumulada del mes por colocación y resurtido en ruta.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-white/20 text-xs">
+              <span className="text-emerald-200">
+                Cumplimiento: <strong>94% de cuota</strong>
+              </span>
+              <span className="text-white font-bold">
+                342 cajas entregadas
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 4. Shift Management Card (OPCIÓN 1: INICIAR / FINALIZAR TURNO) */}
         <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-3">
@@ -199,7 +265,10 @@ export default function SellerProfileScreen({
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-900">
-                  {isShiftActive ? "Turno de Ruta Activo" : "Turno Fuera de Servicio"}
+                  {isShiftActive 
+                    ? (isSupervisor ? "Turno de Supervisión Activo" : "Turno de Ruta Activo") 
+                    : (isSupervisor ? "Supervisión Fuera de Servicio" : "Turno Fuera de Servicio")
+                  }
                 </h3>
                 <p className="text-[11px] text-slate-500 font-medium">
                   {isShiftActive ? `Iniciado a las ${shiftStartTime}` : "Jornada laboral no iniciada"}
@@ -227,21 +296,21 @@ export default function SellerProfileScreen({
             {isShiftActive ? (
               <>
                 <Square className="w-3.5 h-3.5 fill-current" />
-                <span>Finalizar Turno de Ruta</span>
+                <span>{isSupervisor ? "Finalizar Turno de Supervisión" : "Finalizar Turno de Ruta"}</span>
               </>
             ) : (
               <>
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Iniciar Turno de Ruta</span>
+                <span>{isSupervisor ? "Iniciar Turno de Supervisión" : "Iniciar Turno de Ruta"}</span>
               </>
             )}
           </button>
         </div>
 
-        {/* 5. MENÚ OFICIAL EXCLUSIVO DEL VENDEDOR (4 OPCIONES RESTANTES) */}
+        {/* 5. MENÚ OFICIAL SEGÚN ROL */}
         <div className="rounded-3xl bg-white border border-slate-200 shadow-xs divide-y divide-slate-100 overflow-hidden">
           
-          {/* OPCIÓN 2: CONTACTO CON SUPERVISOR DE RUTA */}
+          {/* OPCIÓN 2: CONTACTO CON SUPERVISOR / EQUIPO DE RUTA */}
           <button
             onClick={() => setModalType("supervisor_contact")}
             className="tap-effect w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 transition cursor-pointer group"
@@ -252,10 +321,13 @@ export default function SellerProfileScreen({
               </div>
               <div>
                 <span className="text-sm font-bold text-slate-800 group-hover:text-slate-900 block leading-tight">
-                  Contacto con Supervisor de Ruta
+                  {isSupervisor ? "Contacto y Canales de Equipo" : "Contacto con Supervisor de Ruta"}
                 </span>
                 <span className="text-[11px] text-slate-400 block mt-0.5">
-                  WhatsApp y llamada directa con Ing. Roberto Almanza
+                  {isSupervisor 
+                    ? "Comunicación directa con vendedores a cargo y CEDIS"
+                    : "WhatsApp y llamada directa con Ing. Roberto Almanza"
+                  }
                 </span>
               </div>
             </div>
@@ -297,14 +369,71 @@ export default function SellerProfileScreen({
                   Configurar Cuenta (Foto de Perfil)
                 </span>
                 <span className="text-[11px] text-slate-400 block mt-0.5">
-                  Actualizar fotografía, datos de vendedor y unidad
+                  Actualizar fotografía, datos operativos y dispositivo
                 </span>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition" />
           </button>
 
-          {/* OPCIÓN 5: CERRAR SESIÓN / CAMBIAR PIN */}
+          {/* OPCIONES EXCLUSIVAS DEL PERFIL DE SUPERVISOR */}
+          {isSupervisor && (
+            <>
+              {/* OPCIÓN 5 (SUPERVISOR): STICKER QR */}
+              <button
+                onClick={() => onOpenBatchGenerator?.()}
+                className="tap-effect w-full p-4 flex items-center justify-between text-left hover:bg-slate-50 transition cursor-pointer group bg-slate-50/40"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-100">
+                    <QrCode className="w-4 h-4 stroke-[2]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-800 group-hover:text-slate-900 block leading-tight">
+                        Sticker QR (Lote de Stickers)
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[9px] font-extrabold uppercase">
+                        Supervisor
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Generador e impresión de stickers metálicos para congeladores
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition" />
+              </button>
+
+              {/* OPCIÓN 6 (SUPERVISOR): NUEVO PUNTO DE VENTA */}
+              <button
+                onClick={() => setIsNewStoreModalOpen(true)}
+                className="tap-effect w-full p-4 flex items-center justify-between text-left hover:bg-emerald-50/50 transition cursor-pointer group bg-emerald-50/20"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Store className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-emerald-950 group-hover:text-emerald-700 block leading-tight">
+                        Nuevo Punto de Venta
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold uppercase">
+                        Nuevo
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-emerald-700/80 block mt-0.5">
+                      Alta con GPS en vivo, asignación de ruta, CEDIS, vendedor y congelador
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-600 group-hover:text-emerald-800 transition" />
+              </button>
+            </>
+          )}
+
+          {/* OPCIÓN: CERRAR SESIÓN / SALIR */}
           <button
             onClick={() => {
               if (confirm("¿Deseas cerrar sesión en este dispositivo?")) {
@@ -340,70 +469,164 @@ export default function SellerProfileScreen({
         className="hidden"
       />
 
-      {/* MODAL 1: CONTACTO CON SUPERVISOR DE RUTA */}
+      {/* MODAL 1: CONTACTO SEGÚN ROL */}
       {modalType === "supervisor_contact" && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-fade-in p-2 sm:p-4">
-          <div className="w-full max-w-md mx-auto p-5 bg-white rounded-[28px] shadow-2xl space-y-4 animate-sheet-up">
+          <div className="w-full max-w-md mx-auto p-5 bg-white rounded-[28px] shadow-2xl space-y-4 animate-sheet-up max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-slate-900">Supervisor de Ruta</h3>
-                  <p className="text-[11px] text-slate-500">Ruta 01 • CEDIS Aguascalientes</p>
+                  <h3 className="font-bold text-base text-slate-900">
+                    {isSupervisor ? "Canales Directos con Vendedores" : "Supervisor de Ruta"}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {isSupervisor ? "Equipo de Campo • CEDIS Aguascalientes" : "Ruta 01 • CEDIS Aguascalientes"}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
+              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Supervisor Profile Card */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-emerald-700 text-white font-extrabold flex items-center justify-center text-sm shrink-0">
-                RA
+            {isSupervisor ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-600">
+                  Llamada directa o WhatsApp con los vendedores de tu zona:
+                </p>
+
+                {/* Vendedor 1 */}
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">Juan Pablo Morales</h4>
+                    <p className="text-[10px] text-slate-500">Ruta 01 - Ags Norte & Pocitos</p>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold">449-123-4567</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href="https://wa.me/524491234567?text=Hola%20Juan%20Pablo,%20te%20contacto%20desde%20la%20supervisi%C3%B3n."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 rounded-xl bg-[#25D366] text-white"
+                      title="WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 fill-white" />
+                    </a>
+                    <a
+                      href="tel:+524491234567"
+                      className="p-2 rounded-xl bg-slate-200 text-slate-700"
+                      title="Llamar"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Vendedor 2 */}
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">Carlos Estrada Rincón</h4>
+                    <p className="text-[10px] text-slate-500">Ruta 02 - Ags Centro & San Marcos</p>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold">449-234-5678</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href="https://wa.me/524492345678?text=Hola%20Carlos,%20te%20contacto%20desde%20la%20supervisi%C3%B3n."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 rounded-xl bg-[#25D366] text-white"
+                      title="WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 fill-white" />
+                    </a>
+                    <a
+                      href="tel:+524492345678"
+                      className="p-2 rounded-xl bg-slate-200 text-slate-700"
+                      title="Llamar"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Vendedor 3 */}
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">María Elena Delgado</h4>
+                    <p className="text-[10px] text-slate-500">Ruta 03 - Ags Sur & Cd. Industrial</p>
+                    <span className="text-[10px] font-mono text-emerald-600 font-bold">449-345-6789</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href="https://wa.me/524493456789?text=Hola%20Elena,%20te%20contacto%20desde%20la%20supervisi%C3%B3n."
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 rounded-xl bg-[#25D366] text-white"
+                      title="WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 fill-white" />
+                    </a>
+                    <a
+                      href="tel:+524493456789"
+                      className="p-2 rounded-xl bg-slate-200 text-slate-700"
+                      title="Llamar"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+
+                <a
+                  href="tel:+524499101205"
+                  className="tap-effect w-full py-2.5 px-4 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Conmutador CEDIS Aguascalientes (1205)</span>
+                </a>
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-slate-900 truncate">Ing. Roberto Almanza</h4>
-                <p className="text-xs text-slate-500 font-medium">Supervisor Operativo y Logística Ags</p>
-                <span className="inline-block px-2 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold mt-1">
-                  En Turno • Disponible
-                </span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-emerald-700 text-white font-extrabold flex items-center justify-center text-sm shrink-0">
+                    RA
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm text-slate-900 truncate">Ing. Roberto Almanza</h4>
+                    <p className="text-xs text-slate-500 font-medium">Supervisor Operativo y Logística Ags</p>
+                    <span className="inline-block px-2 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold mt-1">
+                      En Turno • Disponible
+                    </span>
+                  </div>
+                </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Comunícate para reporte de congeladores sin frío, pedidos urgentes de tienda o ajustes de inventario.
-            </p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Comunícate para reporte de congeladores sin frío, pedidos urgentes de tienda o ajustes de inventario.
+                </p>
 
-            <div className="space-y-2 pt-1">
-              <a
-                href="https://wa.me/524491234567?text=Hola%20Roberto,%20soy%20Juan%20Pablo%20Morales%20de%20la%20Ruta%2001%20Aguascalientes.%20Requiero%20apoyo%20con%20mi%20ruta."
-                target="_blank"
-                rel="noreferrer"
-                className="tap-effect w-full py-3.5 px-4 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#20ba59] transition cursor-pointer shadow-sm"
-              >
-                <MessageCircle className="w-4 h-4 fill-white" />
-                <span>Enviar WhatsApp (+52 449 123 4567)</span>
-              </a>
+                <div className="space-y-2 pt-1">
+                  <a
+                    href="https://wa.me/524491234567?text=Hola%20Roberto,%20soy%20Juan%20Pablo%20Morales%20de%20la%20Ruta%2001%20Aguascalientes.%20Requiero%20apoyo%20con%20mi%20ruta."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="tap-effect w-full py-3.5 px-4 rounded-xl bg-[#25D366] text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#20ba59] transition cursor-pointer shadow-sm"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-white" />
+                    <span>Enviar WhatsApp (+52 449 123 4567)</span>
+                  </a>
 
-              <a
-                href="tel:+524491234567"
-                className="tap-effect w-full py-3 px-4 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition cursor-pointer border border-slate-200"
-              >
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span>Llamar al Supervisor Directo</span>
-              </a>
-
-              <a
-                href="tel:+524499101205"
-                className="tap-effect w-full py-2.5 px-4 rounded-xl bg-slate-50 text-slate-600 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <Phone className="w-3.5 h-3.5 text-slate-400" />
-                <span>Despacho CEDIS Aguascalientes (1205)</span>
-              </a>
-            </div>
+                  <a
+                    href="tel:+524491234567"
+                    className="tap-effect w-full py-3 px-4 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-200 transition cursor-pointer border border-slate-200"
+                  >
+                    <Phone className="w-4 h-4 text-emerald-600" />
+                    <span>Llamar al Supervisor Directo</span>
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -422,7 +645,7 @@ export default function SellerProfileScreen({
                   <p className="text-[11px] text-slate-500">Estándar de Calidad La Huerta IQF</p>
                 </div>
               </div>
-              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
+              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -473,10 +696,12 @@ export default function SellerProfileScreen({
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-slate-900">Configuración de Cuenta</h3>
-                  <p className="text-[11px] text-slate-500">Fotografía y ficha técnica de vendedor</p>
+                  <p className="text-[11px] text-slate-500">
+                    {isSupervisor ? "Ficha técnica de Supervisor de Zona" : "Fotografía y ficha técnica de vendedor"}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
+              <button onClick={() => setModalType(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -485,8 +710,8 @@ export default function SellerProfileScreen({
             <div className="flex flex-col items-center py-2 space-y-3">
               <div className="relative w-24 h-24 rounded-3xl overflow-hidden ring-4 ring-emerald-500/30 shadow-md">
                 <img 
-                  src={seller.avatar} 
-                  alt={seller.name} 
+                  src={profileAvatar} 
+                  alt={profileName} 
                   className="w-full h-full object-cover" 
                 />
               </div>
@@ -512,7 +737,7 @@ export default function SellerProfileScreen({
                       type="button"
                       onClick={() => handleSelectPredefinedAvatar(url)}
                       className={`w-10 h-10 rounded-xl overflow-hidden border-2 transition cursor-pointer ${
-                        seller.avatar === url ? "border-emerald-500 ring-2 ring-emerald-400/40" : "border-slate-200 hover:border-slate-400"
+                        profileAvatar === url ? "border-emerald-500 ring-2 ring-emerald-400/40" : "border-slate-200 hover:border-slate-400"
                       }`}
                     >
                       <img src={url} alt={`Avatar ${idx}`} className="w-full h-full object-cover" />
@@ -526,15 +751,21 @@ export default function SellerProfileScreen({
             <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500">No. Empleado:</span>
-                <span className="font-bold text-slate-900 font-mono">VND-1041</span>
+                <span className="font-bold text-slate-900 font-mono">
+                  {isSupervisor ? "SUP-2022" : "VND-1041"}
+                </span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-slate-500">Unidad de Reparto:</span>
-                <span className="font-bold text-slate-900">Camioneta Isuzu ELF 200 (AG-8921-C)</span>
+                <span className="text-slate-500">Unidad / Cargo:</span>
+                <span className="font-bold text-slate-900">
+                  {isSupervisor ? "Mando Operativo & Supervisión Ags" : "Camioneta Isuzu ELF 200 (AG-8921-C)"}
+                </span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-slate-500">Teléfono Registrado:</span>
-                <span className="font-bold text-slate-900 font-mono">+52 449 987 6543</span>
+                <span className="text-slate-500">CEDIS Base:</span>
+                <span className="font-bold text-slate-900 font-mono">
+                  CEDIS Aguascalientes (1205)
+                </span>
               </div>
             </div>
 
@@ -547,6 +778,17 @@ export default function SellerProfileScreen({
           </div>
         </div>
       )}
+
+      {/* VISTA NUEVA EXCLUSIVA DE SUPERVISOR: NUEVO PUNTO DE VENTA */}
+      <NewStoreOnboardingModal
+        isOpen={isNewStoreModalOpen}
+        onClose={() => setIsNewStoreModalOpen(false)}
+        onSave={(newStore, newFreezer) => {
+          onAddNewStore?.(newStore, newFreezer);
+          setIsNewStoreModalOpen(false);
+        }}
+        existingStores={stores}
+      />
     </div>
   );
 }

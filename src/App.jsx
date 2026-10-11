@@ -32,6 +32,7 @@ import QRBatchGenerator from "./components/QRBatchGenerator";
 import SupervisorConsole from "./components/SupervisorConsole";
 import AdminCatalogManager from "./components/AdminCatalogManager";
 import PwaInstallBanner from "./components/mobile/PwaInstallBanner";
+import NewStoreOnboardingModal from "./components/supervisor/NewStoreOnboardingModal";
 
 // Data & Governance
 import { 
@@ -73,7 +74,8 @@ import {
   BarChart3,
   Database,
   ShieldCheck,
-  Compass
+  Compass,
+  Store
 } from "lucide-react";
 
 export default function App() {
@@ -122,7 +124,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.some(s => s.address?.includes("Cancún") || s.name?.includes("Nichupté"))) {
+        if (parsed.some(s => s.address?.includes("Cancún") || s.name?.includes("Nichupté") || !s.routeId)) {
           localStorage.setItem("frimart_stores", JSON.stringify(INITIAL_STORES));
           return INITIAL_STORES;
         }
@@ -157,6 +159,32 @@ export default function App() {
   // Quick Sale Sheet
   const [isQuickSaleOpen, setIsQuickSaleOpen] = useState(false);
   const [quickSaleStore, setQuickSaleStore] = useState(null);
+
+  // Supervisor & Route Filters
+  const [selectedRouteFilter, setSelectedRouteFilter] = useState("all");
+  const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
+
+  const handleAddNewStore = (newStoreData, newFreezerData) => {
+    if (newStoreData) {
+      setStores((prev) => {
+        const updated = [newStoreData, ...prev];
+        try {
+          localStorage.setItem("frimart_stores", JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+    if (newFreezerData) {
+      setFreezers((prev) => {
+        const updated = [newFreezerData, ...prev];
+        try {
+          localStorage.setItem("frimart_freezers", JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+    showToast(`¡Punto de Venta "${newStoreData?.name}" registrado con éxito!`, "success", Store);
+  };
 
   // Route Map Interactive In-App Modal & Persistent Target Store
   const [activeTargetStoreId, setActiveTargetStoreId] = useState(() => {
@@ -473,6 +501,11 @@ export default function App() {
                 setSelectedFreezerId(fId);
                 setActiveTab("congeladores");
               }}
+              onNavigateToRoute={(routeId) => {
+                setSelectedRouteFilter(routeId);
+                setActiveTab("ruta");
+              }}
+              onOpenNewStoreModal={() => setIsNewStoreModalOpen(true)}
             />
           )}
 
@@ -540,6 +573,8 @@ export default function App() {
               }}
               onOpenScanner={() => setIsScannerOpen(true)}
               onOpenMap={handleOpenRouteMap}
+              selectedRouteFilter={selectedRouteFilter}
+              onSelectRouteFilter={setSelectedRouteFilter}
             />
           )}
 
@@ -576,14 +611,18 @@ export default function App() {
             />
           )}
 
-          {/* PERFIL */}
+          {/* PERFIL (VENDEDOR & SUPERVISOR) */}
           {activeTab === "perfil" && (
             <SellerProfileScreen
+              currentUser={currentUser}
               seller={seller}
               storesCount={stores.length}
               freezersCount={freezers.length}
               onUpdateSeller={setSeller}
               onLockSession={handleLockSession}
+              onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
+              onAddNewStore={handleAddNewStore}
+              stores={stores}
             />
           )}
         </main>
@@ -772,7 +811,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="font-section-title text-[#0f172a]">Consola de Supervisión</h3>
-                    <p className="text-[11px] text-slate-500">Telemetría y rutas en Cancún</p>
+                    <p className="text-[11px] text-slate-500">Telemetría y rutas en Aguascalientes</p>
                   </div>
                 </div>
                 <button 
@@ -835,7 +874,7 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="font-section-title text-[#0f172a]">Avisos de Ruta</h3>
-                    <p className="text-[11px] text-slate-500">Alertas operativas de congeladores</p>
+                    <p className="text-[11px] text-slate-500">Alertas operativas de congeladores Ags</p>
                   </div>
                 </div>
                 <button 
@@ -857,7 +896,7 @@ export default function App() {
                       <span className="text-[10px] text-rose-600 font-bold">Hace 15 min</span>
                     </div>
                     <p className="text-xs text-rose-700 mt-1">
-                      El congelador <strong className="font-mono">FRM-0089</strong> en Oxxo Nichupté tiene solo 2 piezas de Brócoli Florete. Se requiere resurtido prioritario hoy.
+                      El congelador <strong className="font-mono">FRM-0089</strong> en Cremería Nueva Benjamín de Alba tiene solo 2 piezas de Brócoli La Huerta. Se requiere resurtido prioritario hoy.
                     </p>
                   </div>
                 </div>
@@ -868,11 +907,11 @@ export default function App() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-900">CEDI Cancún Abastecido</span>
+                      <span className="font-bold text-xs text-slate-900">CEDIS Aguascalientes (1205) Abastecido</span>
                       <span className="text-[10px] text-slate-400">Hoy 06:45 AM</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">
-                      Llegó embarque con 400 cajas de Franuí Pink y Alitas Buffalo Pilgrim's disponibles para entrega inmediata.
+                      Llegó embarque con 400 cajas de Franuí Pink y Mezcla California La Huerta disponibles para entrega inmediata.
                     </p>
                   </div>
                 </div>
@@ -887,6 +926,14 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Modal Global de Alta de Nuevo Punto de Venta */}
+        <NewStoreOnboardingModal
+          isOpen={isNewStoreModalOpen}
+          onClose={() => setIsNewStoreModalOpen(false)}
+          onSave={handleAddNewStore}
+          existingStores={stores}
+        />
       </div>
     </MobileDeviceFrame>
   );

@@ -223,7 +223,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 98,
     clientCode: "133127",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-01",
+    routeName: "Ruta 01 - Ags Norte & Pocitos",
+    vendorId: "USR-VEND-104",
+    vendorName: "Juan Pablo Morales"
   },
   {
     id: "STORE-02",
@@ -246,7 +250,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 92,
     clientCode: "133030",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-01",
+    routeName: "Ruta 01 - Ags Norte & Pocitos",
+    vendorId: "USR-VEND-104",
+    vendorName: "Juan Pablo Morales"
   },
   {
     id: "STORE-03",
@@ -269,7 +277,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 0,
     clientCode: "133185",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-02",
+    routeName: "Ruta 02 - Ags Centro & San Marcos",
+    vendorId: "USR-VEND-106",
+    vendorName: "Carlos Estrada Rincón"
   },
   {
     id: "STORE-04",
@@ -292,7 +304,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 0,
     clientCode: "1000001393",
     sector: "Mayorista Detalle",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-03",
+    routeName: "Ruta 03 - Ags Sur & Cd. Industrial",
+    vendorId: "USR-VEND-107",
+    vendorName: "María Elena Delgado"
   },
   {
     id: "STORE-05",
@@ -315,7 +331,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 0,
     clientCode: "133077",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-02",
+    routeName: "Ruta 02 - Ags Centro & San Marcos",
+    vendorId: "USR-VEND-106",
+    vendorName: "Carlos Estrada Rincón"
   },
   {
     id: "STORE-06",
@@ -338,7 +358,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 0,
     clientCode: "133123",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-03",
+    routeName: "Ruta 03 - Ags Sur & Cd. Industrial",
+    vendorId: "USR-VEND-107",
+    vendorName: "María Elena Delgado"
   },
   {
     id: "STORE-07",
@@ -361,7 +385,11 @@ export const AGUASCALIENTES_STORES = [
     compliancePercent: 0,
     clientCode: "133249",
     sector: "Clientes Comercial",
-    cedis: "CEDIS Aguascalientes (1205)"
+    cedis: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-01",
+    routeName: "Ruta 01 - Ags Norte & Pocitos",
+    vendorId: "USR-VEND-104",
+    vendorName: "Juan Pablo Morales"
   }
 ];
 

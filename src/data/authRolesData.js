@@ -153,45 +153,64 @@ export const INITIAL_USERS = [
     cedisId: "CEDIS-AGS",
     cedisName: "CEDIS Aguascalientes (1205)",
     routeId: "RUTA-01",
-    routeName: "Ruta 01 - Comercial & Detalle Aguascalientes",
+    routeName: "Ruta 01 - Ags Norte & Pocitos",
     supervisorId: "USR-SUP-01",
-    supervisorName: "Lic. Carlos Méndez",
+    supervisorName: "Ing. Roberto Almanza",
     status: "active",
     lastLogin: "Hoy 08:30 AM",
     dailyQuota: 38000,
     dailyBoxes: 150
   },
   {
-    id: "USR-VEND-105",
-    name: "María Eugenia Torres",
-    email: "m.torres@frimart.com.mx",
+    id: "USR-VEND-106",
+    name: "Carlos Estrada Rincón",
+    email: "c.estrada@frimart.com.mx",
     role: "vendedor",
-    accessKey: "2345",
-    phone: "998-987-6543",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    cedisId: "CEDIS-01",
-    cedisName: "CEDIS Cancún (01)",
+    accessKey: "1062",
+    phone: "449-234-5678",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    cedisId: "CEDIS-AGS",
+    cedisName: "CEDIS Aguascalientes (1205)",
     routeId: "RUTA-02",
-    routeName: "Ruta 02 - Riviera Maya Hoteles & Clubes",
+    routeName: "Ruta 02 - Ags Centro & San Marcos",
     supervisorId: "USR-SUP-01",
-    supervisorName: "Lic. Carlos Méndez",
+    supervisorName: "Ing. Roberto Almanza",
     status: "active",
-    lastLogin: "Hoy 07:45 AM",
-    dailyQuota: 48000,
-    dailyBoxes: 190
+    lastLogin: "Hoy 07:50 AM",
+    dailyQuota: 42000,
+    dailyBoxes: 165
+  },
+  {
+    id: "USR-VEND-107",
+    name: "María Elena Delgado",
+    email: "m.delgado@frimart.com.mx",
+    role: "vendedor",
+    accessKey: "1073",
+    phone: "449-345-6789",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+    cedisId: "CEDIS-AGS",
+    cedisName: "CEDIS Aguascalientes (1205)",
+    routeId: "RUTA-03",
+    routeName: "Ruta 03 - Ags Sur & Cd. Industrial",
+    supervisorId: "USR-SUP-01",
+    supervisorName: "Ing. Roberto Almanza",
+    status: "active",
+    lastLogin: "Hoy 08:05 AM",
+    dailyQuota: 36000,
+    dailyBoxes: 140
   },
   {
     id: "USR-SUP-01",
-    name: "Lic. Carlos Méndez",
-    email: "c.mendez@frimart.com.mx",
+    name: "Ing. Roberto Almanza",
+    email: "r.almanza@frimart.com.mx",
     role: "supervisor",
     accessKey: "2022", // Clave / PIN oficial (también acepta 4321)
-    phone: "998-334-9988",
+    phone: "449-123-4567",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-    cedisId: "CEDIS-01",
-    cedisName: "CEDIS Cancún (01)",
-    zone: "Zona Norte Cancún & Riviera Maya",
-    assignedVendors: ["USR-VEND-104", "USR-VEND-105"],
+    cedisId: "CEDIS-AGS",
+    cedisName: "CEDIS Aguascalientes (1205)",
+    zone: "Zona Aguascalientes Metropolitana",
+    assignedVendors: ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107"],
     status: "active",
     lastLogin: "Hoy 08:10 AM"
   },
@@ -257,7 +276,7 @@ export const INITIAL_SELLER_PENDIENTES = [
     id: "PEND-01",
     vendorId: "USR-VEND-104",
     storeId: "STORE-02",
-    storeName: "OXXO Nichupté Mz 12",
+    storeName: "Cremería Nueva Benjamín de Alba",
     type: "audit_urgent",
     priority: "alta",
     title: "Auditoría prioritaria de Congelador FRM-0089",
@@ -270,7 +289,7 @@ export const INITIAL_SELLER_PENDIENTES = [
     id: "PEND-02",
     vendorId: "USR-VEND-104",
     storeId: "STORE-03",
-    storeName: "Soriana Híper Kabah",
+    storeName: "Súper Avenida",
     type: "order_delivery",
     priority: "media",
     title: "Entrega de pedido programado (38 cajas)",
@@ -282,8 +301,8 @@ export const INITIAL_SELLER_PENDIENTES = [
   {
     id: "PEND-03",
     vendorId: "USR-VEND-104",
-    storeId: "STORE-05",
-    storeName: "Mini Súper Los Ángeles",
+    storeId: "STORE-07",
+    storeName: "Tiendamax Pocitos Universidad",
     type: "onboarding",
     priority: "media",
     title: "Alta de Nuevo Congelador con QR",
@@ -296,11 +315,11 @@ export const INITIAL_SELLER_PENDIENTES = [
     id: "PEND-04",
     vendorId: "USR-VEND-104",
     storeId: "STORE-01",
-    storeName: "OXXO Constitución II AGU",
+    storeName: "Supermarket Las Fuentes",
     type: "collection",
     priority: "baja",
     title: "Firma de contrarecibo de cobro",
-    description: "Recoger contrarecibo firmado de la entrega de la mañana ($8,450 MXN).",
+    description: "Recoger contrarecibo firmado de la entrega de la mañana ($9,850 MXN).",
     dueTime: "05:00 PM",
     completed: true,
     badge: "Completado"
@@ -314,26 +333,26 @@ export const INITIAL_SELLER_SALES_LOG = [
   {
     id: "SALE-101",
     vendorId: "USR-VEND-104",
-    storeName: "OXXO Constitución II AGU",
+    storeName: "Supermarket Las Fuentes",
     time: "09:18 AM",
-    amount: 8450,
-    boxes: 34,
+    amount: 9850,
+    boxes: 38,
     ticketNumber: "TK-2026-9041",
-    paymentType: "Crédito OXXO Corporativo",
-    itemsSummary: "18 Mezcla California, 12 Brócoli, 4 Papas Francesa",
-    commission: 338.0
+    paymentType: "Crédito Frimart Comercial",
+    itemsSummary: "18 Mezcla California, 12 Brócoli La Huerta, 8 Papas Francesa",
+    commission: 394.0
   },
   {
     id: "SALE-102",
     vendorId: "USR-VEND-104",
-    storeName: "GoMart Zona Hotelera Km 9",
+    storeName: "Cremería Nueva Benjamín de Alba",
     time: "10:45 AM",
-    amount: 16400,
-    boxes: 64,
+    amount: 17000,
+    boxes: 66,
     ticketNumber: "TK-2026-9042",
     paymentType: "Transferencia Bancaria",
-    itemsSummary: "30 Mezcla California, 20 Papas, 14 Hamburguesa Res",
-    commission: 656.0
+    itemsSummary: "32 Mezcla California, 20 Papas, 14 Frutas IQF",
+    commission: 680.0
   }
 ];
 
@@ -402,8 +421,13 @@ export function getStoredUsers() {
       const parsed = JSON.parse(saved);
       const updated = parsed.map(u => {
         const fresh = INITIAL_USERS.find(fu => fu.id === u.id);
-        if (fresh && (u.cedisId === "CEDIS-01" || u.id === "USR-003" || u.id === "USR-VEND-104")) {
-          return { ...u, cedisId: fresh.cedisId, cedisName: fresh.cedisName, routeName: fresh.routeName || u.routeName };
+        if (fresh) {
+          return {
+            ...u,
+            ...fresh,
+            avatar: u.avatar || fresh.avatar,
+            accessKey: u.accessKey || fresh.accessKey
+          };
         }
         return u;
       });
@@ -425,7 +449,12 @@ export function getStoredActiveUser() {
       const parsed = JSON.parse(saved);
       const fresh = INITIAL_USERS.find(fu => fu.id === parsed.id);
       if (fresh) {
-        return { ...parsed, cedisId: fresh.cedisId, cedisName: fresh.cedisName };
+        return {
+          ...parsed,
+          ...fresh,
+          avatar: parsed.avatar || fresh.avatar,
+          accessKey: parsed.accessKey || fresh.accessKey
+        };
       }
       return parsed;
     } catch (e) {}
