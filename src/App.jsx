@@ -79,7 +79,7 @@ export default function App() {
   // Session & Authentication State
   const [users, setUsers] = useState(() => getStoredUsers());
   const [currentUser, setCurrentUser] = useState(() => getStoredActiveUser());
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => !getStoredActiveUser());
 
   // Tab Navigation
   const [activeTab, setActiveTab] = useState(() => {
@@ -246,6 +246,7 @@ export default function App() {
   // Authentication Handlers
   const handleLoginSuccess = (authenticatedUser) => {
     setCurrentUser(authenticatedUser);
+    saveStoredActiveUser(authenticatedUser);
     setIsLocked(false);
     
     // Auto switch to home tab for that role
@@ -260,6 +261,9 @@ export default function App() {
 
   const handleLockSession = () => {
     setIsLocked(true);
+    setCurrentUser(null);
+    localStorage.removeItem("frimart_active_session");
+    showToast("Sesión cerrada. Ingrese su clave PIN.", "info");
   };
 
   const handleSwitchSimulatedRole = (targetRoleKey) => {
@@ -413,8 +417,8 @@ export default function App() {
   // Pending stores count for badge
   const pendingStoresCount = stores.filter((s) => s.status === "pending").length;
 
-  // If session is locked, display the PIN Auth screen
-  if (isLocked) {
+  // If session is locked or user not logged in, display the PIN Auth screen
+  if (isLocked || !currentUser) {
     return (
       <MobileDeviceFrame>
         <AuthLockScreen
@@ -581,6 +585,7 @@ export default function App() {
               onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
               onOpenAdminCatalog={() => setActiveOperationalModal("admin")}
               onOpenScanner={() => setIsScannerOpen(true)}
+              onLockSession={handleLockSession}
             />
           )}
         </main>

@@ -31,7 +31,8 @@ export default function SellerProfileScreen({
   onOpenSupervision,
   onOpenBatchGenerator,
   onOpenAdminCatalog,
-  onOpenScanner
+  onOpenScanner,
+  onLockSession
 }) {
   const [modalType, setModalType] = useState(null); // 'supervisor_contact' | 'cedis_info' | 'cold_protocol'
 
@@ -92,6 +93,14 @@ export default function SellerProfileScreen({
       label: "Configuración de la cuenta",
       icon: Settings,
       action: () => alert(`Vendedor: ${seller.name}\nRuta: ${seller.route}\nCEDIS: ${seller.cedis}`)
+    },
+    {
+      id: "logout",
+      label: "Cerrar Sesión / Cambiar PIN",
+      icon: LogOut,
+      badge: "PIN",
+      color: "text-rose-600",
+      action: () => onLockSession?.()
     }
   ];
 

@@ -147,7 +147,7 @@ export const INITIAL_USERS = [
     name: "Juan Pablo Morales",
     email: "j.morales@frimart.com.mx",
     role: "vendedor",
-    accessKey: "1234", // Clave / PIN de acceso
+    accessKey: "1041", // Clave / PIN oficial (también acepta 1234)
     phone: "449-123-4567",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     cedisId: "CEDIS-AGS",
@@ -185,7 +185,7 @@ export const INITIAL_USERS = [
     name: "Lic. Carlos Méndez",
     email: "c.mendez@frimart.com.mx",
     role: "supervisor",
-    accessKey: "4321",
+    accessKey: "2022", // Clave / PIN oficial (también acepta 4321)
     phone: "998-334-9988",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     cedisId: "CEDIS-01",
@@ -200,7 +200,7 @@ export const INITIAL_USERS = [
     name: "Ing. Guillermo Salcedo",
     email: "g.salcedo@frimart.com.mx",
     role: "gerente_cedis",
-    accessKey: "5678",
+    accessKey: "3033", // Clave / PIN oficial (también acepta 5678)
     phone: "449-910-2501",
     avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
     cedisId: "CEDIS-AGS",
@@ -226,7 +226,7 @@ export const INITIAL_USERS = [
     name: "Lic. Roberto Garza",
     email: "r.garza@frimart.com.mx",
     role: "director_comercial",
-    accessKey: "7890",
+    accessKey: "4044", // Clave / PIN oficial (también acepta 7890)
     phone: "55-4123-9000",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
     cedisId: "ALL",
@@ -430,7 +430,7 @@ export function getStoredActiveUser() {
       return parsed;
     } catch (e) {}
   }
-  return INITIAL_USERS[0]; // Por defecto Vendedor Juan Pablo
+  return null; // Requiere autenticación por clave PIN
 }
 
 export function saveStoredActiveUser(user) {
