@@ -80,6 +80,13 @@ export default function SellerRouteMapModal({
   const initialGpsAnchorRef = useRef(null);
   const hasInitiallyCenteredGpsRef = useRef(false);
 
+  // Dynamic Deviation & Off-Route Recalculation State
+  const [isOffRoute, setIsOffRoute] = useState(false);
+  const [offRouteDistance, setOffRouteDistance] = useState(0);
+  const [recalcBanner, setRecalcBanner] = useState("");
+  const lastRecalcTimeRef = useRef(0);
+  const isRecalculatingRef = useRef(false);
+
   // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo' vs 'ags_route'
   const [mapLocationMode, setMapLocationMode] = useState("real_phone_gps");
 
@@ -97,7 +104,7 @@ export default function SellerRouteMapModal({
     ? -86.8402 
     : (seller?.currentLocation?.lng || -102.2916);
 
-  // Projected or original stores: when in real GPS mode, adapt stores to user's local city/neighborhood
+  // Effective stores: Cancun demo mode uses Cancun points, otherwise always use real database stores
   const effectiveStores = useMemo(() => {
     if (isCancunMode) {
       return [
@@ -107,28 +114,8 @@ export default function SellerRouteMapModal({
         { id: "STORE-CUN-04", code: "50PLZ", name: "OXXO Plaza Las Américas", address: "Av. Tulum Sur #260, Cancún", lat: 21.1465, lng: -86.8225, status: "pending", freezersCount: 1, freezerIds: ["FRM-0198"], geofenceRadius: 60 }
       ];
     }
-    if (mapLocationMode === "ags_route" || !isUsingRealPhoneGps) return stores;
-
-    // Use stationary initial anchor so destination pins remain 100% fixed while the user walks
-    const anchorLat = initialGpsAnchorRef.current?.lat || phoneGpsLocation?.lat || sellerLat;
-    const anchorLng = initialGpsAnchorRef.current?.lng || phoneGpsLocation?.lng || sellerLng;
-
-    const localOffsets = [
-      { lat: 0.0032, lng: 0.0038 },   // ~450m NE
-      { lat: -0.0041, lng: 0.0052 },  // ~650m SE
-      { lat: 0.0065, lng: -0.0045 },  // ~850m NW
-      { lat: -0.0072, lng: -0.0035 }, // ~950m SW
-      { lat: 0.0085, lng: 0.0070 }    // ~1.3km NE
-    ];
-    return stores.map((store, idx) => {
-      const offset = localOffsets[idx % localOffsets.length];
-      return {
-        ...store,
-        lat: anchorLat + offset.lat,
-        lng: anchorLng + offset.lng
-      };
-    });
-  }, [stores, isUsingRealPhoneGps, isCancunMode, mapLocationMode, sellerLat, sellerLng, phoneGpsLocation]);
+    return stores;
+  }, [stores, isCancunMode]);
 
   // Calculate distances for all stores and find the nearest one
   const storesWithDistance = useMemo(() => {
@@ -296,83 +283,114 @@ export default function SellerRouteMapModal({
     roadRouteRef.current = roadRoute;
   }, [roadRoute]);
 
-  // Fetch true turn-by-turn road geometry adhering to real street network
-  useEffect(() => {
-    if (!activeStore || !isOpen) return;
+  // Turn-by-turn road geometry adhering to real street network via OSRM
+  const fetchRouteFromOSRM = async (fromLat, fromLng, toLat, toLng, force = false) => {
+    if (!toLat || !toLng || !fromLat || !fromLng) return;
+    if (isRecalculatingRef.current && !force) return;
 
-    const currentOrigin = { lat: sellerLat, lng: sellerLng };
-    const prevOrigin = lastFetchedOriginRef.current;
-    const sameTarget = lastFetchedTargetStoreIdRef.current === activeStore.id;
-
-    // If we already have a valid street route for this store and vendor hasn't moved significantly (> 140m), keep route stable
-    if (sameTarget && prevOrigin && roadRouteRef.current?.coordinates?.length > 1) {
-      const movedDist = calculateDistanceMeters(prevOrigin.lat, prevOrigin.lng, currentOrigin.lat, currentOrigin.lng);
-      if (movedDist < 140) {
-        return;
-      }
+    const now = Date.now();
+    // Cooldown: throttle automatic background recalculations to once per 3.5 seconds
+    if (!force && lastRecalcTimeRef.current && (now - lastRecalcTimeRef.current < 3500)) {
+      return;
     }
+    lastRecalcTimeRef.current = now;
+    isRecalculatingRef.current = true;
+    setIsLoadingRoute(true);
 
-    const cacheKey = `${sellerLat.toFixed(3)},${sellerLng.toFixed(3)}->${activeStore.lat.toFixed(4)},${activeStore.lng.toFixed(4)}`;
-
-    if (routesCacheRef.current[cacheKey]) {
-      setRoadRoute(routesCacheRef.current[cacheKey]);
-      lastFetchedTargetStoreIdRef.current = activeStore.id;
-      lastFetchedOriginRef.current = currentOrigin;
+    const cacheKey = `${fromLat.toFixed(4)},${fromLng.toFixed(4)}->${toLat.toFixed(4)},${toLng.toFixed(4)}`;
+    if (!force && routesCacheRef.current[cacheKey]) {
+      const cached = routesCacheRef.current[cacheKey];
+      setRoadRoute(cached);
+      roadRouteRef.current = cached;
+      setNavProgressIndex(0);
+      lastFetchedOriginRef.current = { lat: fromLat, lng: fromLng };
+      lastFetchedTargetStoreIdRef.current = activeStore?.id;
+      setIsLoadingRoute(false);
+      isRecalculatingRef.current = false;
       return;
     }
 
-    let isCancelled = false;
-    setIsLoadingRoute(true);
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("OSRM HTTP " + res.status);
+      const data = await res.json();
 
-    const fetchRoadRoute = async () => {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${sellerLng},${sellerLat};${activeStore.lng},${activeStore.lat}?overview=full&geometries=geojson`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Route network error");
-        const data = await res.json();
+      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const latLngCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+        const routeResult = {
+          coordinates: latLngCoordinates,
+          distanceMeters: Math.round(route.distance),
+          durationMinutes: Math.max(1, Math.round(route.duration / 60)),
+          timestamp: Date.now()
+        };
 
-        if (data.code === "Ok" && data.routes && data.routes.length > 0) {
-          const route = data.routes[0];
-          const latLngCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-          const routeResult = {
-            coordinates: latLngCoordinates,
-            distanceMeters: Math.round(route.distance),
-            durationMinutes: Math.max(1, Math.round(route.duration / 60))
-          };
+        routesCacheRef.current[cacheKey] = routeResult;
+        setRoadRoute(routeResult);
+        roadRouteRef.current = routeResult;
+        setNavProgressIndex(0);
+        lastFetchedOriginRef.current = { lat: fromLat, lng: fromLng };
+        lastFetchedTargetStoreIdRef.current = activeStore?.id;
+        setIsOffRoute(false);
 
-          routesCacheRef.current[cacheKey] = routeResult;
-          if (!isCancelled) {
-            setRoadRoute(routeResult);
-            lastFetchedTargetStoreIdRef.current = activeStore.id;
-            lastFetchedOriginRef.current = currentOrigin;
-          }
-        } else {
-          throw new Error("No route found");
+        if (force || isOffRoute) {
+          setRecalcBanner("Ruta actualizada según tu ubicación");
+          setTimeout(() => setRecalcBanner(""), 3500);
         }
-      } catch (err) {
-        console.warn("OSRM routing fallback:", err);
-        // Only fallback if there is NO route yet; never wipe out an existing valid street route
-        if (!isCancelled && !roadRouteRef.current?.coordinates) {
-          const dist = calculateDistanceMeters(sellerLat, sellerLng, activeStore.lat, activeStore.lng);
-          setRoadRoute({
-            coordinates: [[sellerLat, sellerLng], [activeStore.lat, activeStore.lng]],
-            distanceMeters: Math.round(dist),
-            durationMinutes: Math.max(1, Math.round(dist / 450))
-          });
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoadingRoute(false);
-        }
+      } else {
+        throw new Error("No route found in OSRM response");
       }
-    };
+    } catch (err) {
+      console.warn("OSRM routing fallback:", err);
+      if (!roadRouteRef.current?.coordinates) {
+        const dist = calculateDistanceMeters(fromLat, fromLng, toLat, toLng);
+        const fallbackRoute = {
+          coordinates: [[fromLat, fromLng], [toLat, toLng]],
+          distanceMeters: Math.round(dist),
+          durationMinutes: Math.max(1, Math.round(dist / 450)),
+          timestamp: Date.now()
+        };
+        setRoadRoute(fallbackRoute);
+        roadRouteRef.current = fallbackRoute;
+      }
+    } finally {
+      setIsLoadingRoute(false);
+      isRecalculatingRef.current = false;
+    }
+  };
 
-    fetchRoadRoute();
+  // Manual recalculation trigger for vendor
+  const handleManualRecalculate = () => {
+    const fromLat = phoneGpsLocation ? phoneGpsLocation.lat : sellerLat;
+    const fromLng = phoneGpsLocation ? phoneGpsLocation.lng : sellerLng;
+    if (activeStore) {
+      fetchRouteFromOSRM(fromLat, fromLng, activeStore.lat, activeStore.lng, true);
+    }
+  };
 
-    return () => {
-      isCancelled = true;
-    };
+  // Re-fetch route when activeStore, mode or modal opening changes
+  useEffect(() => {
+    if (!activeStore || !isOpen) return;
+    const fromLat = sellerLat;
+    const fromLng = sellerLng;
+    fetchRouteFromOSRM(fromLat, fromLng, activeStore.lat, activeStore.lng, true);
   }, [isOpen, activeStore?.id, mapLocationMode]);
+
+  // When live GPS updates and modal is open, adapt route origin to real phone position
+  useEffect(() => {
+    if (!isOpen || !phoneGpsLocation || !activeStore) return;
+    const prev = lastFetchedOriginRef.current;
+    if (!prev) {
+      // First GPS fix: compute real route from phone
+      fetchRouteFromOSRM(phoneGpsLocation.lat, phoneGpsLocation.lng, activeStore.lat, activeStore.lng, true);
+    } else {
+      const moved = calculateDistanceMeters(prev.lat, prev.lng, phoneGpsLocation.lat, phoneGpsLocation.lng);
+      if (!isNavigating && moved > 70) {
+        fetchRouteFromOSRM(phoneGpsLocation.lat, phoneGpsLocation.lng, activeStore.lat, activeStore.lng, false);
+      }
+    }
+  }, [phoneGpsLocation?.lat, phoneGpsLocation?.lng, isOpen, isNavigating, activeStore]);
 
   // Real driving distance and time
   const streetDistanceMeters = roadRoute?.distanceMeters || activeStore?.distanceMeters || 900;
@@ -447,26 +465,36 @@ export default function SellerRouteMapModal({
                 }
               }
 
-              // Update nav progress index so progress bar and counters sync
-              setNavProgressIndex(closestIdx);
+              // Check if vehicle has deviated from the planned route (> 35m)
+              if (minDistance > 35) {
+                setIsOffRoute(true);
+                setOffRouteDistance(Math.round(minDistance));
+                // Automatically recalculate new driving route from vehicle's new street position!
+                fetchRouteFromOSRM(latitude, longitude, currentTarget.lat, currentTarget.lng, false);
+              } else {
+                setIsOffRoute(false);
+                setOffRouteDistance(0);
+                // Update nav progress index so progress bar and counters sync
+                setNavProgressIndex(closestIdx);
 
-              // Snapped remaining path: starts at vehicle GPS and strictly follows the remaining street corners
-              const remainingPoints = [
-                [latitude, longitude],
-                ...currentRouteCoords.slice(closestIdx + 1)
-              ];
+                // Snapped remaining path: starts at vehicle GPS and strictly follows the remaining street corners
+                const remainingPoints = [
+                  [latitude, longitude],
+                  ...currentRouteCoords.slice(closestIdx + 1)
+                ];
 
-              if (remainingLineRef.current) {
-                remainingLineRef.current.setLatLngs(remainingPoints);
-              }
-              if (remainingGlowRef.current) {
-                remainingGlowRef.current.setLatLngs(remainingPoints);
-              }
-              if (coveredLineRef.current && closestIdx > 0) {
-                coveredLineRef.current.setLatLngs([
-                  ...currentRouteCoords.slice(0, closestIdx),
-                  [latitude, longitude]
-                ]);
+                if (remainingLineRef.current) {
+                  remainingLineRef.current.setLatLngs(remainingPoints);
+                }
+                if (remainingGlowRef.current) {
+                  remainingGlowRef.current.setLatLngs(remainingPoints);
+                }
+                if (coveredLineRef.current && closestIdx > 0) {
+                  coveredLineRef.current.setLatLngs([
+                    ...currentRouteCoords.slice(0, closestIdx),
+                    [latitude, longitude]
+                  ]);
+                }
               }
             }
 
@@ -849,8 +877,13 @@ export default function SellerRouteMapModal({
     setHasArrived(false);
     setNavProgressIndex(0);
 
-    // Refresh live satellite coordinates immediately
+    // Refresh live satellite coordinates immediately and compute route from real position
     handleGetLivePhoneGps();
+    const curLat = phoneGpsLocation?.lat || sellerLat;
+    const curLng = phoneGpsLocation?.lng || sellerLng;
+    if (activeStore) {
+      fetchRouteFromOSRM(curLat, curLng, activeStore.lat, activeStore.lng, true);
+    }
     if (mapInstanceRef.current && phoneGpsLocation) {
       mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.6 });
     }
@@ -972,18 +1005,29 @@ export default function SellerRouteMapModal({
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => {
-                      if (phoneGpsLocation && mapInstanceRef.current) {
-                        mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.5 });
-                      }
-                    }}
-                    className="tap-effect h-8 px-2.5 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold hover:bg-emerald-900 transition cursor-pointer flex items-center gap-1"
-                    title="Recentrar en mi ubicación GPS"
-                  >
-                    <LocateFixed className="w-3.5 h-3.5" />
-                    <span>Recentrar</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={handleManualRecalculate}
+                      className="tap-effect h-8 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold hover:bg-amber-500/30 transition cursor-pointer flex items-center gap-1"
+                      title="Recalcular ruta en vivo desde mi posición actual"
+                    >
+                      <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-400" : ""}`} />
+                      <span>Recalcular</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (phoneGpsLocation && mapInstanceRef.current) {
+                          mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.5 });
+                        }
+                      }}
+                      className="tap-effect h-8 px-2 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold hover:bg-emerald-900 transition cursor-pointer flex items-center gap-1"
+                      title="Recentrar en mi ubicación GPS"
+                    >
+                      <LocateFixed className="w-3.5 h-3.5" />
+                      <span>Recentrar</span>
+                    </button>
+                  </>
                 )}
 
                 <button
@@ -1212,22 +1256,61 @@ export default function SellerRouteMapModal({
                     </div>
                   </div>
 
+                  {/* Deviation Alert Banner */}
+                  {isOffRoute && (
+                    <div className="p-2.5 rounded-xl bg-amber-950/80 border border-amber-600/70 flex items-center justify-between text-xs text-amber-200 animate-pulse">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="font-semibold text-[11px]">
+                          Desvío detectado ({offRouteDistance}m). Recalculando...
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleManualRecalculate}
+                        className="tap-effect px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-amber-400 cursor-pointer"
+                      >
+                        Recalcular
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Recalculation feedback banner */}
+                  {recalcBanner && !isOffRoute && (
+                    <div className="p-2 rounded-xl bg-emerald-950/80 border border-emerald-500/50 flex items-center gap-2 text-xs text-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="font-medium text-[11px]">{recalcBanner}</span>
+                    </div>
+                  )}
+
                   <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px] text-slate-300">
                     <div className="flex items-center gap-1.5 truncate">
                       <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
                       <span className="truncate">Rastreando el movimiento real de tu celular...</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (phoneGpsLocation && mapInstanceRef.current) {
-                          mapInstanceRef.current.panTo([phoneGpsLocation.lat, phoneGpsLocation.lng], { animate: true });
-                        }
-                      }}
-                      className="tap-effect px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/30 text-[10px] shrink-0 ml-2 cursor-pointer"
-                    >
-                      Centrar en mí
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={handleManualRecalculate}
+                        className="tap-effect px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold hover:bg-amber-500/30 text-[10px] flex items-center gap-1 cursor-pointer"
+                        title="Recalcular ruta por calles reales"
+                      >
+                        <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-400" : ""}`} />
+                        <span>Recalcular</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (phoneGpsLocation && mapInstanceRef.current) {
+                            mapInstanceRef.current.panTo([phoneGpsLocation.lat, phoneGpsLocation.lng], { animate: true });
+                          }
+                        }}
+                        className="tap-effect px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/30 text-[10px] cursor-pointer"
+                      >
+                        Centrar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 pt-1 border-t border-slate-800">

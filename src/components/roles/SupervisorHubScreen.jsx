@@ -34,10 +34,44 @@ export default function SupervisorHubScreen({
   onOpenNewStoreModal
 }) {
   // 3 vendedores oficiales a cargo en Aguascalientes
-  const assignedVendorIds = supervisorUser?.assignedVendors || ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107"];
-  const myVendors = allUsers.filter((u) => assignedVendorIds.includes(u.id));
+  const AGS_VENDORS_MASTER = [
+    {
+      id: "USR-VEND-104",
+      name: "Juan Pablo Morales",
+      role: "vendedor",
+      routeId: "RUTA-01",
+      routeName: "Ruta 01 - Ags Norte & Pocitos",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      phone: "449-123-4567"
+    },
+    {
+      id: "USR-VEND-106",
+      name: "Carlos Estrada Rincón",
+      role: "vendedor",
+      routeId: "RUTA-02",
+      routeName: "Ruta 02 - Ags Centro & San Marcos",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+      phone: "449-234-5678"
+    },
+    {
+      id: "USR-VEND-107",
+      name: "María Elena Delgado",
+      role: "vendedor",
+      routeId: "RUTA-03",
+      routeName: "Ruta 03 - Ags Sur & Cd. Industrial",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      phone: "449-345-6789"
+    }
+  ];
 
-  const [selectedVendorId, setSelectedVendorId] = useState(myVendors[0]?.id || "USR-VEND-104");
+  const assignedVendorIds = ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107"];
+  const myVendors = assignedVendorIds.map((id) => {
+    const existing = allUsers.find((u) => u.id === id);
+    const master = AGS_VENDORS_MASTER.find((m) => m.id === id);
+    return existing ? { ...master, ...existing } : master;
+  });
+
+  const [selectedVendorId, setSelectedVendorId] = useState("USR-VEND-104");
   const [instructionText, setInstructionText] = useState("");
   const [sentAlert, setSentAlert] = useState(null);
 

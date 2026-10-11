@@ -48,9 +48,79 @@ export default function SellerRouteScreen({
     return stores.find((s) => s.id === activeTargetStoreId) || stores.find((s) => s.status !== "completed") || stores[0];
   }, [stores, activeTargetStoreId]);
 
-  const goal = seller.dailyGoal;
-  const percentSales = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
-  const estimatedCommission = Math.round(goal.currentAmount * goal.commissionRate);
+  // Dynamic daily goal computed in real time according to the active route filter and visited stores
+  const dynamicGoal = useMemo(() => {
+    // Baseline targets and performance per route
+    const ROUTE_CONFIGS = {
+      all: {
+        title: "Meta Diaria de Equipo (Aguascalientes)",
+        subtitle: "3 Rutas de Campo Integradas",
+        targetAmount: 116000,
+        baseSales: 92950,
+        targetBoxes: 455,
+        baseBoxes: 347,
+        targetVisits: stores.length || 7
+      },
+      "RUTA-01": {
+        title: "Meta Diaria • Juan Pablo Morales",
+        subtitle: "Ruta 01 - Ags Norte & Pocitos",
+        targetAmount: 38000,
+        baseSales: 28950,
+        targetBoxes: 150,
+        baseBoxes: 112,
+        targetVisits: stores.filter((s) => s.routeId === "RUTA-01").length || 3
+      },
+      "RUTA-02": {
+        title: "Meta Diaria • Carlos Estrada Rincón",
+        subtitle: "Ruta 02 - Ags Centro & San Marcos",
+        targetAmount: 42000,
+        baseSales: 34200,
+        targetBoxes: 165,
+        baseBoxes: 130,
+        targetVisits: stores.filter((s) => s.routeId === "RUTA-02").length || 2
+      },
+      "RUTA-03": {
+        title: "Meta Diaria • María Elena Delgado",
+        subtitle: "Ruta 03 - Ags Sur & Cd. Industrial",
+        targetAmount: 36000,
+        baseSales: 29800,
+        targetBoxes: 140,
+        baseBoxes: 105,
+        targetVisits: stores.filter((s) => s.routeId === "RUTA-03").length || 2
+      }
+    };
+
+    const cfg = ROUTE_CONFIGS[routeFilter] || ROUTE_CONFIGS.all;
+
+    // Filter relevant stores for visit completion count and additional recorded sales
+    const relevantStores = routeFilter === "all" 
+      ? stores 
+      : stores.filter((s) => s.routeId === routeFilter);
+
+    const completedVisits = relevantStores.filter((s) => s.status === "completed").length;
+    
+    // Sum real recorded sales and boxes from stores that have been completed today
+    const liveRecordedSales = relevantStores.reduce((acc, s) => acc + (s.salesToday || 0), 0);
+    const liveRecordedBoxes = relevantStores.reduce((acc, s) => acc + (s.boxesToday || 0), 0);
+
+    const effectiveAmount = Math.max(cfg.baseSales, liveRecordedSales);
+    const effectiveBoxes = Math.max(cfg.baseBoxes, liveRecordedBoxes);
+    const percent = Math.min(100, Math.round((effectiveAmount / cfg.targetAmount) * 100));
+    const commission = Math.round(effectiveAmount * 0.04);
+
+    return {
+      title: cfg.title,
+      subtitle: cfg.subtitle,
+      targetAmount: cfg.targetAmount,
+      currentAmount: effectiveAmount,
+      targetBoxes: cfg.targetBoxes,
+      currentBoxes: effectiveBoxes,
+      targetVisits: cfg.targetVisits,
+      completedVisits: completedVisits,
+      percentSales: percent,
+      commission: commission
+    };
+  }, [routeFilter, stores]);
 
   // Filter stores based on search, status, and route
   const filteredStores = useMemo(() => {
@@ -90,27 +160,32 @@ export default function SellerRouteScreen({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="¿A qué tienda te diriges? (Oxxo, GoMart...)"
+            placeholder="¿A qué tienda te diriges? (Oxxo, Súper...)"
             className="w-full pl-11 pr-4 py-3 rounded-[18px] bg-white border border-slate-300 text-sm text-slate-800 placeholder-slate-400 shadow-2xs outline-none focus:border-[#059669] focus:ring-2 focus:ring-[#059669]/10 transition"
           />
           <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
-      {/* 2. Daily Goal Card - White with Gray Outline */}
-      <div className="px-4 mb-6">
-        <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-[0_2px_8px_rgba(15,23,42,0.04)] space-y-3">
+      {/* 2. Daily Goal Card - DYNAMIC PER ROUTE */}
+      <div className="px-4 mb-4">
+        <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-[0_2px_8px_rgba(15,23,42,0.04)] space-y-3 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#ecfdf5] text-[#059669] border border-emerald-200/80 flex items-center justify-center shadow-2xs">
                 <TrendingUp className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <span className="font-card-title text-slate-900">
-                Meta Diaria de Venta
-              </span>
+              <div>
+                <span className="font-card-title text-slate-900 block text-xs sm:text-sm">
+                  {dynamicGoal.title}
+                </span>
+                <span className="text-[10px] text-slate-400 block font-medium">
+                  {dynamicGoal.subtitle}
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-extrabold text-[#059669] bg-[#ecfdf5] px-2.5 py-0.5 rounded-full border border-[#a7f3d0] shadow-2xs">
-              {percentSales}% alcanzado
+            <span className="text-xs font-extrabold text-[#059669] bg-[#ecfdf5] px-2.5 py-0.5 rounded-full border border-[#a7f3d0] shadow-2xs shrink-0">
+              {dynamicGoal.percentSales}% alcanzado
             </span>
           </div>
 
@@ -118,10 +193,10 @@ export default function SellerRouteScreen({
           <div>
             <div className="flex items-baseline justify-between mb-1.5">
               <span className="text-2xl font-black text-slate-900 font-['Outfit'] tracking-tight">
-                ${goal.currentAmount.toLocaleString()}
+                ${dynamicGoal.currentAmount.toLocaleString()}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                de ${goal.targetAmount.toLocaleString()} MXN
+                de ${dynamicGoal.targetAmount.toLocaleString()} MXN
               </span>
             </div>
 
@@ -129,31 +204,31 @@ export default function SellerRouteScreen({
             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
               <div 
                 className="h-full bg-gradient-to-r from-[#059669] to-[#10b981] rounded-full transition-all duration-500"
-                style={{ width: `${percentSales}%` }}
+                style={{ width: `${dynamicGoal.percentSales}%` }}
               />
             </div>
           </div>
 
           {/* 3 Metric Pills */}
           <div className="grid grid-cols-3 gap-2 pt-0.5">
-            <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-slate-200 text-center shadow-2xs">
+            <div className="p-2 rounded-xl bg-[#f8fafc] border border-slate-200 text-center shadow-2xs">
               <span className="text-[10px] text-slate-400 font-semibold block">Cajas</span>
               <strong className="text-xs font-bold text-slate-800">
-                {goal.currentBoxes} / {goal.targetBoxes}
+                {dynamicGoal.currentBoxes} / {dynamicGoal.targetBoxes}
               </strong>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-[#f8fafc] border border-slate-200 text-center shadow-2xs">
+            <div className="p-2 rounded-xl bg-[#f8fafc] border border-slate-200 text-center shadow-2xs">
               <span className="text-[10px] text-slate-400 font-semibold block">Visitas</span>
               <strong className="text-xs font-bold text-slate-800">
-                {goal.completedVisits} / {goal.targetVisits}
+                {dynamicGoal.completedVisits} / {dynamicGoal.targetVisits}
               </strong>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center shadow-2xs">
+            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center shadow-2xs">
               <span className="text-[10px] text-[#059669] font-semibold block">Comisión</span>
               <strong className="text-xs font-bold text-[#059669]">
-                +${estimatedCommission}
+                +${dynamicGoal.commission}
               </strong>
             </div>
           </div>

@@ -426,11 +426,20 @@ export function getStoredUsers() {
             ...u,
             ...fresh,
             avatar: u.avatar || fresh.avatar,
-            accessKey: u.accessKey || fresh.accessKey
+            accessKey: u.accessKey || fresh.accessKey,
+            assignedVendors: fresh.assignedVendors || u.assignedVendors
           };
         }
         return u;
       });
+
+      // Add any users from INITIAL_USERS that were not stored in localStorage yet
+      INITIAL_USERS.forEach(freshUser => {
+        if (!updated.some(u => u.id === freshUser.id)) {
+          updated.push(freshUser);
+        }
+      });
+
       localStorage.setItem("frimart_users", JSON.stringify(updated));
       return updated;
     } catch (e) {}
@@ -453,7 +462,8 @@ export function getStoredActiveUser() {
           ...parsed,
           ...fresh,
           avatar: parsed.avatar || fresh.avatar,
-          accessKey: parsed.accessKey || fresh.accessKey
+          accessKey: parsed.accessKey || fresh.accessKey,
+          assignedVendors: fresh.assignedVendors || parsed.assignedVendors
         };
       }
       return parsed;
