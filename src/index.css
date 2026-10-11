@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+:root {
+  /* Frimart Brand Core Palette */
+  --frimart-green: #059669;
+  --frimart-green-hover: #047857;
+  --frimart-green-light: #ecfdf5;
+  --frimart-green-subtle: #d1fae5;
+  --frimart-green-dark: #064e3b;
+
+  /* Neutrals & Surfaces */
+  --bg-white: #ffffff;
+  --bg-page: #f8fafc;
+  --bg-surface-subtle: #f1f5f9;
+  --border-hairline: #eeeeee;
+  --border-light: #e2e8f0;
+  --border-focus: #10b981;
+
+  /* Typography Colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-disabled: #cbd5e1;
+
+  /* Accents */
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-sky: #0284c7;
+
+  /* Typography Scales */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radius Tokens */
+  --radius-card: 18px;
+  --radius-button: 14px;
+  --radius-input: 14px;
+  --radius-chip: 9999px;
+
+  /* Shadow Tokens (Extremely Light as per design system) */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-card: 0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  --shadow-float: 0 10px 25px -5px rgba(0, 0, 0, 0.07), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-sheet: 0 -8px 30px rgba(0, 0, 0, 0.08);
+
+  /* Safe Area Variables with Fallbacks */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: #f1f5f9;
+  color: var(--text-primary);
+  min-height: 100vh;
+  width: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==================================================
+   MOBILE TYPOGRAPHY UTILITIES
+   ================================================== */
+.font-page-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem; /* 28px */
+  line-height: 2.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-section-title {
+  font-family: var(--font-display);
+  font-size: 1.3125rem; /* 21px */
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.font-card-title {
+  font-size: 1rem; /* 16px */
+  line-height: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.font-body {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.375rem;
+  font-weight: 400;
+}
+
+.font-secondary {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.125rem;
+  font-weight: 400;
+}
+
+.font-caption {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ==================================================
+   MOBILE TACTILE MICROINTERACTIONS
+   ================================================== */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tap-effect {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
+  user-select: none;
+}
+
+.tap-effect:active {
+  transform: scale(0.97);
+  opacity: 0.88;
+}
+
+.tap-effect-subtle {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.tap-effect-subtle:active {
+  transform: scale(0.985);
+}
+
+/* ==================================================
+   MOBILE CARDS & SHADOWS
+   ================================================== */
+.mobile-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mobile-card:hover {
+  border-color: #e2e8f0;
+}
+
+/* ==================================================
+   HIDE SCROLLBAR ON HORIZONTAL CHIPS
+   ================================================== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ==================================================
+   BOTTOM SHEET ANIMATIONS
+   ================================================== */
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* ==================================================
+   DEVICE FRAME FOR DESKTOP PREVIEW
+   ================================================== */
+.device-container {
+  width: 100%;
+  max-width: 430px;
+  height: min(920px, 94vh);
+  background: #ffffff;
+  border-radius: 50px;
+  box-shadow: 
+    0 0 0 12px #1e293b,
+    0 0 0 14px #334155,
+    0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Android frame option */
+.device-container.android-frame {
+  border-radius: 36px;
+  box-shadow: 
+    0 0 0 10px #0f172a,
+    0 0 0 12px #1e293b,
+    0 25px 50px -12px rgba(0, 0, 0, 0.35);
+}
+
+/* Dynamic island */
+.dynamic-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 32px;
+  background-color: #000000;
+  border-radius: 20px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* Home Indicator Bar (iOS) */
+.home-indicator {
+  width: 134px;
+  height: 5px;
+  background-color: #0f172a;
+  border-radius: 100px;
+  opacity: 0.25;
+  margin: 6px auto 4px auto;
+  pointer-events: none;
+}
