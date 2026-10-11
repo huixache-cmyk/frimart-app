@@ -72,7 +72,8 @@ import {
   Layers,
   BarChart3,
   Database,
-  ShieldCheck
+  ShieldCheck,
+  Compass
 } from "lucide-react";
 
 export default function App() {

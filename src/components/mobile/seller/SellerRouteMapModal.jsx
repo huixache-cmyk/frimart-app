@@ -22,7 +22,8 @@ import {
   Square,
   FastForward,
   RotateCcw,
-  Zap
+  Zap,
+  Radio
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import DeliveryVanIcon, { DELIVERY_VAN_SVG_HTML } from "../../icons/DeliveryVanIcon";
@@ -56,6 +57,14 @@ export default function SellerRouteMapModal({
   const routeLineRef = useRef(null);
   const radarsGroupRef = useRef(null);
 
+  // Leaflet Layer References for direct updates
+  const carMarkerRef = useRef(null);
+  const coveredLineRef = useRef(null);
+  const remainingLineRef = useRef(null);
+  const remainingGlowRef = useRef(null);
+  const navIntervalRef = useRef(null);
+  const routesCacheRef = useRef({});
+
   // Live Navigation State
   const [isNavigating, setIsNavigating] = useState(false);
   const [navType, setNavType] = useState("real_gps"); // 'real_gps' | 'simulated'
@@ -64,13 +73,6 @@ export default function SellerRouteMapModal({
   const [hasArrived, setHasArrived] = useState(false);
   const [navSpeed, setNavSpeed] = useState(2); // 1x, 2x, 4x
 
-  // Leaflet Layer References for direct 60fps updates
-  const carMarkerRef = useRef(null);
-  const coveredLineRef = useRef(null);
-  const remainingLineRef = useRef(null);
-  const remainingGlowRef = useRef(null);
-  const navIntervalRef = useRef(null);
-
   // Live Phone GPS Tracking State
   const [phoneGpsLocation, setPhoneGpsLocation] = useState(null);
   const [isLocatingPhone, setIsLocatingPhone] = useState(false);
@@ -78,113 +80,8 @@ export default function SellerRouteMapModal({
   const initialGpsAnchorRef = useRef(null);
   const hasInitiallyCenteredGpsRef = useRef(false);
 
-  // Request high-accuracy GPS position from the phone
-  const handleGetLivePhoneGps = () => {
-    if (!navigator?.geolocation) {
-      setPhoneGpsError("Tu navegador o red no soporta geolocalización.");
-      return;
-    }
-    setIsLocatingPhone(true);
-    setPhoneGpsError("");
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        const coords = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
-        setPhoneGpsLocation(coords);
-        if (!initialGpsAnchorRef.current) {
-          initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
-        }
-        setIsLocatingPhone(false);
-
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo([latitude, longitude], 16, { duration: 0.8 });
-        }
-      },
-      (err) => {
-        setIsLocatingPhone(false);
-        console.warn("Phone GPS error:", err);
-        setPhoneGpsError("No se pudo obtener el GPS. Concede permiso de ubicación en tu navegador o abre con HTTPS.");
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
-  };
-
-  // Watch GPS on modal mount with real-time tracking
-  useEffect(() => {
-    if (!isOpen) return;
-    handleGetLivePhoneGps();
-
-    let watchId = null;
-    if (navigator?.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude, accuracy } = pos.coords;
-          const newGps = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
-          setPhoneGpsLocation(newGps);
-
-          if (!initialGpsAnchorRef.current) {
-            initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
-          }
-
-          // In REAL GPS navigation mode: update marker & route directly from satellite stream
-          if (isNavigating && navType === "real_gps") {
-            if (carMarkerRef.current) {
-              carMarkerRef.current.setLatLng([latitude, longitude]);
-            }
-            if (mapInstanceRef.current) {
-              mapInstanceRef.current.panTo([latitude, longitude], { animate: true, duration: 0.3 });
-            }
-
-            // Update remaining line from real seller position to active store
-            if (activeStore && remainingLineRef.current) {
-              remainingLineRef.current.setLatLngs([
-                [latitude, longitude],
-                [activeStore.lat, activeStore.lng]
-              ]);
-            }
-
-            // Real-time geofence arrival detection
-            if (activeStore) {
-              const dist = calculateDistanceMeters(latitude, longitude, activeStore.lat, activeStore.lng);
-              const radar = activeStore.geofenceRadius || 100;
-              if (dist <= radar) {
-                setHasArrived(true);
-                setIsNavigating(false);
-                if (window.navigator?.vibrate) {
-                  try { window.navigator.vibrate([150, 100, 250]); } catch (e) {}
-                }
-              }
-            }
-          }
-        },
-        (err) => {
-          console.warn("GPS watch position error:", err);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
-      );
-    }
-    return () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    };
-  }, [isOpen, isNavigating, navType, activeStore]);
-
-  // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo'
+  // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo' vs 'ags_route'
   const [mapLocationMode, setMapLocationMode] = useState("real_phone_gps");
-
-  // Auto-center and fit bounds once live GPS is acquired
-  useEffect(() => {
-    if (phoneGpsLocation && mapLocationMode === "real_phone_gps" && !hasInitiallyCenteredGpsRef.current) {
-      hasInitiallyCenteredGpsRef.current = true;
-      if (mapInstanceRef.current) {
-        setTimeout(() => {
-          if (mapInstanceRef.current) {
-            fitMapBounds(mapInstanceRef.current);
-          }
-        }, 200);
-      }
-    }
-  }, [phoneGpsLocation, mapLocationMode]);
 
   // Determine effective origin coordinates for the delivery van
   const isUsingRealPhoneGps = mapLocationMode === "real_phone_gps" && phoneGpsLocation !== null;
@@ -231,49 +128,7 @@ export default function SellerRouteMapModal({
         lng: anchorLng + offset.lng
       };
     });
-  }, [stores, isUsingRealPhoneGps, isCancunMode, mapLocationMode]);
-
-  // Switch between Real Phone GPS, Aguascalientes Route, and Cancun Demo modes
-  const handleSwitchMode = (newMode) => {
-    setMapLocationMode(newMode);
-    setIsNavigating(false);
-    setIsPaused(false);
-    setNavProgressIndex(0);
-    setHasArrived(false);
-    setRoadRoute(null);
-
-    setTimeout(() => {
-      if (!mapInstanceRef.current) return;
-      if (newMode === "real_phone_gps") {
-        if (!phoneGpsLocation) {
-          handleGetLivePhoneGps();
-        } else {
-          const localPoints = [
-            [phoneGpsLocation.lat, phoneGpsLocation.lng],
-            ...effectiveStores.map(s => [s.lat, s.lng])
-          ];
-          mapInstanceRef.current.fitBounds(L.latLngBounds(localPoints), { padding: [40, 40], maxZoom: 16 });
-        }
-      } else if (newMode === "ags_route") {
-        // Real Aguascalientes coordinates from Ventas database
-        const agsPoints = [
-          [21.8853, -102.2916],
-          ...stores.map(s => [s.lat, s.lng])
-        ];
-        mapInstanceRef.current.fitBounds(L.latLngBounds(agsPoints), { padding: [40, 40], maxZoom: 15 });
-      } else {
-        // Cancun demo
-        const cancunPoints = [
-          [21.1485, -86.8402],
-          [21.1619, -86.8515],
-          [21.1482, -86.8398],
-          [21.1390, -86.8520],
-          [21.1465, -86.8225]
-        ];
-        mapInstanceRef.current.fitBounds(L.latLngBounds(cancunPoints), { padding: [40, 40], maxZoom: 15 });
-      }
-    }, 150);
-  };
+  }, [stores, isUsingRealPhoneGps, isCancunMode, mapLocationMode, sellerLat, sellerLng, phoneGpsLocation]);
 
   // Calculate distances for all stores and find the nearest one
   const storesWithDistance = useMemo(() => {
@@ -299,7 +154,6 @@ export default function SellerRouteMapModal({
     () => externalTargetId || nearestStore?.id || stores[0]?.id
   );
 
-  // Synchronize ONLY when external prop changes, NEVER on GPS watch tick or nearestStore recalculation!
   const prevExternalPropIdRef = useRef(externalTargetId);
 
   useEffect(() => {
@@ -310,7 +164,24 @@ export default function SellerRouteMapModal({
     } else if (!selectedStoreId && nearestStore?.id) {
       setSelectedStoreId(nearestStore.id);
     }
-  }, [initialStoreId, activeTargetStoreId]);
+  }, [initialStoreId, activeTargetStoreId, nearestStore, selectedStoreId]);
+
+  const activeStore = useMemo(() => {
+    return storesWithDistance.find(s => s.id === selectedStoreId) || nearestStore || storesWithDistance[0];
+  }, [selectedStoreId, storesWithDistance, nearestStore]);
+
+  const activeStoreRef = useRef(activeStore);
+  useEffect(() => {
+    activeStoreRef.current = activeStore;
+  }, [activeStore]);
+
+  // Fit bounds to include seller and all active stores
+  const fitMapBounds = (map) => {
+    if (!map) return;
+    const points = [[sellerLat, sellerLng], ...effectiveStores.map(s => [s.lat, s.lng])];
+    const bounds = L.latLngBounds(points);
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+  };
 
   // Synchronized store selector: immediately locks destination on map and syncs with route cards
   const handleSelectTargetStore = (storeId, centerMap = true) => {
@@ -334,9 +205,77 @@ export default function SellerRouteMapModal({
     handleSelectTargetStore(store.id, true);
   };
 
-  const activeStore = useMemo(() => {
-    return storesWithDistance.find(s => s.id === selectedStoreId) || nearestStore || storesWithDistance[0];
-  }, [selectedStoreId, storesWithDistance, nearestStore]);
+  // Request high-accuracy GPS position from the phone
+  const handleGetLivePhoneGps = () => {
+    if (!navigator?.geolocation) {
+      setPhoneGpsError("Tu navegador o red no soporta geolocalización.");
+      return;
+    }
+    setIsLocatingPhone(true);
+    setPhoneGpsError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const coords = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
+        setPhoneGpsLocation(coords);
+        if (!initialGpsAnchorRef.current) {
+          initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
+        }
+        setIsLocatingPhone(false);
+
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo([latitude, longitude], 16, { duration: 0.8 });
+        }
+      },
+      (err) => {
+        setIsLocatingPhone(false);
+        console.warn("Phone GPS error:", err);
+        setPhoneGpsError("No se pudo obtener el GPS. Concede permiso de ubicación en tu navegador o abre con HTTPS.");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
+  // Switch between Real Phone GPS, Aguascalientes Route, and Cancun Demo modes
+  const handleSwitchMode = (newMode) => {
+    setMapLocationMode(newMode);
+    setIsNavigating(false);
+    setIsPaused(false);
+    setNavProgressIndex(0);
+    setHasArrived(false);
+    setRoadRoute(null);
+
+    setTimeout(() => {
+      if (!mapInstanceRef.current) return;
+      if (newMode === "real_phone_gps") {
+        if (!phoneGpsLocation) {
+          handleGetLivePhoneGps();
+        } else {
+          const localPoints = [
+            [phoneGpsLocation.lat, phoneGpsLocation.lng],
+            ...effectiveStores.map(s => [s.lat, s.lng])
+          ];
+          mapInstanceRef.current.fitBounds(L.latLngBounds(localPoints), { padding: [40, 40], maxZoom: 16 });
+        }
+      } else if (newMode === "ags_route") {
+        const agsPoints = [
+          [21.8853, -102.2916],
+          ...stores.map(s => [s.lat, s.lng])
+        ];
+        mapInstanceRef.current.fitBounds(L.latLngBounds(agsPoints), { padding: [40, 40], maxZoom: 15 });
+      } else {
+        const cancunPoints = [
+          [21.1485, -86.8402],
+          [21.1619, -86.8515],
+          [21.1482, -86.8398],
+          [21.1390, -86.8520],
+          [21.1465, -86.8225]
+        ];
+        mapInstanceRef.current.fitBounds(L.latLngBounds(cancunPoints), { padding: [40, 40], maxZoom: 15 });
+      }
+    }, 150);
+  };
 
   // Reset navigation when active store changes
   useEffect(() => {
@@ -346,10 +285,9 @@ export default function SellerRouteMapModal({
     setHasArrived(false);
   }, [activeStore?.id]);
 
-  // Real street routing state & cache via OSRM (100% vialidades reales, curvas y giros)
+  // Real street routing state & cache via OSRM
   const [roadRoute, setRoadRoute] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
-  const routesCacheRef = useRef({});
 
   // Fetch true turn-by-turn road geometry adhering to real street network
   useEffect(() => {
@@ -375,7 +313,6 @@ export default function SellerRouteMapModal({
 
         if (data.code === "Ok" && data.routes && data.routes.length > 0) {
           const route = data.routes[0];
-          // OSRM coordinates are [lng, lat], Leaflet polyline expects [lat, lng]
           const latLngCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
           const routeResult = {
             coordinates: latLngCoordinates,
@@ -420,11 +357,9 @@ export default function SellerRouteMapModal({
 
   // Current car coordinates: live phone GPS in real navigation, or road route in simulation
   const currentCarCoord = useMemo(() => {
-    // In simulated demo mode, advance along virtual road coordinates
     if (isNavigating && navType === "simulated" && roadRoute?.coordinates && navProgressIndex > 0 && navProgressIndex < roadRoute.coordinates.length) {
       return roadRoute.coordinates[navProgressIndex];
     }
-    // In real GPS mode or while standing, vehicle marker strictly matches the phone's live GPS
     if (phoneGpsLocation) {
       return [phoneGpsLocation.lat, phoneGpsLocation.lng];
     }
@@ -447,6 +382,80 @@ export default function SellerRouteMapModal({
     return Math.min(100, Math.round((navProgressIndex / (roadRoute.coordinates.length - 1)) * 100));
   }, [hasArrived, roadRoute, navProgressIndex]);
 
+  // Watch GPS on modal mount with real-time tracking
+  useEffect(() => {
+    if (!isOpen) return;
+    handleGetLivePhoneGps();
+
+    let watchId = null;
+    if (navigator?.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          const newGps = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy) };
+          setPhoneGpsLocation(newGps);
+
+          if (!initialGpsAnchorRef.current) {
+            initialGpsAnchorRef.current = { lat: latitude, lng: longitude };
+          }
+
+          // In REAL GPS navigation mode: update marker & route directly from satellite stream
+          if (isNavigating && navType === "real_gps") {
+            if (carMarkerRef.current) {
+              carMarkerRef.current.setLatLng([latitude, longitude]);
+            }
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.panTo([latitude, longitude], { animate: true, duration: 0.3 });
+            }
+
+            const currentTarget = activeStoreRef.current;
+            // Update remaining line from real seller position to active store
+            if (currentTarget && remainingLineRef.current) {
+              remainingLineRef.current.setLatLngs([
+                [latitude, longitude],
+                [currentTarget.lat, currentTarget.lng]
+              ]);
+            }
+
+            // Real-time geofence arrival detection
+            if (currentTarget) {
+              const dist = calculateDistanceMeters(latitude, longitude, currentTarget.lat, currentTarget.lng);
+              const radar = currentTarget.geofenceRadius || 100;
+              if (dist <= radar) {
+                setHasArrived(true);
+                setIsNavigating(false);
+                if (window.navigator?.vibrate) {
+                  try { window.navigator.vibrate([150, 100, 250]); } catch (e) {}
+                }
+              }
+            }
+          }
+        },
+        (err) => {
+          console.warn("GPS watch position error:", err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+      );
+    }
+    return () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isOpen, isNavigating, navType]);
+
+  // Auto-center and fit bounds once live GPS is acquired
+  useEffect(() => {
+    if (phoneGpsLocation && mapLocationMode === "real_phone_gps" && !hasInitiallyCenteredGpsRef.current) {
+      hasInitiallyCenteredGpsRef.current = true;
+      if (mapInstanceRef.current) {
+        setTimeout(() => {
+          if (mapInstanceRef.current) {
+            fitMapBounds(mapInstanceRef.current);
+          }
+        }, 200);
+      }
+    }
+  }, [phoneGpsLocation, mapLocationMode]);
+
   // Initialize and update Leaflet Map
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
@@ -464,7 +473,7 @@ export default function SellerRouteMapModal({
     });
     mapInstanceRef.current = map;
 
-    // OpenStreetMap standard tiles (100% libre, sin marcas de agua y sin requerir API Key)
+    // OpenStreetMap standard tiles
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -495,14 +504,6 @@ export default function SellerRouteMapModal({
     if (!mapInstanceRef.current) return;
     renderMapElements(mapInstanceRef.current);
   }, [activeStore, storesWithDistance, sellerLat, sellerLng, roadRoute, phoneGpsLocation]);
-
-  // Fit bounds to include seller and all active stores
-  const fitMapBounds = (map) => {
-    if (!map) return;
-    const points = [[sellerLat, sellerLng], ...effectiveStores.map(s => [s.lat, s.lng])];
-    const bounds = L.latLngBounds(points);
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-  };
 
   // Render all map elements: Radars, Pins, Vendor Car, and Route Line
   const renderMapElements = (map) => {
