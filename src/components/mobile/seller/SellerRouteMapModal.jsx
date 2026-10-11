@@ -44,6 +44,8 @@ export default function SellerRouteMapModal({
   onClose,
   stores = [],
   seller,
+  currentUser,
+  assignedVendors = [],
   freezers = [],
   initialStoreId = null,
   activeTargetStoreId = null,
@@ -54,8 +56,13 @@ export default function SellerRouteMapModal({
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersGroupRef = useRef(null);
+  const fleetGroupRef = useRef(null);
   const routeLineRef = useRef(null);
   const radarsGroupRef = useRef(null);
+
+  // Status Filter for Map Elements: 'all' | 'completed' | 'in_progress' | 'pending' | 'trucks'
+  const [mapStoreStatusFilter, setMapStoreStatusFilter] = useState("all");
+  const [focusedTruckId, setFocusedTruckId] = useState(null);
 
   // Leaflet Layer References for direct updates
   const carMarkerRef = useRef(null);
@@ -135,6 +142,108 @@ export default function SellerRouteMapModal({
     return unvisited[0] || storesWithDistance[0];
   }, [storesWithDistance]);
 
+  // Dynamic Fleet of assigned vendors for live GPS monitoring
+  const activeFleet = useMemo(() => {
+    if (isCancunMode) {
+      return [
+        {
+          id: "CUN-TRUCK-01",
+          name: "Camioneta Cancún (Ruta 01)",
+          firstName: "Cancún",
+          routeId: "RUTA-CUN",
+          routeName: "Ruta 01 - Cancún Zona Hotelera",
+          lat: 21.1485,
+          lng: -86.8402,
+          truckStatus: "En Ruta",
+          currentActivity: "Ruta Hotelera",
+          color: "#10b981",
+          isCurrentDevice: true
+        }
+      ];
+    }
+
+    const defaultAgsVendors = [
+      { id: "USR-VEND-104", name: "Juan Pablo Morales", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" },
+      { id: "USR-VEND-106", name: "Carlos Estrada Rincón", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" },
+      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" }
+    ];
+
+    const vendors = (assignedVendors && assignedVendors.length > 0)
+      ? assignedVendors
+      : defaultAgsVendors;
+
+    const truckColors = ["#059669", "#0284c7", "#7c3aed", "#d97706", "#db2777", "#0d9488"];
+
+    return vendors.map((vendor, index) => {
+      const isCurrentDevice = (currentUser?.id === vendor.id) || (currentUser?.role === "vendedor" && index === 0);
+      const hasPhoneGps = isCurrentDevice && isUsingRealPhoneGps && phoneGpsLocation;
+
+      const vendorStores = effectiveStores.filter((s) => s.vendorId === vendor.id || s.routeId === vendor.routeId);
+      const inProgressStore = vendorStores.find((s) => s.status === "in_progress");
+      const completedStores = vendorStores.filter((s) => s.status === "completed");
+      const pendingStores = vendorStores.filter((s) => s.status === "pending");
+
+      let lat, lng, truckStatus, currentActivity;
+
+      if (hasPhoneGps) {
+        lat = phoneGpsLocation.lat;
+        lng = phoneGpsLocation.lng;
+        truckStatus = isNavigating ? "En tránsito (Navegando)" : "GPS Celular Conectado";
+        currentActivity = `Tú (${vendor.name.split(" ")[0]}) • ±${phoneGpsLocation.accuracy || 4}m`;
+      } else if (inProgressStore) {
+        lat = inProgressStore.lat + 0.0003;
+        lng = inProgressStore.lng + 0.0004;
+        truckStatus = "En tienda (Atendiendo)";
+        currentActivity = `En tienda: ${inProgressStore.name.split("-")[0]?.trim()}`;
+      } else if (pendingStores.length > 0) {
+        const next = pendingStores[0];
+        lat = next.lat + 0.0035;
+        lng = next.lng - 0.0030;
+        truckStatus = "En tránsito (En ruta)";
+        currentActivity = `Hacia: ${next.name.split("-")[0]?.trim()}`;
+      } else if (completedStores.length > 0 && completedStores.length === vendorStores.length) {
+        const last = completedStores[completedStores.length - 1];
+        lat = last.lat;
+        lng = last.lng;
+        truckStatus = "Ruta completada";
+        currentActivity = "Todas las tiendas atendidas";
+      } else {
+        const defaultPositions = [
+          { lat: 21.9185, lng: -102.2952 },
+          { lat: 21.8760, lng: -102.2970 },
+          { lat: 21.8600, lng: -102.2880 }
+        ];
+        const def = defaultPositions[index % defaultPositions.length];
+        lat = def.lat;
+        lng = def.lng;
+        truckStatus = "En ruta";
+        currentActivity = "Ruta activa";
+      }
+
+      return {
+        id: vendor.id,
+        vendorId: vendor.id,
+        name: vendor.name,
+        firstName: vendor.name.split(" ")[0],
+        role: vendor.role,
+        routeId: vendor.routeId || `RUTA-0${index + 1}`,
+        routeName: vendor.routeName || `Ruta 0${index + 1}`,
+        avatar: vendor.avatar,
+        phone: vendor.phone,
+        lat,
+        lng,
+        isCurrentDevice,
+        truckStatus,
+        currentActivity,
+        color: truckColors[index % truckColors.length],
+        totalStores: vendorStores.length,
+        completedCount: completedStores.length,
+        pendingCount: pendingStores.length,
+        hasInProgress: !!inProgressStore
+      };
+    });
+  }, [assignedVendors, effectiveStores, currentUser, isUsingRealPhoneGps, phoneGpsLocation, isCancunMode, isNavigating]);
+
   // Selected store for detail HUD card & road trajectory routing
   const externalTargetId = initialStoreId || activeTargetStoreId;
   const [selectedStoreId, setSelectedStoreId] = useState(
@@ -162,12 +271,42 @@ export default function SellerRouteMapModal({
     activeStoreRef.current = activeStore;
   }, [activeStore]);
 
-  // Fit bounds to include seller and all active stores
+  // Counts of stores by operational status
+  const counts = useMemo(() => {
+    return {
+      all: storesWithDistance.length,
+      completed: storesWithDistance.filter(s => s.status === "completed").length,
+      in_progress: storesWithDistance.filter(s => s.status === "in_progress").length,
+      pending: storesWithDistance.filter(s => s.status !== "completed" && s.status !== "in_progress").length
+    };
+  }, [storesWithDistance]);
+
+  // Focused truck metadata object
+  const focusedTruck = useMemo(() => {
+    if (!focusedTruckId) return null;
+    return activeFleet.find(t => t.id === focusedTruckId);
+  }, [focusedTruckId, activeFleet]);
+
+  // Fit bounds to include all trucks and active stores
   const fitMapBounds = (map) => {
     if (!map) return;
-    const points = [[sellerLat, sellerLng], ...effectiveStores.map(s => [s.lat, s.lng])];
+    const points = [
+      [sellerLat, sellerLng],
+      ...activeFleet.map(t => [t.lat, t.lng]),
+      ...effectiveStores.map(s => [s.lat, s.lng])
+    ];
+    if (phoneGpsLocation) points.push([phoneGpsLocation.lat, phoneGpsLocation.lng]);
     const bounds = L.latLngBounds(points);
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
+  };
+
+  // Fit bounds strictly around the active fleet of delivery trucks
+  const fitFleetBounds = (map) => {
+    if (!map || activeFleet.length === 0) return;
+    const points = activeFleet.map(t => [t.lat, t.lng]);
+    if (phoneGpsLocation) points.push([phoneGpsLocation.lat, phoneGpsLocation.lng]);
+    const bounds = L.latLngBounds(points);
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
   };
 
   // Synchronized store selector: immediately locks destination on map and syncs with route cards
@@ -580,11 +719,21 @@ export default function SellerRouteMapModal({
     };
   }, [isOpen]);
 
-  // Re-render markers and route when activeStore, roadRoute or data changes
+  // Re-render markers and route when activeStore, roadRoute, fleet or filter changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     renderMapElements(mapInstanceRef.current);
-  }, [activeStore, storesWithDistance, sellerLat, sellerLng, roadRoute, phoneGpsLocation]);
+  }, [
+    activeStore, 
+    storesWithDistance, 
+    sellerLat, 
+    sellerLng, 
+    roadRoute, 
+    phoneGpsLocation, 
+    activeFleet, 
+    mapStoreStatusFilter, 
+    focusedTruckId
+  ]);
 
   // Render all map elements: Radars, Pins, Vendor Car, and Route Line
   const renderMapElements = (map) => {
@@ -595,70 +744,111 @@ export default function SellerRouteMapModal({
     markersGroupRef.current.clearLayers();
     routeLineRef.current.clearLayers();
 
-    // 1. RENDER RADARS AROUND EVERY STORE
+    // 1. RENDER VISUALLY DISTINCT STORES (Atendidas, En Proceso, Faltan)
     storesWithDistance.forEach(store => {
-      const radius = store.geofenceRadius || 120;
       const isCompleted = store.status === "completed";
       const isInProgress = store.status === "in_progress";
+      const isPending = !isCompleted && !isInProgress;
       const isTarget = store.id === activeStore?.id;
 
+      // Filter isolation logic
+      const isFilteredOut = (
+        (mapStoreStatusFilter === "completed" && !isCompleted) ||
+        (mapStoreStatusFilter === "in_progress" && !isInProgress) ||
+        (mapStoreStatusFilter === "pending" && !isPending)
+      );
+      const isFleetMode = mapStoreStatusFilter === "fleet";
+      const storeOpacity = isFilteredOut ? 0.12 : (isFleetMode ? 0.35 : 1.0);
+
+      const radius = store.geofenceRadius || 120;
       const radarColor = isCompleted 
         ? "#10b981" 
         : isInProgress 
         ? "#f59e0b" 
         : isTarget 
         ? "#059669" 
-        : "#0284c7";
+        : "#64748b";
 
-      const radarCircle = L.circle([store.lat, store.lng], {
-        radius: radius,
-        color: radarColor,
-        weight: 1.5,
-        opacity: isTarget ? 0.9 : 0.6,
-        dashArray: "4, 6",
-        fillColor: radarColor,
-        fillOpacity: isTarget ? 0.16 : 0.08
-      });
-      radarsGroupRef.current.addLayer(radarCircle);
+      // Render radar circle only when relevant
+      if (!isFilteredOut || isTarget) {
+        const radarCircle = L.circle([store.lat, store.lng], {
+          radius: radius,
+          color: radarColor,
+          weight: isTarget ? 2 : 1.2,
+          opacity: isTarget ? 0.9 : (isInProgress ? 0.8 : 0.4),
+          dashArray: isInProgress ? "" : "4, 6",
+          fillColor: radarColor,
+          fillOpacity: isTarget ? 0.16 : (isInProgress ? 0.18 : 0.05)
+        });
+        radarsGroupRef.current.addLayer(radarCircle);
+      }
 
-      // Store Marker Pin
+      // High-Contrast Status Pill Tag
+      const statusBadgeHtml = isCompleted
+        ? `<span class="px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-emerald-500 text-white tracking-wider shadow-2xs">✓ ATENDIDA</span>`
+        : isInProgress
+        ? `<span class="px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-amber-400 text-slate-950 tracking-wider shadow-2xs flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping inline-block"></span>EN PROCESO</span>`
+        : `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase bg-slate-100 text-slate-600 tracking-wider border border-slate-200">⏳ PENDIENTE</span>`;
+
+      // Store Marker Pin HTML
       const storeIconHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer group" style="transform: translate(-50%, -100%);">
-          <!-- Pulsing Radar Animation Ripple -->
-          <div class="absolute top-4 w-12 h-12 rounded-full pointer-events-none -translate-y-1/2" 
-               style="background: radial-gradient(circle, ${radarColor}44 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;">
-          </div>
-          
+        <div class="relative flex flex-col items-center cursor-pointer group transition-all duration-300" style="transform: translate(-50%, -100%); opacity: ${storeOpacity};">
+          ${isInProgress ? `
+            <!-- Double Ripple Radar Animation for Store In Progress -->
+            <div class="absolute top-4 w-16 h-16 rounded-full pointer-events-none -translate-y-1/2" 
+                 style="background: radial-gradient(circle, #f59e0b66 0%, transparent 70%); animation: frimart-radar-pulse 1.4s infinite ease-out;">
+            </div>
+            <div class="absolute top-4 w-10 h-10 rounded-full pointer-events-none -translate-y-1/2 bg-amber-400/25 animate-ping"></div>
+          ` : isTarget ? `
+            <div class="absolute top-4 w-12 h-12 rounded-full pointer-events-none -translate-y-1/2" 
+                 style="background: radial-gradient(circle, #05966944 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;">
+            </div>
+          ` : ''}
+
           <!-- Store Marker Pin Card -->
-          <div class="relative flex items-center gap-1.5 px-2.5 py-1 rounded-xl shadow-md border transition-transform duration-200 hover:scale-110 ${
+          <div class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl shadow-lg border-2 transition-transform duration-200 hover:scale-110 ${
             isTarget 
-              ? "bg-slate-900 text-white border-emerald-400 ring-2 ring-emerald-400/40" 
+              ? "bg-slate-950 text-white border-emerald-400 ring-4 ring-emerald-400/40 scale-105" 
               : isCompleted
-              ? "bg-white text-emerald-800 border-emerald-300 ring-1 ring-emerald-100"
+              ? "bg-white text-emerald-950 border-emerald-400 ring-2 ring-emerald-100 shadow-emerald-500/10"
               : isInProgress
-              ? "bg-white text-amber-800 border-amber-300 ring-1 ring-amber-100"
-              : "bg-white text-slate-800 border-slate-300"
+              ? "bg-amber-950 text-white border-amber-400 ring-4 ring-amber-400/30 scale-105 shadow-amber-500/20"
+              : "bg-white text-slate-800 border-slate-300 shadow-slate-400/10"
           }">
-            <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+            <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
               isCompleted 
-                ? "bg-emerald-500 text-white" 
+                ? "bg-emerald-500 text-white shadow-xs" 
                 : isInProgress 
-                ? "bg-amber-500 text-white" 
-                : "bg-slate-100 text-slate-700"
+                ? "bg-amber-400 text-slate-950 font-black shadow-xs" 
+                : isTarget
+                ? "bg-emerald-400 text-slate-950 font-black"
+                : "bg-slate-100 text-slate-600"
             }">
-              <span style="font-size: 9px; font-weight: 800;">${
-                isCompleted ? "✓" : isInProgress ? "●" : "🏪"
+              <span style="font-size: ${isCompleted ? '11px' : '10px'}; font-weight: 900;">${
+                isCompleted ? "✓" : isInProgress ? "●" : isTarget ? "🎯" : "🏪"
               }</span>
             </div>
-            <span style="font-size: 10.5px; font-weight: 700; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">
-              ${store.name.split("-")[0]?.trim()}
-            </span>
+
+            <div class="flex flex-col leading-tight pr-0.5">
+              <div class="flex items-center gap-1.5">
+                <span style="font-size: 11px; font-weight: 800; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; ${isInProgress || isTarget ? 'color: white;' : ''}">
+                  ${store.name.split("-")[0]?.trim()}
+                </span>
+              </div>
+              <div class="mt-0.5">
+                ${statusBadgeHtml}
+              </div>
+            </div>
           </div>
 
           <!-- Bottom Pin Pointer Triangle -->
-          <div class="w-2 h-2 rotate-45 -mt-1 border-r border-b ${
+          <div class="w-2.5 h-2.5 rotate-45 -mt-1.5 border-r-2 border-b-2 ${
             isTarget 
-              ? "bg-slate-900 border-emerald-400" 
+              ? "bg-slate-950 border-emerald-400" 
+              : isInProgress
+              ? "bg-amber-950 border-amber-400"
+              : isCompleted
+              ? "bg-white border-emerald-400"
               : "bg-white border-slate-300"
           }"></div>
         </div>
@@ -669,7 +859,8 @@ export default function SellerRouteMapModal({
           html: storeIconHtml,
           className: "custom-store-pin",
           iconSize: [0, 0]
-        })
+        }),
+        zIndexOffset: isTarget ? 700 : (isInProgress ? 600 : 200)
       });
 
       storeMarker.on("click", () => {
@@ -679,27 +870,72 @@ export default function SellerRouteMapModal({
       markersGroupRef.current.addLayer(storeMarker);
     });
 
-    // 2. VENDOR REAL-TIME LOCATION WITH CUSTOM DELIVERY VAN ICON
-    const carIconHtml = `
-      <div class="relative flex flex-col items-center pointer-events-none" style="transform: translate(-50%, -50%);">
-        <!-- Multi-stage GPS Pulse Halos -->
-        <div class="absolute w-16 h-16 rounded-full ${isUsingRealPhoneGps ? "bg-sky-400/30" : "bg-emerald-500/20"} animate-ping"></div>
-        <div class="absolute w-12 h-12 rounded-full ${isUsingRealPhoneGps ? "bg-sky-500/30" : "bg-emerald-500/30"}"></div>
+    // 2. ALL ASSIGNED VENDOR DELIVERY TRUCKS (ACTIVE FLEET ON ROUTE)
+    activeFleet.forEach((truck) => {
+      const isCurrent = truck.isCurrentDevice;
+      const truckLat = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
+        ? currentCarCoord[0]
+        : truck.lat;
+      const truckLng = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
+        ? currentCarCoord[1]
+        : truck.lng;
+      const truckColor = truck.color || "#059669";
+      const isFocused = focusedTruckId === truck.id;
 
-        <!-- Custom Delivery Van Badge (Alta Definición Vectorial con halo de contraste) -->
-        <div id="frimart-van-badge" class="relative flex items-center justify-center select-none" style="width: 72px; height: 54px; filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 3px 6px rgba(0,0,0,0.35));">
-          ${DELIVERY_VAN_SVG_HTML}
+      const truckIconHtml = `
+        <div class="relative flex flex-col items-center cursor-pointer select-none group" style="transform: translate(-50%, -50%); z-index: ${isCurrent || isFocused ? 1200 : 900};">
+          <!-- Multi-stage GPS Pulse Halos -->
+          <div class="absolute w-20 h-20 rounded-full pointer-events-none" style="background: radial-gradient(circle, ${truckColor}44 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
+          <div class="absolute w-12 h-12 rounded-full pointer-events-none" style="background: ${truckColor}33;"></div>
+
+          <!-- Custom Delivery Van Badge -->
+          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115 ${isFocused ? 'scale-115 ring-4 ring-amber-400 rounded-2xl shadow-2xl' : ''}" style="width: 72px; height: 54px; filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 4px 8px rgba(0,0,0,0.4));">
+            ${DELIVERY_VAN_SVG_HTML}
+          </div>
+
+          <!-- Real-Time Floating Driver & Route Badge -->
+          <div class="mt-1 px-2.5 py-0.5 rounded-full text-white text-[9.5px] font-black border shadow-lg whitespace-nowrap flex items-center gap-1.5 transition-all duration-200 ${
+            isCurrent
+              ? "bg-slate-950 text-white border-emerald-400 ring-2 ring-emerald-400/50"
+              : isFocused
+              ? "bg-slate-950 text-white border-amber-400 ring-2 ring-amber-400/60"
+              : "bg-slate-900/95 text-slate-100 border-slate-600"
+          }">
+            <span class="w-2 h-2 rounded-full animate-ping" style="background-color: ${truckColor};"></span>
+            <span class="truncate max-w-[140px]">
+              ${isCurrent ? `🚚 Tú (${truck.firstName})` : `🚚 ${truck.firstName}`} • ${truck.routeId}
+            </span>
+          </div>
+
+          <!-- Status Sub-pill -->
+          <div class="mt-0.5 px-2 py-0.5 rounded-md text-[8.5px] font-bold text-slate-200 bg-slate-950/90 border border-slate-700/80 shadow-xs whitespace-nowrap">
+            ${truck.truckStatus}
+          </div>
         </div>
+      `;
 
-        <!-- Real-Time Floating Badge -->
-        <div class="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 text-white text-[9px] font-extrabold border ${isUsingRealPhoneGps ? "border-sky-400" : "border-emerald-400"} shadow-md whitespace-nowrap flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full ${isNavigating ? "bg-emerald-400 animate-ping" : isUsingRealPhoneGps ? "bg-sky-400" : "bg-emerald-400"}"></span>
-          <span>${isNavigating ? "En camino..." : isUsingRealPhoneGps ? `Tú (GPS Real ±${phoneGpsLocation?.accuracy || 4}m)` : `Tú (${seller?.name?.split(" ")[0] || "Vendedor"})`}</span>
-        </div>
-      </div>
-    `;
+      const truckMarker = L.marker([truckLat, truckLng], {
+        icon: L.divIcon({
+          html: truckIconHtml,
+          className: "custom-car-pin",
+          iconSize: [0, 0]
+        }),
+        zIndexOffset: isCurrent ? 1100 : (isFocused ? 1000 : 800)
+      });
 
-    // Accuracy Circle around Van when GPS is active
+      truckMarker.on("click", () => {
+        setFocusedTruckId(truck.id);
+        map.flyTo([truckLat, truckLng], 16, { duration: 0.6 });
+      });
+
+      markersGroupRef.current.addLayer(truckMarker);
+
+      if (isCurrent) {
+        carMarkerRef.current = truckMarker;
+      }
+    });
+
+    // Accuracy Circle around Current Van when GPS is active
     if (isUsingRealPhoneGps && phoneGpsLocation?.accuracy) {
       const accuracyCircle = L.circle([sellerLat, sellerLng], {
         radius: Math.max(15, phoneGpsLocation.accuracy),
@@ -710,17 +946,6 @@ export default function SellerRouteMapModal({
       });
       radarsGroupRef.current.addLayer(accuracyCircle);
     }
-
-    const carMarker = L.marker(currentCarCoord, {
-      icon: L.divIcon({
-        html: carIconHtml,
-        className: "custom-car-pin",
-        iconSize: [0, 0]
-      }),
-      zIndexOffset: 1000
-    });
-    markersGroupRef.current.addLayer(carMarker);
-    carMarkerRef.current = carMarker;
 
     // 3. REAL STREET ROUTE TO TARGET STORE
     if (activeStore) {
@@ -955,7 +1180,7 @@ export default function SellerRouteMapModal({
         
         {/* 1. TOP FLOATING NAVIGATION HEADER */}
         {isNavigating ? (
-          <div className="absolute top-0 inset-x-0 z-30 p-3 sm:pt-11 pointer-events-none animate-slide-down">
+          <div className="absolute top-0 inset-x-0 z-30 pt-12 px-3 pb-2 pointer-events-none animate-slide-down">
             <div className="pointer-events-auto rounded-[22px] bg-slate-950/95 backdrop-blur-md text-white p-3.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-10 rounded-xl bg-slate-900 border border-slate-700 p-1 flex items-center justify-center shadow-lg shrink-0">
@@ -1041,7 +1266,7 @@ export default function SellerRouteMapModal({
             </div>
           </div>
         ) : (
-          <div className="absolute top-0 inset-x-0 z-30 p-2.5 sm:pt-11 flex flex-col gap-1.5 pointer-events-none">
+          <div className="absolute top-0 inset-x-0 z-30 pt-12 px-3 pb-2 flex flex-col gap-1.5 pointer-events-none">
             <div className="flex items-center justify-between gap-2">
               {/* Back button */}
               <button
@@ -1132,6 +1357,78 @@ export default function SellerRouteMapModal({
                 </button>
               </div>
             )}
+
+            {/* Interactive Status & Fleet Filter Pill Bar */}
+            <div className="self-stretch pointer-events-auto mt-0.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 px-1 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-md">
+                <button
+                  type="button"
+                  onClick={() => setMapStoreStatusFilter("all")}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition flex items-center gap-1 shrink-0 cursor-pointer ${
+                    mapStoreStatusFilter === "all"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <span>Todas ({stores.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMapStoreStatusFilter("completed")}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    mapStoreStatusFilter === "completed"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>✓ Atendidas ({counts.completed})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMapStoreStatusFilter("in_progress")}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    mapStoreStatusFilter === "in_progress"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/60"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>● En Proceso ({counts.in_progress})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMapStoreStatusFilter("pending")}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    mapStoreStatusFilter === "pending"
+                      ? "bg-slate-700 text-white shadow-xs"
+                      : "text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                  <span>⏳ Faltan ({counts.pending})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapStoreStatusFilter("fleet");
+                    fitFleetBounds(mapInstanceRef.current);
+                  }}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    mapStoreStatusFilter === "fleet"
+                      ? "bg-teal-700 text-white shadow-xs ring-1 ring-teal-400"
+                      : "text-teal-800 bg-teal-50 border border-teal-200 hover:bg-teal-100"
+                  }`}
+                >
+                  <DeliveryVanIcon className="w-4 h-3.5" />
+                  <span>🚚 Flota ({activeFleet.length} Camiones)</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1173,11 +1470,65 @@ export default function SellerRouteMapModal({
         </div>
 
         {/* 3. BOTTOM FLOATING HUD: TRIP NAVIGATION / STORE DETAIL */}
-        {activeStore && (
-          <div className="relative z-30 px-3 pb-3 -mt-6">
-            
-            {/* A. ARRIVAL STATE: Destination Reached! */}
-            {hasArrived ? (
+        <div className="relative z-30 px-3 pb-3 -mt-6">
+          {/* Focused Truck Spotlight Card */}
+          {focusedTruck && !isNavigating && (
+            <div className="p-3.5 rounded-[22px] bg-slate-950 text-white border-2 border-teal-400 shadow-2xl flex items-center justify-between gap-3 animate-slide-up mb-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-2xl bg-teal-900 border border-teal-400/50 p-1 flex items-center justify-center shrink-0 shadow-md">
+                  <DeliveryVanIcon className="w-8 h-7" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-white truncate">
+                      {focusedTruck.name}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-900 text-teal-300 font-mono font-bold border border-teal-700/60">
+                      {focusedTruck.routeId}
+                    </span>
+                  </div>
+                  <p className="text-xs text-teal-200/90 truncate mt-0.5">
+                    {focusedTruck.currentActivity}
+                  </p>
+                  <div className="flex items-center gap-2 text-[10.5px] text-slate-300 mt-1">
+                    <span className="text-emerald-400 font-bold">✓ {focusedTruck.completedCount} Atendidas</span>
+                    <span>•</span>
+                    <span className="text-amber-300 font-bold">{focusedTruck.hasInProgress ? "● 1 En Proceso" : "0 En Proceso"}</span>
+                    <span>•</span>
+                    <span className="text-slate-400 font-medium">⏳ {focusedTruck.pendingCount} Faltan</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (mapInstanceRef.current) {
+                      mapInstanceRef.current.flyTo([focusedTruck.lat, focusedTruck.lng], 16, { duration: 0.6 });
+                    }
+                  }}
+                  className="tap-effect h-8 px-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  title="Centrar en este camión"
+                >
+                  <LocateFixed className="w-3.5 h-3.5" />
+                  <span>Centrar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFocusedTruckId(null)}
+                  className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer border border-slate-700"
+                  title="Cerrar detalle"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeStore && (
+            /* A. ARRIVAL STATE: Destination Reached! */
+            hasArrived ? (
               <div className="p-4 rounded-[22px] bg-white border-2 border-emerald-500 shadow-2xl space-y-3 animate-fade-in">
                 <div className="flex items-center gap-3 text-emerald-900 bg-emerald-50/90 p-3 rounded-2xl border border-emerald-200">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
@@ -1538,9 +1889,9 @@ export default function SellerRouteMapModal({
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
 
       </div>
 

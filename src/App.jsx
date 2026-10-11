@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MobileDeviceFrame from "./components/mobile/MobileDeviceFrame";
 import SellerMobileHeader from "./components/mobile/seller/SellerMobileHeader";
 import SellerBottomNavigation from "./components/mobile/seller/SellerBottomNavigation";
@@ -163,6 +163,26 @@ export default function App() {
   // Supervisor & Route Filters
   const [selectedRouteFilter, setSelectedRouteFilter] = useState("all");
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
+
+  // Dynamic list of assigned vendors for the active user & CEDIS
+  const assignedVendors = useMemo(() => {
+    const allVendors = users.filter((u) => u.role === "vendedor");
+    if (!currentUser) return allVendors;
+    if (currentUser.role === "vendedor") {
+      // In route and map monitoring, include all assigned fleet vendors of the CEDIS
+      const sameCedis = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
+      return sameCedis.length > 0 ? sameCedis : allVendors;
+    }
+    if (currentUser.assignedVendors && Array.isArray(currentUser.assignedVendors) && currentUser.assignedVendors.length > 0) {
+      const filtered = allVendors.filter((u) => currentUser.assignedVendors.includes(u.id));
+      if (filtered.length > 0) return filtered;
+    }
+    if (currentUser.cedisId) {
+      const cedisVendors = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
+      if (cedisVendors.length > 0) return cedisVendors;
+    }
+    return allVendors;
+  }, [users, currentUser]);
 
   const handleAddNewStore = (newStoreData, newFreezerData) => {
     if (newStoreData) {
@@ -495,6 +515,7 @@ export default function App() {
             <SupervisorHubScreen
               supervisorUser={currentUser}
               allUsers={users}
+              assignedVendors={assignedVendors}
               stores={stores}
               freezers={freezers}
               onInspectFreezer={(fId) => {
@@ -555,6 +576,8 @@ export default function App() {
           {activeTab === "ruta" && (
             <SellerRouteScreen
               seller={seller}
+              currentUser={currentUser}
+              assignedVendors={assignedVendors}
               stores={stores}
               freezers={freezers}
               activeTargetStoreId={activeTargetStoreId}
@@ -718,6 +741,8 @@ export default function App() {
           onClose={() => setIsRouteMapOpen(false)}
           stores={stores}
           seller={seller}
+          currentUser={currentUser}
+          assignedVendors={assignedVendors}
           freezers={freezers}
           initialStoreId={routeMapTargetStoreId || activeTargetStoreId}
           activeTargetStoreId={activeTargetStoreId}

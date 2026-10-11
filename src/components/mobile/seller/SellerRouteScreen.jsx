@@ -18,9 +18,12 @@ import {
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
+import DeliveryVanIcon from "../../icons/DeliveryVanIcon";
 
 export default function SellerRouteScreen({
   seller,
+  currentUser,
+  assignedVendors = [],
   stores = [],
   freezers = [],
   activeTargetStoreId,
@@ -48,79 +51,117 @@ export default function SellerRouteScreen({
     return stores.find((s) => s.id === activeTargetStoreId) || stores.find((s) => s.status !== "completed") || stores[0];
   }, [stores, activeTargetStoreId]);
 
+  // Dynamically extract all available routes from stores & assignedVendors
+  const dynamicRoutes = useMemo(() => {
+    const routeMap = new Map();
+    stores.forEach((s) => {
+      if (s.routeId && !routeMap.has(s.routeId)) {
+        routeMap.set(s.routeId, {
+          id: s.routeId,
+          name: s.routeName || s.routeId,
+          vendorName: s.vendorName || "",
+          count: 0
+        });
+      }
+      if (s.routeId) {
+        routeMap.get(s.routeId).count += 1;
+      }
+    });
+
+    if (assignedVendors?.length) {
+      assignedVendors.forEach((v) => {
+        if (v.routeId && !routeMap.has(v.routeId)) {
+          routeMap.set(v.routeId, {
+            id: v.routeId,
+            name: v.routeName || v.routeId,
+            vendorName: v.name,
+            count: stores.filter((s) => s.routeId === v.routeId).length
+          });
+        } else if (v.routeId && routeMap.has(v.routeId)) {
+          const item = routeMap.get(v.routeId);
+          if (!item.vendorName) item.vendorName = v.name;
+        }
+      });
+    }
+
+    const list = Array.from(routeMap.values()).map((r) => ({
+      id: r.id,
+      label: r.vendorName ? `${r.id} • ${r.vendorName.split(" ")[0]} ${r.vendorName.split(" ")[1] || ""}` : r.name,
+      count: r.count
+    }));
+
+    return [
+      { id: "all", label: `Todas las Rutas (${stores.length})`, count: stores.length },
+      ...list
+    ];
+  }, [stores, assignedVendors]);
+
   // Dynamic daily goal computed in real time according to the active route filter and visited stores
   const dynamicGoal = useMemo(() => {
-    // Baseline targets and performance per route
-    const ROUTE_CONFIGS = {
-      all: {
-        title: "Meta Diaria de Equipo (Aguascalientes)",
-        subtitle: "3 Rutas de Campo Integradas",
-        targetAmount: 116000,
-        baseSales: 92950,
-        targetBoxes: 455,
-        baseBoxes: 347,
-        targetVisits: stores.length || 7
-      },
-      "RUTA-01": {
-        title: "Meta Diaria • Juan Pablo Morales",
-        subtitle: "Ruta 01 - Ags Norte & Pocitos",
-        targetAmount: 38000,
-        baseSales: 28950,
-        targetBoxes: 150,
-        baseBoxes: 112,
-        targetVisits: stores.filter((s) => s.routeId === "RUTA-01").length || 3
-      },
-      "RUTA-02": {
-        title: "Meta Diaria • Carlos Estrada Rincón",
-        subtitle: "Ruta 02 - Ags Centro & San Marcos",
-        targetAmount: 42000,
-        baseSales: 34200,
-        targetBoxes: 165,
-        baseBoxes: 130,
-        targetVisits: stores.filter((s) => s.routeId === "RUTA-02").length || 2
-      },
-      "RUTA-03": {
-        title: "Meta Diaria • María Elena Delgado",
-        subtitle: "Ruta 03 - Ags Sur & Cd. Industrial",
-        targetAmount: 36000,
-        baseSales: 29800,
-        targetBoxes: 140,
-        baseBoxes: 105,
-        targetVisits: stores.filter((s) => s.routeId === "RUTA-03").length || 2
-      }
-    };
+    // If "all" routes: aggregate team goal
+    if (routeFilter === "all") {
+      const targetAmount = assignedVendors?.length 
+        ? assignedVendors.reduce((acc, v) => acc + (v.dailyQuota || 38000), 0)
+        : 116000;
+      const targetBoxes = assignedVendors?.length
+        ? assignedVendors.reduce((acc, v) => acc + (v.dailyBoxes || 150), 0)
+        : 455;
 
-    const cfg = ROUTE_CONFIGS[routeFilter] || ROUTE_CONFIGS.all;
+      const completedVisits = stores.filter((s) => s.status === "completed").length;
+      const liveRecordedSales = stores.reduce((acc, s) => acc + (s.salesToday || 0), 0);
+      const liveRecordedBoxes = stores.reduce((acc, s) => acc + (s.boxesToday || 0), 0);
 
-    // Filter relevant stores for visit completion count and additional recorded sales
-    const relevantStores = routeFilter === "all" 
-      ? stores 
-      : stores.filter((s) => s.routeId === routeFilter);
+      const baseSales = 92950;
+      const baseBoxes = 347;
+      const effectiveAmount = Math.max(baseSales, liveRecordedSales);
+      const effectiveBoxes = Math.max(baseBoxes, liveRecordedBoxes);
+      const percent = Math.min(100, Math.round((effectiveAmount / targetAmount) * 100));
+      const commission = Math.round(effectiveAmount * 0.04);
 
+      return {
+        title: "Meta Diaria de Equipo",
+        subtitle: `${dynamicRoutes.length - 1 || 3} Rutas Asignadas (${stores.length} Tiendas)`,
+        targetAmount,
+        currentAmount: effectiveAmount,
+        targetBoxes,
+        currentBoxes: effectiveBoxes,
+        targetVisits: stores.length,
+        completedVisits,
+        percentSales: percent,
+        commission
+      };
+    }
+
+    // Specific route filter
+    const vendorForRoute = assignedVendors?.find((v) => v.routeId === routeFilter);
+    const relevantStores = stores.filter((s) => s.routeId === routeFilter);
     const completedVisits = relevantStores.filter((s) => s.status === "completed").length;
-    
-    // Sum real recorded sales and boxes from stores that have been completed today
+
+    const targetAmount = vendorForRoute?.dailyQuota || 38000;
+    const targetBoxes = vendorForRoute?.dailyBoxes || 150;
+    const baseSales = routeFilter === "RUTA-01" ? 28950 : routeFilter === "RUTA-02" ? 34200 : routeFilter === "RUTA-03" ? 29800 : Math.round(targetAmount * 0.75);
+    const baseBoxes = routeFilter === "RUTA-01" ? 112 : routeFilter === "RUTA-02" ? 130 : routeFilter === "RUTA-03" ? 105 : Math.round(targetBoxes * 0.75);
+
     const liveRecordedSales = relevantStores.reduce((acc, s) => acc + (s.salesToday || 0), 0);
     const liveRecordedBoxes = relevantStores.reduce((acc, s) => acc + (s.boxesToday || 0), 0);
-
-    const effectiveAmount = Math.max(cfg.baseSales, liveRecordedSales);
-    const effectiveBoxes = Math.max(cfg.baseBoxes, liveRecordedBoxes);
-    const percent = Math.min(100, Math.round((effectiveAmount / cfg.targetAmount) * 100));
+    const effectiveAmount = Math.max(baseSales, liveRecordedSales);
+    const effectiveBoxes = Math.max(baseBoxes, liveRecordedBoxes);
+    const percent = Math.min(100, Math.round((effectiveAmount / targetAmount) * 100));
     const commission = Math.round(effectiveAmount * 0.04);
 
     return {
-      title: cfg.title,
-      subtitle: cfg.subtitle,
-      targetAmount: cfg.targetAmount,
+      title: vendorForRoute ? `Meta Diaria • ${vendorForRoute.name}` : `Meta Diaria • ${routeFilter}`,
+      subtitle: vendorForRoute?.routeName || `${relevantStores.length} Tiendas Asignadas`,
+      targetAmount,
       currentAmount: effectiveAmount,
-      targetBoxes: cfg.targetBoxes,
+      targetBoxes,
       currentBoxes: effectiveBoxes,
-      targetVisits: cfg.targetVisits,
-      completedVisits: completedVisits,
+      targetVisits: relevantStores.length || 3,
+      completedVisits,
       percentSales: percent,
-      commission: commission
+      commission
     };
-  }, [routeFilter, stores]);
+  }, [routeFilter, stores, assignedVendors, dynamicRoutes]);
 
   // Filter stores based on search, status, and route
   const filteredStores = useMemo(() => {
@@ -284,8 +325,53 @@ export default function SellerRouteScreen({
         </div>
       </div>
 
-      {/* 4. Section Header with Separation & In-App Map Trigger */}
-      <div className="px-4 mb-3 flex items-center justify-between">
+      {/* 3.8. BOTÓN DESTACADO: TIENDAS EN RUTA Y FLOTA EN VIVO */}
+      <div className="px-4 mb-4">
+        <button
+          type="button"
+          onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+          className="tap-effect w-full p-4 rounded-[24px] bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-800 text-white shadow-[0_8px_25px_rgba(5,150,105,0.25)] border-2 border-emerald-300 hover:brightness-105 active:scale-[0.99] transition cursor-pointer flex items-center justify-between gap-3 text-left relative overflow-hidden group"
+        >
+          {/* Subtle background glow */}
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
+
+          <div className="flex items-center gap-3.5 min-w-0 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg group-hover:scale-105 transition-transform">
+              <DeliveryVanIcon className="w-9 h-8 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-wider mb-0.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
+                <span>📍 TIENDAS EN RUTA • GPS EN VIVO</span>
+              </div>
+              <h3 className="font-black text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
+                <span>Ver Tiendas y Camiones en Ruta</span>
+              </h3>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-400/50">
+                  🚚 {assignedVendors?.length || 3} Camiones
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
+                  ✓ {counts.completed} Atendidas
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 border border-amber-300/40">
+                  ● {counts.in_progress} En Proceso
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-slate-200">
+                  ⏳ {counts.pending} Faltan
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-11 h-11 rounded-2xl bg-white text-emerald-800 flex items-center justify-center shrink-0 shadow-lg group-hover:translate-x-1 group-hover:bg-emerald-50 transition-all relative z-10">
+            <Compass className="w-6 h-6 stroke-[2.5]" />
+          </div>
+        </button>
+      </div>
+
+      {/* 4. Section Header with Separation & Highlighted In-App Map Trigger */}
+      <div className="px-4 mb-3 flex items-center justify-between gap-2">
         <SectionHeader 
           title="Tiendas en tu Ruta"
           subtitle={`${filteredStores.length} paradas asignadas para hoy`}
@@ -293,11 +379,11 @@ export default function SellerRouteScreen({
         <button
           type="button"
           onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
-          className="tap-effect h-8 px-2.5 rounded-xl bg-white border border-emerald-300 text-[#059669] text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-emerald-50 transition cursor-pointer shrink-0"
-          title="Ver mapa completo con radar y ruta activa"
+          className="tap-effect h-9 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer shrink-0 border border-emerald-300/80 ring-2 ring-emerald-500/20"
+          title="Ver mapa completo con todos los camiones y tiendas"
         >
-          <Compass className="w-3.5 h-3.5 stroke-[2.2]" />
-          <span>Ver Mapa</span>
+          <Compass className="w-4 h-4 stroke-[2.5] animate-pulse" />
+          <span>Ver Mapa ({assignedVendors?.length || 3} Camiones)</span>
         </button>
       </div>
 
@@ -335,15 +421,10 @@ export default function SellerRouteScreen({
         </div>
       )}
 
-      {/* 4.5. Selector de Rutas de Campo Aguascalientes */}
+      {/* 4.5. Selector Dinámico de Rutas de Campo */}
       <div className="px-4 mb-2">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-          {[
-            { id: "all", label: "Todas las Rutas Ags", count: stores.length },
-            { id: "RUTA-01", label: "Ruta 01 • Juan Pablo Morales", count: stores.filter(s => s.routeId === "RUTA-01").length },
-            { id: "RUTA-02", label: "Ruta 02 • Carlos Estrada", count: stores.filter(s => s.routeId === "RUTA-02").length },
-            { id: "RUTA-03", label: "Ruta 03 • María Elena", count: stores.filter(s => s.routeId === "RUTA-03").length }
-          ].map((r) => (
+          {dynamicRoutes.map((r) => (
             <button
               key={r.id}
               type="button"

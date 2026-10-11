@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   ShieldCheck, 
   Users, 
@@ -27,120 +27,114 @@ import {
 export default function SupervisorHubScreen({
   supervisorUser,
   allUsers = [],
+  assignedVendors: propAssignedVendors,
   stores = [],
   freezers = [],
   onInspectFreezer,
   onNavigateToRoute,
   onOpenNewStoreModal
 }) {
-  // 3 vendedores oficiales a cargo en Aguascalientes
-  const AGS_VENDORS_MASTER = [
-    {
-      id: "USR-VEND-104",
-      name: "Juan Pablo Morales",
-      role: "vendedor",
-      routeId: "RUTA-01",
-      routeName: "Ruta 01 - Ags Norte & Pocitos",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      phone: "449-123-4567"
-    },
-    {
-      id: "USR-VEND-106",
-      name: "Carlos Estrada Rincón",
-      role: "vendedor",
-      routeId: "RUTA-02",
-      routeName: "Ruta 02 - Ags Centro & San Marcos",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-      phone: "449-234-5678"
-    },
-    {
-      id: "USR-VEND-107",
-      name: "María Elena Delgado",
-      role: "vendedor",
-      routeId: "RUTA-03",
-      routeName: "Ruta 03 - Ags Sur & Cd. Industrial",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      phone: "449-345-6789"
+  // Dynamically resolve vendors assigned to this supervisor
+  const myVendors = useMemo(() => {
+    if (propAssignedVendors && propAssignedVendors.length > 0) {
+      return propAssignedVendors;
     }
-  ];
+    const allVendors = allUsers.filter((u) => u.role === "vendedor");
+    if (supervisorUser?.assignedVendors && Array.isArray(supervisorUser.assignedVendors) && supervisorUser.assignedVendors.length > 0) {
+      const matched = allVendors.filter((u) => supervisorUser.assignedVendors.includes(u.id));
+      if (matched.length > 0) return matched;
+    }
+    if (supervisorUser?.cedisId) {
+      const cedisVendors = allVendors.filter((u) => u.cedisId === supervisorUser.cedisId);
+      if (cedisVendors.length > 0) return cedisVendors;
+    }
+    return allVendors;
+  }, [propAssignedVendors, allUsers, supervisorUser]);
 
-  const assignedVendorIds = ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107"];
-  const myVendors = assignedVendorIds.map((id) => {
-    const existing = allUsers.find((u) => u.id === id);
-    const master = AGS_VENDORS_MASTER.find((m) => m.id === id);
-    return existing ? { ...master, ...existing } : master;
-  });
-
-  const [selectedVendorId, setSelectedVendorId] = useState("USR-VEND-104");
+  const [selectedVendorId, setSelectedVendorId] = useState(() => myVendors[0]?.id || "USR-VEND-104");
   const [instructionText, setInstructionText] = useState("");
   const [sentAlert, setSentAlert] = useState(null);
 
+  // Sync selectedVendorId if vendor list changes
+  useEffect(() => {
+    if (myVendors.length > 0 && !myVendors.some((v) => v.id === selectedVendorId)) {
+      setSelectedVendorId(myVendors[0].id);
+    }
+  }, [myVendors, selectedVendorId]);
+
   const activeVendor = myVendors.find((v) => v.id === selectedVendorId) || myVendors[0];
 
-  // Métricas y estado en tiempo real de los vendedores en Aguascalientes
-  const vendorStats = {
-    "USR-VEND-104": {
-      name: "Juan Pablo Morales",
-      route: "Ruta 01 - Ags Norte & Pocitos",
-      routeId: "RUTA-01",
-      currentStore: "Cremería Nueva Benjamín de Alba (Agropecuario)",
-      gpsStatus: "En tienda (Geocerca OK - Ags Norte)",
-      salesToday: 28950,
-      quotaToday: 38000,
-      boxesDelivered: 112,
-      boxesTarget: 150,
-      visitsCompleted: 2,
-      visitsTarget: 3,
-      complianceScore: 95,
-      lastAudit: "10:45 AM - Congelador FRM-0089",
-      tempReading: -19.5,
-      freezerId: "FRM-0089",
-      phone: "449-123-4567"
-    },
-    "USR-VEND-106": {
-      name: "Carlos Estrada Rincón",
-      route: "Ruta 02 - Ags Centro & San Marcos",
-      routeId: "RUTA-02",
-      currentStore: "Carnicería y Cremería Tepeyac",
-      gpsStatus: "En tránsito (Av. López Mateos rumbo a Centro)",
-      salesToday: 34200,
-      quotaToday: 42000,
-      boxesDelivered: 130,
-      boxesTarget: 165,
-      visitsCompleted: 1,
-      visitsTarget: 2,
-      complianceScore: 92,
-      lastAudit: "11:20 AM - Congelador FRM-0220",
-      tempReading: -21.0,
-      freezerId: "FRM-0220",
-      phone: "449-234-5678"
-    },
-    "USR-VEND-107": {
-      name: "María Elena Delgado",
-      route: "Ruta 03 - Ags Sur & Cd. Industrial",
-      routeId: "RUTA-03",
-      currentStore: "Súper Casa Blanca",
-      gpsStatus: "En tienda (Geocerca OK - Ags Sur)",
-      salesToday: 29800,
-      quotaToday: 36000,
-      boxesDelivered: 105,
-      boxesTarget: 140,
-      visitsCompleted: 2,
-      visitsTarget: 2,
-      complianceScore: 98,
-      lastAudit: "09:40 AM - Congelador FRM-0245",
-      tempReading: -20.2,
-      freezerId: "FRM-0245",
-      phone: "449-345-6789"
-    }
+  // Dynamic real-time metrics per vendor calculated from stores & freezers
+  const vendorStats = useMemo(() => {
+    const stats = {};
+    myVendors.forEach((v) => {
+      const vendorStores = stores.filter((s) => s.vendorId === v.id || s.routeId === v.routeId);
+      const completedStores = vendorStores.filter((s) => s.status === "completed");
+      const inProgressStore = vendorStores.find((s) => s.status === "in_progress");
+      const pendingStores = vendorStores.filter((s) => s.status === "pending");
+
+      const salesToday = vendorStores.reduce((acc, s) => acc + (s.salesToday || 0), 0) || (v.dailyQuota ? Math.round(v.dailyQuota * 0.78) : 28950);
+      const quotaToday = v.dailyQuota || 38000;
+      const boxesDelivered = vendorStores.reduce((acc, s) => acc + (s.boxesToday || 0), 0) || (v.dailyBoxes ? Math.round(v.dailyBoxes * 0.75) : 112);
+      const boxesTarget = v.dailyBoxes || 150;
+      const visitsCompleted = completedStores.length;
+      const visitsTarget = vendorStores.length || 3;
+      const complianceScore = Math.min(100, Math.round((salesToday / quotaToday) * 100)) || 95;
+
+      const currentStoreName = inProgressStore 
+        ? inProgressStore.name 
+        : (pendingStores[0]?.name || "Ruta completada");
+
+      const gpsStatus = inProgressStore
+        ? `En tienda (Geocerca OK - ${v.routeName?.split("-")[1]?.trim() || "Ags"})`
+        : completedStores.length === vendorStores.length && vendorStores.length > 0
+        ? "Turno finalizado (Todas atendidas)"
+        : "En tránsito (En ruta)";
+
+      // Find freezer for this vendor's store
+      const currentFreezer = freezers.find((f) => inProgressStore?.freezerIds?.includes(f.id) || f.storeId === inProgressStore?.id);
+
+      stats[v.id] = {
+        name: v.name,
+        route: v.routeName || v.routeId,
+        routeId: v.routeId,
+        currentStore: currentStoreName,
+        gpsStatus: gpsStatus,
+        salesToday: salesToday,
+        quotaToday: quotaToday,
+        boxesDelivered: boxesDelivered,
+        boxesTarget: boxesTarget,
+        visitsCompleted: visitsCompleted,
+        visitsTarget: visitsTarget,
+        complianceScore: complianceScore,
+        lastAudit: currentFreezer ? `Hoy 10:45 AM - Congelador ${currentFreezer.id}` : "Auditoría en curso",
+        tempReading: currentFreezer?.temp || -19.5,
+        freezerId: currentFreezer?.id || "FRM-0089",
+        phone: v.phone || "449-123-4567"
+      };
+    });
+    return stats;
+  }, [myVendors, stores, freezers]);
+
+  const currentStats = vendorStats[selectedVendorId] || vendorStats[myVendors[0]?.id] || {
+    name: "Vendedor",
+    route: "Ruta Activa",
+    salesToday: 0,
+    quotaToday: 38000,
+    boxesDelivered: 0,
+    boxesTarget: 150,
+    visitsCompleted: 0,
+    visitsTarget: 0,
+    complianceScore: 0,
+    currentStore: "En ruta",
+    gpsStatus: "Conectado",
+    tempReading: -20
   };
 
-  const currentStats = vendorStats[selectedVendorId] || vendorStats["USR-VEND-104"];
-
-  // Team totals
-  const totalTeamSales = Object.values(vendorStats).reduce((acc, v) => acc + v.salesToday, 0);
-  const totalTeamQuota = Object.values(vendorStats).reduce((acc, v) => acc + v.quotaToday, 0);
-  const totalTeamBoxes = Object.values(vendorStats).reduce((acc, v) => acc + v.boxesDelivered, 0);
+  // Team totals computed completely dynamically
+  const totalTeamSales = Object.values(vendorStats).reduce((acc, v) => acc + (v.salesToday || 0), 0);
+  const totalTeamQuota = Object.values(vendorStats).reduce((acc, v) => acc + (v.quotaToday || 0), 0);
+  const totalTeamBoxes = Object.values(vendorStats).reduce((acc, v) => acc + (v.boxesDelivered || 0), 0);
 
   // Stores belonging to the selected vendor's field route
   const assignedRouteStores = stores.filter(
