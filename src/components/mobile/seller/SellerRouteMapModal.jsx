@@ -992,12 +992,12 @@ export default function SellerRouteMapModal({
             ${supSvg}
           </div>
 
-          <!-- Supervisor Badge: Fondo negro, mismo formato que los camiones, sin emoji de carrito rojo -->
-          <div class="mt-0.5 px-1.5 py-0.5 rounded-full text-white text-[8px] font-black border shadow-md whitespace-nowrap flex items-center gap-1 transition-all duration-200" 
-               style="background: #000000; border-color: rgba(255,255,255,0.9); box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+          <!-- Supervisor Badge: Fondo claro corporativo con borde ámbar y texto legible -->
+          <div class="mt-0.5 px-1.5 py-0.5 rounded-full text-slate-900 text-[8.5px] font-black border-2 shadow-md whitespace-nowrap flex items-center gap-1 transition-all duration-200" 
+               style="background: #ffffff; border-color: #f59e0b; box-shadow: 0 2px 6px rgba(0,0,0,0.18); color: #0f172a;">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
             <span>Sup. ${supervisorCar.firstName}</span>
-            <span class="opacity-90 font-semibold text-amber-300">• GPS</span>
+            <span class="font-extrabold text-amber-600">• GPS</span>
           </div>
         </div>
       `;
@@ -1270,9 +1270,9 @@ export default function SellerRouteMapModal({
         {/* 1. TOP FLOATING NAVIGATION HEADER */}
         {isNavigating ? (
           <div className="absolute top-0 inset-x-0 z-30 pt-12 px-3 pb-2 pointer-events-none animate-slide-down">
-            <div className="pointer-events-auto rounded-[22px] bg-slate-950/95 backdrop-blur-md text-white p-3.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2.5">
+            <div className="pointer-events-auto rounded-[22px] bg-white/95 backdrop-blur-md text-slate-800 p-3.5 shadow-xl border border-slate-200 flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-10 rounded-xl bg-slate-900 border border-slate-700 p-1 flex items-center justify-center shadow-lg shrink-0">
+                <div className="w-11 h-10 rounded-xl bg-slate-100 border border-slate-200 p-1 flex items-center justify-center shadow-xs shrink-0">
                   {isSupervisor ? (
                     <SupervisorCarIcon className="w-8 h-7" beaconColor="#f59e0b" />
                   ) : (
@@ -1281,14 +1281,14 @@ export default function SellerRouteMapModal({
                 </div>
                 <div className="leading-tight">
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-white">
+                    <span className="font-extrabold text-sm text-slate-900">
                       {liveRemainingMeters > 0 ? `A ${liveRemainingMeters}m` : "Llegando"}
                     </span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold px-1.5 py-0.5 rounded-full border border-emerald-300">
                       {navType === "real_gps" ? "GPS Satélite" : (isPaused ? "En Pausa" : `~${35 * navSpeed} km/h`)}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-300 font-medium truncate max-w-[150px] block mt-0.5">
+                  <span className="text-xs text-slate-600 font-medium truncate max-w-[150px] block mt-0.5">
                     Hacia {activeStore.name.split("-")[0]?.trim()}
                   </span>
                 </div>
@@ -1300,7 +1300,7 @@ export default function SellerRouteMapModal({
                   <>
                     <button
                       onClick={handleCycleSpeed}
-                      className="tap-effect h-8 px-2 rounded-xl bg-slate-800 text-emerald-400 border border-slate-700 text-[11px] font-extrabold hover:bg-slate-700 transition cursor-pointer"
+                      className="tap-effect h-8 px-2 rounded-xl bg-slate-100 text-emerald-700 border border-slate-200 text-[11px] font-extrabold hover:bg-slate-200 transition cursor-pointer"
                       title="Cambiar velocidad de animación"
                     >
                       {navSpeed}x
@@ -1308,15 +1308,15 @@ export default function SellerRouteMapModal({
 
                     <button
                       onClick={handleTogglePause}
-                      className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-white border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
+                      className="tap-effect w-8 h-8 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition cursor-pointer"
                       title={isPaused ? "Reanudar viaje" : "Pausar viaje"}
                     >
-                      {isPaused ? <Play className="w-3.5 h-3.5 fill-white text-white" /> : <Pause className="w-3.5 h-3.5 fill-white text-white" />}
+                      {isPaused ? <Play className="w-3.5 h-3.5 fill-slate-700 text-slate-700" /> : <Pause className="w-3.5 h-3.5 fill-slate-700 text-slate-700" />}
                     </button>
 
                     <button
                       onClick={handleFastForwardArrival}
-                      className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-sky-400 border border-slate-700 flex items-center justify-center hover:bg-slate-700 transition cursor-pointer"
+                      className="tap-effect w-8 h-8 rounded-xl bg-slate-100 text-sky-700 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition cursor-pointer"
                       title="Simular llegada inmediata"
                     >
                       <FastForward className="w-3.5 h-3.5" />
@@ -1326,10 +1326,10 @@ export default function SellerRouteMapModal({
                   <>
                     <button
                       onClick={handleManualRecalculate}
-                      className="tap-effect h-8 px-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold hover:bg-amber-500/30 transition cursor-pointer flex items-center gap-1"
+                      className="tap-effect h-8 px-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-bold hover:bg-amber-100 transition cursor-pointer flex items-center gap-1"
                       title="Recalcular ruta en vivo desde mi posición actual"
                     >
-                      <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-400" : ""}`} />
+                      <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-600" : ""}`} />
                       <span>Recalcular</span>
                     </button>
 
@@ -1339,10 +1339,10 @@ export default function SellerRouteMapModal({
                           mapInstanceRef.current.flyTo([phoneGpsLocation.lat, phoneGpsLocation.lng], 17, { duration: 0.5 });
                         }
                       }}
-                      className="tap-effect h-8 px-2 rounded-xl bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold hover:bg-emerald-900 transition cursor-pointer flex items-center gap-1"
+                      className="tap-effect h-8 px-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-bold hover:bg-emerald-100 transition cursor-pointer flex items-center gap-1"
                       title="Recentrar en mi ubicación GPS"
                     >
-                      <LocateFixed className="w-3.5 h-3.5" />
+                      <LocateFixed className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Recentrar</span>
                     </button>
                   </>
@@ -1350,10 +1350,10 @@ export default function SellerRouteMapModal({
 
                 <button
                   onClick={handleStopNavigation}
-                  className="tap-effect w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center hover:bg-rose-500/30 transition cursor-pointer"
+                  className="tap-effect w-8 h-8 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 flex items-center justify-center hover:bg-rose-100 transition cursor-pointer"
                   title="Detener viaje"
                 >
-                  <Square className="w-3 h-3 fill-rose-400 text-rose-400" />
+                  <Square className="w-3 h-3 fill-rose-600 text-rose-600" />
                 </button>
               </div>
             </div>
@@ -1450,8 +1450,8 @@ export default function SellerRouteMapModal({
                     onClick={() => setIsSupervisorOverride(true)}
                     className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
                       isSupervisor
-                        ? "bg-slate-950 text-amber-300 border border-amber-400/80 shadow-xs ring-1 ring-amber-400/50"
-                        : "text-slate-700 hover:text-slate-950"
+                        ? "bg-amber-400 text-slate-950 border border-amber-500 shadow-xs"
+                        : "text-slate-700 hover:text-slate-900"
                     }`}
                     title="Ver mapa como Carrito de Supervisión con tu GPS en vivo"
                   >
@@ -1465,10 +1465,10 @@ export default function SellerRouteMapModal({
             {/* CEDIS Aguascalientes Banner Pill (Only for non-supervisor) */}
             {mapLocationMode === "ags_route" && !isSupervisor && (
               <div className="self-center pointer-events-auto">
-                <div className="px-3 py-1 rounded-full bg-emerald-950/90 text-white backdrop-blur-md border border-emerald-700 shadow-md text-[10px] flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-emerald-300 font-semibold">CEDIS Aguascalientes (1205)</span>
-                  <span className="text-emerald-100/70 font-mono">• {stores.length} Clientes de Base de Datos</span>
+                <div className="px-3 py-1 rounded-full bg-white text-slate-800 backdrop-blur-md border border-emerald-300 shadow-md text-[10px] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-emerald-800 font-semibold">CEDIS Aguascalientes (1205)</span>
+                  <span className="text-slate-500 font-mono">• {stores.length} Clientes de Base de Datos</span>
                 </div>
               </div>
             )}
@@ -1478,7 +1478,7 @@ export default function SellerRouteMapModal({
               <div className="self-center pointer-events-auto">
                 <button
                   onClick={handleGetLivePhoneGps}
-                  className="px-3 py-1 rounded-full bg-slate-900/90 text-white backdrop-blur-md border border-slate-700 shadow-md text-[10px] flex items-center gap-1.5 hover:bg-slate-800 transition cursor-pointer"
+                  className="px-3 py-1 rounded-full bg-white/95 text-slate-800 backdrop-blur-md border border-slate-200 shadow-md text-[10px] flex items-center gap-1.5 hover:bg-slate-50 transition cursor-pointer"
                 >
                   {isLocatingPhone ? (
                     <>
@@ -1580,7 +1580,7 @@ export default function SellerRouteMapModal({
                         mapInstanceRef.current.flyTo([supervisorCar.lat, supervisorCar.lng], 16, { duration: 0.6 });
                       }
                     }}
-                    className="tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer bg-slate-900 text-amber-300 border border-amber-400/60 shadow-xs hover:bg-slate-800"
+                    className="tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer bg-white text-slate-800 border border-amber-400 shadow-xs hover:bg-amber-50"
                     title="Centrar en mi auto de supervisión (GPS)"
                   >
                     <SupervisorCarIcon className="w-4 h-3.5" beaconColor="#f59e0b" />
@@ -1638,14 +1638,14 @@ export default function SellerRouteMapModal({
           {/* Focused Truck Spotlight Card */}
           {focusedTruck && !isNavigating && (
             <div 
-              className="p-3.5 rounded-[22px] bg-slate-950 text-white border-2 shadow-2xl flex items-center justify-between gap-3 animate-slide-up mb-2"
+              className="p-3.5 rounded-[22px] bg-white text-slate-800 border-2 shadow-xl flex items-center justify-between gap-3 animate-slide-up mb-2"
               style={{ borderColor: focusedTruck.color || "#059669" }}
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div 
-                  className="w-11 h-11 rounded-2xl p-1 flex items-center justify-center shrink-0 shadow-md"
+                  className="w-11 h-11 rounded-2xl p-1 flex items-center justify-center shrink-0 shadow-xs"
                   style={{ 
-                    backgroundColor: `${focusedTruck.color || "#059669"}25`, 
+                    backgroundColor: `${focusedTruck.color || "#059669"}18`, 
                     border: `1.5px solid ${focusedTruck.color || "#059669"}` 
                   }}
                 >
@@ -1656,23 +1656,23 @@ export default function SellerRouteMapModal({
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-white truncate">
+                    <span className="font-extrabold text-sm text-slate-900 truncate">
                       {focusedTruck.name}
                     </span>
                     <span 
-                      className="text-[10px] px-2 py-0.5 rounded-full text-white font-mono font-bold border border-white/20"
+                      className="text-[10px] px-2 py-0.5 rounded-full text-white font-mono font-bold"
                       style={{ backgroundColor: focusedTruck.color || "#059669" }}
                     >
                       {focusedTruck.routeId}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 truncate mt-0.5">
+                  <p className="text-xs text-slate-600 truncate mt-0.5">
                     {focusedTruck.currentActivity}
                   </p>
-                  <div className="flex items-center gap-2 text-[10.5px] text-slate-300 mt-1">
-                    <span className="text-emerald-400 font-bold">✓ {focusedTruck.completedCount} Atendidas</span>
+                  <div className="flex items-center gap-2 text-[10.5px] text-slate-500 mt-1">
+                    <span className="text-emerald-700 font-bold">✓ {focusedTruck.completedCount} Atendidas</span>
                     <span>•</span>
-                    <span className="text-amber-300 font-bold">{focusedTruck.hasInProgress ? "● 1 En Proceso" : "0 En Proceso"}</span>
+                    <span className="text-amber-700 font-bold">{focusedTruck.hasInProgress ? "● 1 En Proceso" : "0 En Proceso"}</span>
                     <span>•</span>
                     <span className="text-slate-400 font-medium">⏳ {focusedTruck.pendingCount} Faltan</span>
                   </div>
@@ -1697,7 +1697,7 @@ export default function SellerRouteMapModal({
                 <button
                   type="button"
                   onClick={() => setFocusedTruckId(null)}
-                  className="tap-effect w-8 h-8 rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer border border-slate-700"
+                  className="tap-effect w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer border border-slate-200"
                   title="Cerrar detalle"
                 >
                   ✕
@@ -1761,37 +1761,37 @@ export default function SellerRouteMapModal({
               /* B. ACTIVE TRIP NAVIGATION HUD: Real-time progress tracking */
               navType === "real_gps" ? (
                 /* B1. REAL GPS SATELLITE HUD */
-                <div className="p-4 rounded-[22px] bg-slate-950 text-white border border-emerald-500/40 shadow-2xl space-y-3 animate-fade-in">
+                <div className="p-4 rounded-[22px] bg-white text-slate-800 border-2 border-emerald-500 shadow-xl space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                      <span className="font-extrabold text-emerald-400 uppercase tracking-wider text-[11px]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                      <span className="font-black text-emerald-800 uppercase tracking-wider text-[11px]">
                         Navegación GPS en Vivo
                       </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/60 font-mono text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[10px] font-bold">
                       ±{phoneGpsLocation?.accuracy || 4}m satélite
                     </span>
                   </div>
 
                   <div className="flex items-baseline justify-between">
                     <div className="min-w-0 flex-1 pr-2">
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold truncate">Destino fijado</span>
-                      <h4 className="font-black text-sm text-white line-clamp-1 truncate">{activeStore.name}</h4>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold truncate">Destino fijado</span>
+                      <h4 className="font-black text-sm text-slate-900 line-clamp-1 truncate">{activeStore.name}</h4>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="text-2xl font-black text-emerald-400 font-mono tracking-tight block">
+                      <span className="text-2xl font-black text-emerald-700 font-mono tracking-tight block">
                         {liveRemainingMeters}m
                       </span>
-                      <span className="text-[10px] text-slate-400 block font-medium">distancia real</span>
+                      <span className="text-[10px] text-slate-500 block font-medium">distancia real</span>
                     </div>
                   </div>
 
                   {/* Deviation Alert Banner */}
                   {isOffRoute && (
-                    <div className="p-2.5 rounded-xl bg-amber-950/80 border border-amber-600/70 flex items-center justify-between text-xs text-amber-200 animate-pulse">
+                    <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-between text-xs text-amber-900 animate-pulse">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                         <span className="font-semibold text-[11px]">
                           Desvío detectado ({offRouteDistance}m). Recalculando...
                         </span>
@@ -1799,7 +1799,7 @@ export default function SellerRouteMapModal({
                       <button
                         type="button"
                         onClick={handleManualRecalculate}
-                        className="tap-effect px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-amber-400 cursor-pointer"
+                        className="tap-effect px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-amber-300 cursor-pointer"
                       >
                         Recalcular
                       </button>
@@ -1808,25 +1808,25 @@ export default function SellerRouteMapModal({
 
                   {/* Recalculation feedback banner */}
                   {recalcBanner && !isOffRoute && (
-                    <div className="p-2 rounded-xl bg-emerald-950/80 border border-emerald-500/50 flex items-center gap-2 text-xs text-emerald-200">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 flex items-center gap-2 text-xs text-emerald-800">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                       <span className="font-medium text-[11px]">{recalcBanner}</span>
                     </div>
                   )}
 
-                  <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px] text-slate-300">
+                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
                     <div className="flex items-center gap-1.5 truncate">
-                      <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse shrink-0" />
+                      <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse shrink-0" />
                       <span className="truncate">Rastreando el movimiento real de tu celular...</span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       <button
                         type="button"
                         onClick={handleManualRecalculate}
-                        className="tap-effect px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold hover:bg-amber-500/30 text-[10px] flex items-center gap-1 cursor-pointer"
+                        className="tap-effect px-2 py-0.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 font-bold hover:bg-amber-200 text-[10px] flex items-center gap-1 cursor-pointer"
                         title="Recalcular ruta por calles reales"
                       >
-                        <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-400" : ""}`} />
+                        <RotateCcw className={`w-3 h-3 ${isLoadingRoute ? "animate-spin text-amber-600" : ""}`} />
                         <span>Recalcular</span>
                       </button>
 
@@ -1837,18 +1837,18 @@ export default function SellerRouteMapModal({
                             mapInstanceRef.current.panTo([phoneGpsLocation.lat, phoneGpsLocation.lng], { animate: true });
                           }
                         }}
-                        className="tap-effect px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold hover:bg-emerald-500/30 text-[10px] cursor-pointer"
+                        className="tap-effect px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold hover:bg-emerald-200 text-[10px] cursor-pointer"
                       >
                         Centrar
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={handleFastForwardArrival}
-                      className="tap-effect flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-sm"
+                      className="tap-effect flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Forzar Llegada (Dentro de Radar)</span>
@@ -1857,7 +1857,7 @@ export default function SellerRouteMapModal({
                     <button
                       type="button"
                       onClick={handleStopNavigation}
-                      className="tap-effect h-9 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer border border-slate-700"
+                      className="tap-effect h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer border border-slate-200"
                     >
                       Detener
                     </button>
@@ -1904,7 +1904,7 @@ export default function SellerRouteMapModal({
                     <button
                       type="button"
                       onClick={handleFastForwardArrival}
-                      className="tap-effect flex-1 h-9 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-slate-800 transition cursor-pointer"
+                      className="tap-effect flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                     >
                       <FastForward className="w-3.5 h-3.5" />
                       <span>Llegar Inmediatamente</span>
@@ -1926,7 +1926,7 @@ export default function SellerRouteMapModal({
                 {/* Route Trajectory Banner */}
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
                       {isSupervisor ? (
                         activeStore.id === (activeTargetStoreId || selectedStoreId)
@@ -1975,7 +1975,7 @@ export default function SellerRouteMapModal({
                         <button
                           type="button"
                           onClick={() => handleSelectTargetStore(activeStore.id, false)}
-                          className="tap-effect shrink-0 px-2 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[9.5px] font-bold flex items-center gap-1 shadow-2xs transition cursor-pointer"
+                          className="tap-effect shrink-0 px-2 py-0.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[9.5px] font-bold flex items-center gap-1 shadow-2xs transition cursor-pointer"
                           title="Fijar esta tienda como punto de visita"
                         >
                           <span>{isSupervisor ? "🎯 Seleccionar PDV" : "🎯 Fijar siguiente"}</span>
@@ -2011,7 +2011,7 @@ export default function SellerRouteMapModal({
                       onClick={() => handleCenterOnStore(s)}
                       className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-semibold shrink-0 border transition-all cursor-pointer ${
                         s.id === activeStore.id
-                          ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                          ? "bg-[#059669] text-white border-[#059669] shadow-xs"
                           : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                       }`}
                     >
@@ -2039,10 +2039,10 @@ export default function SellerRouteMapModal({
                       type="button"
                       onClick={handleStartSimulatedNavigation}
                       disabled={isLoadingRoute}
-                      className="tap-effect h-11 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm disabled:opacity-50"
+                      className="tap-effect h-11 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
                       title="Simular recorrido virtual de la ruta"
                     >
-                      <FastForward className="w-3.5 h-3.5 text-emerald-400" />
+                      <FastForward className="w-3.5 h-3.5 text-emerald-600" />
                       <span className="hidden sm:inline">Simular</span>
                     </button>
                   </div>

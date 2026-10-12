@@ -1,5 +1,5 @@
 // Frimart OS • Service Worker (PWA Offline & Instant OTA Cache Purge)
-const CACHE_NAME = 'frimart-cache-v7-supervisor';
+const CACHE_NAME = 'frimart-cache-v8-light-theme';
 
 const PRECACHE_ASSETS = [
   '/',

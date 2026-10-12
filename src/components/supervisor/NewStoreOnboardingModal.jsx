@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { 
   X, 
   Store, 
@@ -217,31 +218,33 @@ export default function NewStoreOnboardingModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in font-sans">
-      <div className="relative w-full max-w-xl max-h-[92vh] bg-white rounded-[28px] shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 bg-white sm:bg-slate-900/35 backdrop-blur-xs animate-fade-in font-sans">
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-xl bg-white sm:rounded-[26px] shadow-2xl flex flex-col overflow-hidden border-0 sm:border sm:border-slate-200">
         
-        {/* Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white flex items-center justify-between shrink-0 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
-              <Store className="w-5 h-5" />
+        {/* Header - Corporate Emerald (100% visible, safe area padding para que nunca se corte el título) */}
+        <div className="pt-10 sm:pt-4 pb-3.5 px-4 sm:px-5 bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-700 text-white flex items-center justify-between shrink-0 shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-xs">
+              <Store className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <div>
-              <h2 className="text-base font-extrabold tracking-tight">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-white leading-tight truncate">
                 Nuevo Punto de Venta
               </h2>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-emerald-100 font-medium truncate">
                 Alta de cliente y enrolamiento de congelador en campo
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 flex items-center justify-center text-white transition cursor-pointer shrink-0"
+            title="Cerrar ventana"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
@@ -608,4 +611,6 @@ export default function NewStoreOnboardingModal({
       )}
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }

@@ -227,68 +227,69 @@ export default function SellerRouteScreen({
         </div>
       </div>
 
-      {/* 1.5. TARJETA DESTACADA DEL VEHÍCULO DE SUPERVISIÓN (Exclusivo Supervisor/Gerente) */}
+      {/* 1.5. TARJETA DESTACADA DEL VEHÍCULO DE SUPERVISIÓN (Diseño claro corporativo, sin fondos negros ni textos empalmados) */}
       {isSupervisor && (
         <div className="px-4 mb-3">
-          <div className="p-4 rounded-[22px] bg-slate-950 text-white border-2 border-amber-400 shadow-xl space-y-3 animate-fade-in">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400 p-1 flex items-center justify-center shrink-0 shadow-md">
-                  <SupervisorCarIcon className="w-9 h-8" beaconColor="#f59e0b" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-                    <span className="text-[10px] font-black uppercase text-amber-300 tracking-wider">
-                      Vehículo de Supervisión • GPS Activo
-                    </span>
-                  </div>
-                  <h4 className="font-extrabold text-sm text-white truncate mt-0.5">
-                    {currentUser?.name || "Supervisor"} ({ROLES[currentUser?.role]?.shortName || "Supervisión"})
-                  </h4>
-                  <p className="text-[11px] text-slate-300 truncate mt-0.5">
-                    Sin ruta asignada fija • Supervisando {effectiveVendors.length} Camiones ({stores.length} Tiendas)
-                  </p>
-                </div>
+          <div className="p-4 rounded-[22px] bg-white text-slate-800 border-2 border-emerald-500/80 shadow-[0_4px_16px_rgba(5,150,105,0.08)] space-y-3 animate-fade-in">
+            {/* Fila 1: Identidad del Supervisor a ancho completo (sin competir con botones) */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border-2 border-amber-400 p-1 flex items-center justify-center shrink-0 shadow-xs">
+                <SupervisorCarIcon className="w-9 h-8" beaconColor="#f59e0b" />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRouteFilter("all");
-                    onSelectRouteFilter?.("all");
-                  }}
-                  className={`tap-effect px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 border transition cursor-pointer active:scale-95 ${
-                    routeFilter === "all"
-                      ? "bg-amber-400 text-slate-950 border-amber-400 font-black shadow-sm"
-                      : "bg-slate-900/90 text-amber-300 border-amber-400/50 hover:bg-slate-800"
-                  }`}
-                  title="Mostrar todas las rutas asignadas"
-                >
-                  <Layers className="w-3.5 h-3.5 stroke-[2.2]" />
-                  <span>Todas las Rutas</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
-                  className="tap-effect px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer transition active:scale-95"
-                  title="Abrir mapa con tu vehículo de supervisión y todos los camiones"
-                >
-                  <Compass className="w-4 h-4 stroke-[2.5]" />
-                  <span>Ver Mapa</span>
-                </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+                    Vehículo de Supervisión • GPS Activo
+                  </span>
+                </div>
+                <h4 className="font-black text-sm text-slate-900 truncate mt-0.5">
+                  {currentUser?.name || "Supervisor"} ({ROLES[currentUser?.role]?.shortName || "Supervisión"})
+                </h4>
+                <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                  Sin ruta asignada fija • Supervisando {effectiveVendors.length} Camiones ({stores.length} Tiendas)
+                </p>
               </div>
             </div>
 
-            {/* Flota Supervisada de 5 Camiones en Tiempo Real */}
-            <div className="pt-2.5 border-t border-slate-800">
+            {/* Fila 2: Botones de Acción (Grid dedicado 2 columnas, amplio y 100% visible) */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setRouteFilter("all");
+                  onSelectRouteFilter?.("all");
+                }}
+                className={`tap-effect py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition cursor-pointer active:scale-95 shadow-2xs ${
+                  routeFilter === "all"
+                    ? "bg-amber-400 text-slate-950 border-amber-400 font-black shadow-xs"
+                    : "bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200"
+                }`}
+                title="Mostrar todas las rutas asignadas"
+              >
+                <Layers className="w-4 h-4 stroke-[2.2] text-amber-600" />
+                <span>Todas las Rutas</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+                className="tap-effect py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:brightness-105 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition active:scale-95 border border-emerald-600"
+                title="Abrir mapa con tu vehículo de supervisión y todos los camiones"
+              >
+                <Compass className="w-4 h-4 stroke-[2.5]" />
+                <span>Ver Mapa</span>
+              </button>
+            </div>
+
+            {/* Fila 3: Flota Supervisada de 5 Camiones en Tiempo Real (Fondo claro) */}
+            <div className="pt-2.5 border-t border-slate-100">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-sky-400" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Flota Supervisada ({effectiveVendors.length} Camiones):</span>
                 </span>
-                <span className="text-[9px] text-amber-300 font-extrabold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                <span className="text-[9px] text-amber-800 font-extrabold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-300">
                   Toca para filtrar ruta
                 </span>
               </div>
@@ -308,8 +309,8 @@ export default function SellerRouteScreen({
                       }}
                       className={`tap-effect p-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer border ${
                         isSelected 
-                          ? "bg-amber-400 text-slate-950 border-amber-400 font-bold shadow-md"
-                          : "bg-slate-900/90 text-white border-slate-700/80 hover:bg-slate-800"
+                          ? "bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs ring-2 ring-emerald-500/20"
+                          : "bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100"
                       }`}
                     >
                       <div 
@@ -319,10 +320,10 @@ export default function SellerRouteScreen({
                         <DeliveryVanIcon className="w-4 h-3.5 text-white" cargoColor={theme.cargo} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className={`text-[10px] font-black block truncate ${isSelected ? "text-slate-950" : "text-white"}`}>
+                        <span className={`text-[10px] font-black block truncate ${isSelected ? "text-white" : "text-slate-900"}`}>
                           {theme.short} • {vendor.name.split(" ")[0]}
                         </span>
-                        <span className={`text-[9px] block truncate ${isSelected ? "text-slate-800" : "text-slate-400"}`}>
+                        <span className={`text-[9px] block truncate ${isSelected ? "text-emerald-100" : "text-slate-500"}`}>
                           {vendorStores.length} tiendas
                         </span>
                       </div>
@@ -521,16 +522,16 @@ export default function SellerRouteScreen({
       {/* 4.1 Spotlight Banner: Siguiente Punto a Atender en Ruta */}
       {currentTargetStore && (
         <div className="px-4 mb-4">
-          <div className="p-3.5 rounded-[20px] bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white border border-emerald-500/40 shadow-md flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-[20px] bg-emerald-50/90 text-slate-800 border-2 border-emerald-400/80 shadow-xs flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-[10.5px] font-black text-emerald-400 uppercase tracking-wider mb-0.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <div className="flex items-center gap-1.5 text-[10.5px] font-black text-emerald-800 uppercase tracking-wider mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                 <span>{isSupervisor ? "🎯 PDV Seleccionado para Auditoría" : "Siguiente Parada a Atender"}</span>
               </div>
-              <h4 className="font-extrabold text-sm text-white truncate">
+              <h4 className="font-extrabold text-sm text-slate-900 truncate">
                 {currentTargetStore.name}
               </h4>
-              <p className="text-[11px] text-slate-300 truncate">
+              <p className="text-[11px] text-slate-600 truncate">
                 {currentTargetStore.address}
               </p>
             </div>
@@ -541,7 +542,7 @@ export default function SellerRouteScreen({
                   onSetActiveTargetStore?.(currentTargetStore.id, false);
                   onOpenMap?.(currentTargetStore.id);
                 }}
-                className="tap-effect h-8 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-1 shadow-sm transition cursor-pointer"
+                className="tap-effect h-8 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:brightness-105 text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition cursor-pointer"
                 title="Trazar ruta por calles en el mapa"
               >
                 <Compass className="w-3.5 h-3.5 stroke-[2.4]" />
@@ -569,7 +570,7 @@ export default function SellerRouteScreen({
                 }}
                 className={`tap-effect px-3 py-1.5 rounded-full font-bold whitespace-nowrap border text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5 ${
                   isSelected
-                    ? "bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/20"
+                    ? "bg-[#059669] text-white border-[#059669] ring-2 ring-[#059669]/20"
                     : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                 }`}
               >
