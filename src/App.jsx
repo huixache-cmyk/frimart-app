@@ -527,6 +527,7 @@ export default function App() {
                 setActiveTab("ruta");
               }}
               onOpenNewStoreModal={() => setIsNewStoreModalOpen(true)}
+              onOpenMap={handleOpenRouteMap}
             />
           )}
 

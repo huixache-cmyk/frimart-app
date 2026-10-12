@@ -27,7 +27,8 @@ import {
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import DeliveryVanIcon, { DELIVERY_VAN_SVG_HTML, getDeliveryVanSvgHtml } from "../../icons/DeliveryVanIcon";
-import { getRouteTheme, getStoreRouteId, ROUTE_PALETTE } from "../../../utils/routeColorUtils";
+import SupervisorCarIcon, { getSupervisorCarSvgHtml } from "../../icons/SupervisorCarIcon";
+import { getRouteTheme, getStoreRouteId, ROUTE_PALETTE, SUPERVISOR_THEME } from "../../../utils/routeColorUtils";
 
 // Calculate bearing angle between two coordinates in degrees (0 - 360)
 function calculateBearing(lat1, lng1, lat2, lng2) {
@@ -60,6 +61,9 @@ export default function SellerRouteMapModal({
   const fleetGroupRef = useRef(null);
   const routeLineRef = useRef(null);
   const radarsGroupRef = useRef(null);
+
+  // Determine if the current session is in Supervisor / Manager mode
+  const isSupervisor = currentUser?.role === "supervisor" || currentUser?.role === "gerente";
 
   // Status Filter for Map Elements: 'all' | 'completed' | 'in_progress' | 'pending' | 'trucks'
   const [mapStoreStatusFilter, setMapStoreStatusFilter] = useState("all");
@@ -174,7 +178,8 @@ export default function SellerRouteMapModal({
       : defaultAgsVendors;
 
     return vendors.map((vendor, index) => {
-      const isCurrentDevice = (currentUser?.id === vendor.id) || (currentUser?.role === "vendedor" && index === 0);
+      // In supervisor mode, the physical device GPS belongs to the Supervisor SUV, not to any delivery truck
+      const isCurrentDevice = !isSupervisor && ((currentUser?.id === vendor.id) || (currentUser?.role === "vendedor" && index === 0));
       const hasPhoneGps = isCurrentDevice && isUsingRealPhoneGps && phoneGpsLocation;
 
       const vendorStores = effectiveStores.filter((s) => s.vendorId === vendor.id || s.routeId === vendor.routeId);
@@ -245,7 +250,27 @@ export default function SellerRouteMapModal({
         hasInProgress: !!inProgressStore
       };
     });
-  }, [assignedVendors, effectiveStores, currentUser, isUsingRealPhoneGps, phoneGpsLocation, isCancunMode, isNavigating]);
+  }, [assignedVendors, effectiveStores, currentUser, isUsingRealPhoneGps, phoneGpsLocation, isCancunMode, isNavigating, isSupervisor]);
+
+  // Supervisor Inspection Vehicle (Live GPS tracking on supervisor device with no fixed route)
+  const supervisorCar = useMemo(() => {
+    if (!isSupervisor) return null;
+    return {
+      id: "VEH-SUPERVISOR-01",
+      name: currentUser?.name || "Supervisor de Campo",
+      firstName: currentUser?.name?.split(" ")[0] || "Supervisor",
+      role: currentUser?.role || "supervisor",
+      lat: sellerLat,
+      lng: sellerLng,
+      status: "Supervisión en Campo",
+      activity: isUsingRealPhoneGps 
+        ? `GPS Conectado (±${phoneGpsLocation?.accuracy || 4}m precisión)` 
+        : "GPS en Línea (Sin ruta fija)",
+      beaconColor: SUPERVISOR_THEME.beacon,
+      primaryColor: SUPERVISOR_THEME.primary,
+      hasPhoneGps: isUsingRealPhoneGps
+    };
+  }, [isSupervisor, currentUser, sellerLat, sellerLng, isUsingRealPhoneGps, phoneGpsLocation]);
 
   // Selected store for detail HUD card & road trajectory routing
   const externalTargetId = initialStoreId || activeTargetStoreId;
@@ -856,10 +881,10 @@ export default function SellerRouteMapModal({
     activeFleet.forEach((truck) => {
       const isCurrent = truck.isCurrentDevice;
       const truckLat = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
-        ? currentCarCoord[0]
+        ? phoneGpsLocation.lat
         : truck.lat;
       const truckLng = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
-        ? currentCarCoord[1]
+        ? phoneGpsLocation.lng
         : truck.lng;
       
       const routeTheme = truck.routeTheme || getRouteTheme(truck.routeId);
@@ -916,13 +941,60 @@ export default function SellerRouteMapModal({
       }
     });
 
-    // Accuracy Circle around Current Van when GPS is active
+    // 2.5. SUPERVISOR INSPECTION VEHICLE (Live GPS tracking on supervisor device with no fixed route)
+    if (isSupervisor && supervisorCar) {
+      const supLat = (isUsingRealPhoneGps && phoneGpsLocation) ? phoneGpsLocation.lat : supervisorCar.lat;
+      const supLng = (isUsingRealPhoneGps && phoneGpsLocation) ? phoneGpsLocation.lng : supervisorCar.lng;
+      const supSvg = getSupervisorCarSvgHtml(SUPERVISOR_THEME.beacon, 38, 26);
+
+      const supIconHtml = `
+        <div class="relative flex flex-col items-center cursor-pointer select-none group transition-transform duration-200" 
+             style="transform: translate(-50%, -50%); z-index: 1400;">
+          
+          <!-- Concentric amber radar pulse for supervisor GPS -->
+          <div class="absolute w-14 h-14 rounded-full pointer-events-none" 
+               style="background: radial-gradient(circle, rgba(245, 158, 11, 0.45) 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
+          <div class="absolute w-8 h-8 rounded-full pointer-events-none bg-amber-400/25 animate-ping"></div>
+
+          <!-- Supervisor Vehicle Vector Icon (38x26) -->
+          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115 rounded-xl p-0.5 bg-slate-900/95 shadow-xl border-2 border-amber-400 ring-2 ring-amber-400/40" 
+               style="width: 40px; height: 28px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));">
+            ${supSvg}
+          </div>
+
+          <!-- Supervisor Badge: Sin ruta fija, libre inspección -->
+          <div class="mt-0.5 px-2 py-0.5 rounded-full text-white text-[8px] font-black border shadow-lg whitespace-nowrap flex items-center gap-1 bg-slate-950 border-amber-400 ring-1 ring-amber-400/50">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+            <span>🚗 Sup. ${supervisorCar.firstName}</span>
+            <span class="text-amber-300 font-extrabold">• GPS</span>
+          </div>
+        </div>
+      `;
+
+      const supMarker = L.marker([supLat, supLng], {
+        icon: L.divIcon({
+          html: supIconHtml,
+          className: "custom-supervisor-car-pin",
+          iconSize: [0, 0]
+        }),
+        zIndexOffset: 1400
+      });
+
+      supMarker.on("click", () => {
+        map.flyTo([supLat, supLng], 16, { duration: 0.6 });
+      });
+
+      markersGroupRef.current.addLayer(supMarker);
+      carMarkerRef.current = supMarker;
+    }
+
+    // Accuracy Circle around Current Device when GPS is active
     if (isUsingRealPhoneGps && phoneGpsLocation?.accuracy) {
       const accuracyCircle = L.circle([sellerLat, sellerLng], {
         radius: Math.max(15, phoneGpsLocation.accuracy),
-        color: "#0284c7",
+        color: isSupervisor ? "#f59e0b" : "#0284c7",
         weight: 1.5,
-        fillColor: "#38bdf8",
+        fillColor: isSupervisor ? "#fbbf24" : "#38bdf8",
         fillOpacity: 0.15
       });
       radarsGroupRef.current.addLayer(accuracyCircle);
@@ -1170,7 +1242,11 @@ export default function SellerRouteMapModal({
             <div className="pointer-events-auto rounded-[22px] bg-slate-950/95 backdrop-blur-md text-white p-3.5 shadow-2xl border border-slate-700/80 flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-10 rounded-xl bg-slate-900 border border-slate-700 p-1 flex items-center justify-center shadow-lg shrink-0">
-                  <DeliveryVanIcon className="w-8 h-7" />
+                  {isSupervisor ? (
+                    <SupervisorCarIcon className="w-8 h-7" beaconColor="#f59e0b" />
+                  ) : (
+                    <DeliveryVanIcon className="w-8 h-7" />
+                  )}
                 </div>
                 <div className="leading-tight">
                   <div className="flex items-center gap-2">
@@ -1304,6 +1380,17 @@ export default function SellerRouteMapModal({
               </div>
             </div>
 
+            {/* Supervisor Mode Banner Pill */}
+            {isSupervisor && (
+              <div className="self-center pointer-events-auto">
+                <div className="px-3 py-1 rounded-full bg-slate-950/95 text-white backdrop-blur-md border border-amber-400/60 shadow-md text-[10px] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  <span className="text-amber-300 font-extrabold">🚗 Supervisión de Campo:</span>
+                  <span className="text-slate-200">Sin ruta fija • Toca cualquier PDV en el mapa para auditar</span>
+                </div>
+              </div>
+            )}
+
             {/* CEDIS Aguascalientes Banner Pill */}
             {mapLocationMode === "ags_route" && (
               <div className="self-center pointer-events-auto">
@@ -1413,6 +1500,22 @@ export default function SellerRouteMapModal({
                   <DeliveryVanIcon className="w-4 h-3.5" />
                   <span>🚚 Flota ({activeFleet.length} Camiones)</span>
                 </button>
+
+                {isSupervisor && supervisorCar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (mapInstanceRef.current) {
+                        mapInstanceRef.current.flyTo([supervisorCar.lat, supervisorCar.lng], 16, { duration: 0.6 });
+                      }
+                    }}
+                    className="tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-black transition flex items-center gap-1.5 shrink-0 cursor-pointer bg-slate-900 text-amber-300 border border-amber-400/60 shadow-xs hover:bg-slate-800"
+                    title="Centrar en mi auto de supervisión (GPS)"
+                  >
+                    <SupervisorCarIcon className="w-4 h-3.5" beaconColor="#f59e0b" />
+                    <span>🚗 Mi Auto GPS</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1440,9 +1543,13 @@ export default function SellerRouteMapModal({
               className={`tap-effect w-11 h-11 rounded-2xl bg-white border border-slate-300 text-slate-800 shadow-lg flex items-center justify-center hover:bg-emerald-50 transition cursor-pointer p-1 ${
                 isNavigating ? "ring-2 ring-emerald-500" : ""
               }`}
-              title="Centrar en mi camioneta (GPS)"
+              title={isSupervisor ? "Centrar en mi auto de supervisión (GPS)" : "Centrar en mi camioneta (GPS)"}
             >
-              <DeliveryVanIcon className="w-8 h-6" />
+              {isSupervisor ? (
+                <SupervisorCarIcon className="w-8 h-6" beaconColor="#f59e0b" />
+              ) : (
+                <DeliveryVanIcon className="w-8 h-6" />
+              )}
             </button>
 
             <button
@@ -1750,9 +1857,15 @@ export default function SellerRouteMapModal({
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="font-extrabold text-slate-800 text-[11px] uppercase tracking-wider">
-                      {activeStore.id === (activeTargetStoreId || selectedStoreId)
-                        ? "🎯 Siguiente a Atender"
-                        : "Destino en Vista"}
+                      {isSupervisor ? (
+                        activeStore.id === (activeTargetStoreId || selectedStoreId)
+                          ? "🎯 PDV Seleccionado para Auditoría"
+                          : "Punto de Venta en Vista"
+                      ) : (
+                        activeStore.id === (activeTargetStoreId || selectedStoreId)
+                          ? "🎯 Siguiente a Atender"
+                          : "Destino en Vista"
+                      )}
                     </span>
                     <span className="text-[9.5px] font-semibold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                       <Navigation className="w-2.5 h-2.5 rotate-45" />
@@ -1760,7 +1873,11 @@ export default function SellerRouteMapModal({
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 font-bold text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[11px]">
-                    <DeliveryVanIcon className="w-5 h-4 shrink-0" />
+                    {isSupervisor ? (
+                      <SupervisorCarIcon className="w-5 h-4 shrink-0" beaconColor="#f59e0b" />
+                    ) : (
+                      <DeliveryVanIcon className="w-5 h-4 shrink-0" />
+                    )}
                     <span>
                       {streetDistanceMeters >= 1000
                         ? `${(streetDistanceMeters / 1000).toFixed(1)} km`
@@ -1781,16 +1898,16 @@ export default function SellerRouteMapModal({
                       </h3>
                       {activeStore.id === (activeTargetStoreId || selectedStoreId) ? (
                         <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9.5px] font-black border border-emerald-300">
-                          ✓ Siguiente
+                          {isSupervisor ? "✓ PDV Fijado" : "✓ Siguiente"}
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleSelectTargetStore(activeStore.id, false)}
                           className="tap-effect shrink-0 px-2 py-0.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[9.5px] font-bold flex items-center gap-1 shadow-2xs transition cursor-pointer"
-                          title="Fijar esta tienda como el siguiente punto a atender"
+                          title="Fijar esta tienda como punto de visita"
                         >
-                          <span>🎯 Fijar siguiente</span>
+                          <span>{isSupervisor ? "🎯 Seleccionar PDV" : "🎯 Fijar siguiente"}</span>
                         </button>
                       )}
                     </div>
@@ -1843,7 +1960,7 @@ export default function SellerRouteMapModal({
                       className="tap-effect flex-1 h-11 rounded-xl bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-700 text-white text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:brightness-110 active:scale-98"
                     >
                       <Navigation className="w-4 h-4 -rotate-45 stroke-[2.5] animate-pulse" />
-                      <span>Iniciar Viaje (GPS Real en Vivo)</span>
+                      <span>{isSupervisor ? "Iniciar Visita de Supervisión (GPS Real)" : "Iniciar Viaje (GPS Real en Vivo)"}</span>
                     </button>
 
                     {/* Botón Simular Virtual (Demo) */}

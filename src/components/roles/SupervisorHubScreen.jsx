@@ -32,7 +32,8 @@ export default function SupervisorHubScreen({
   freezers = [],
   onInspectFreezer,
   onNavigateToRoute,
-  onOpenNewStoreModal
+  onOpenNewStoreModal,
+  onOpenMap
 }) {
   // Dynamically resolve vendors assigned to this supervisor
   const myVendors = useMemo(() => {
@@ -175,17 +176,31 @@ export default function SupervisorHubScreen({
             </p>
           </div>
 
-          {/* Quick Onboarding Button */}
-          {onOpenNewStoreModal && (
-            <button
-              onClick={onOpenNewStoreModal}
-              className="tap-effect px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] flex items-center gap-1.5 shadow-md cursor-pointer transition shrink-0"
-              title="Registrar Nuevo Punto de Venta"
-            >
-              <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Nuevo PDV</span>
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Quick Map Button */}
+            {onOpenMap && (
+              <button
+                onClick={onOpenMap}
+                className="tap-effect px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] flex items-center gap-1.5 shadow-md cursor-pointer transition shrink-0"
+                title="Abrir Mapa en Vivo de Supervisión con GPS y Puntos de Venta"
+              >
+                <Compass className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>🚗 Mapa GPS</span>
+              </button>
+            )}
+
+            {/* Quick Onboarding Button */}
+            {onOpenNewStoreModal && (
+              <button
+                onClick={onOpenNewStoreModal}
+                className="tap-effect px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] flex items-center gap-1.5 shadow-md cursor-pointer transition shrink-0"
+                title="Registrar Nuevo Punto de Venta"
+              >
+                <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Nuevo PDV</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Team KPI Banner */}
