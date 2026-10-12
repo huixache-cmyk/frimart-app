@@ -458,7 +458,7 @@ export function getStoredUsers() {
     try {
       const parsed = JSON.parse(saved);
       const updated = parsed.map(u => {
-        const fresh = INITIAL_USERS.find(fu => fu.id === u.id);
+        const fresh = INITIAL_USERS.find(fu => fu.id === u.id || (fu.role === u.role && fu.role === "supervisor"));
         if (fresh) {
           return {
             ...u,
@@ -471,7 +471,7 @@ export function getStoredUsers() {
         return u;
       });
 
-      // Add any users from INITIAL_USERS that were not stored in localStorage yet
+      // Add any users from INITIAL_USERS that were not stored in localStorage yet (e.g. USR-VEND-108, USR-VEND-109)
       INITIAL_USERS.forEach(freshUser => {
         if (!updated.some(u => u.id === freshUser.id)) {
           updated.push(freshUser);
@@ -494,7 +494,7 @@ export function getStoredActiveUser() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      const fresh = INITIAL_USERS.find(fu => fu.id === parsed.id);
+      const fresh = INITIAL_USERS.find(fu => fu.id === parsed.id || (fu.role === parsed.role && fu.role === "supervisor"));
       if (fresh) {
         return {
           ...parsed,

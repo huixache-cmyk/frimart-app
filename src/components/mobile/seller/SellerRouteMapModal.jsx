@@ -65,6 +65,8 @@ export default function SellerRouteMapModal({
   // Determine if the current session is in Supervisor / Manager / Owner mode
   const isSupervisorSession = Boolean(
     currentUser?.role === "supervisor" || 
+    currentUser?.id === "USR-SUP-01" ||
+    currentUser?.name?.toLowerCase().includes("almanza") ||
     currentUser?.role === "gerente" || 
     currentUser?.role === "gerente_cedis" || 
     currentUser?.role === "director_comercial" || 
@@ -117,19 +119,23 @@ export default function SellerRouteMapModal({
   // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo' vs 'ags_route'
   const [mapLocationMode, setMapLocationMode] = useState("real_phone_gps");
 
-  // Determine effective origin coordinates for the delivery van
+  // Determine effective origin coordinates for the delivery van or supervisor car
   const isUsingRealPhoneGps = mapLocationMode === "real_phone_gps" && phoneGpsLocation !== null;
   const isCancunMode = mapLocationMode === "cancun_demo";
-  const sellerLat = isUsingRealPhoneGps 
+  const rawLat = isUsingRealPhoneGps 
     ? phoneGpsLocation.lat 
     : isCancunMode 
     ? 21.1485 
     : (seller?.currentLocation?.lat || 21.8853);
-  const sellerLng = isUsingRealPhoneGps 
+  const rawLng = isUsingRealPhoneGps 
     ? phoneGpsLocation.lng 
     : isCancunMode 
     ? -86.8402 
     : (seller?.currentLocation?.lng || -102.2916);
+
+  // When not in Cancun mode, guarantee coordinates are firmly placed within Aguascalientes bounds
+  const sellerLat = (!isCancunMode && rawLng > -95) ? 21.8845 : rawLat;
+  const sellerLng = (!isCancunMode && rawLng > -95) ? -102.2930 : rawLng;
 
   // Effective stores: Cancun demo mode uses Cancun points, otherwise always use real database stores
   const effectiveStores = useMemo(() => {
@@ -185,10 +191,12 @@ export default function SellerRouteMapModal({
     const defaultAgsVendors = [
       { id: "USR-VEND-104", name: "Juan Pablo Morales", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" },
       { id: "USR-VEND-106", name: "Carlos Estrada Rincón", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" },
-      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" }
+      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" },
+      { id: "USR-VEND-108", name: "Fernando Ruiz Esparza", routeId: "RUTA-04", routeName: "Ruta 04 - Ags Oriente & Morelos", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80" },
+      { id: "USR-VEND-109", name: "Brenda Morales Valdivia", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" }
     ];
 
-    const vendors = (assignedVendors && assignedVendors.length > 0)
+    const vendors = (assignedVendors && assignedVendors.length >= 5)
       ? assignedVendors
       : defaultAgsVendors;
 
@@ -230,9 +238,11 @@ export default function SellerRouteMapModal({
         currentActivity = "Todas las tiendas atendidas";
       } else {
         const defaultPositions = [
-          { lat: 21.9185, lng: -102.2952 },
-          { lat: 21.8760, lng: -102.2970 },
-          { lat: 21.8600, lng: -102.2880 }
+          { lat: 21.9185, lng: -102.2952 }, // R-01 Norte
+          { lat: 21.8760, lng: -102.2970 }, // R-02 Centro
+          { lat: 21.8600, lng: -102.2880 }, // R-03 Sur
+          { lat: 21.8840, lng: -102.2680 }, // R-04 Oriente
+          { lat: 21.8810, lng: -102.3250 }  // R-05 Poniente
         ];
         const def = defaultPositions[index % defaultPositions.length];
         lat = def.lat;
@@ -347,6 +357,7 @@ export default function SellerRouteMapModal({
       ...activeFleet.map(t => [t.lat, t.lng]),
       ...effectiveStores.map(s => [s.lat, s.lng])
     ];
+    if (supervisorCar) points.push([supervisorCar.lat, supervisorCar.lng]);
     if (phoneGpsLocation) points.push([phoneGpsLocation.lat, phoneGpsLocation.lng]);
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
@@ -356,6 +367,7 @@ export default function SellerRouteMapModal({
   const fitFleetBounds = (map) => {
     if (!map || activeFleet.length === 0) return;
     const points = activeFleet.map(t => [t.lat, t.lng]);
+    if (supervisorCar) points.push([supervisorCar.lat, supervisorCar.lng]);
     if (phoneGpsLocation) points.push([phoneGpsLocation.lat, phoneGpsLocation.lng]);
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
@@ -771,7 +783,7 @@ export default function SellerRouteMapModal({
     };
   }, [isOpen]);
 
-  // Re-render markers and route when activeStore, roadRoute, fleet or filter changes
+  // Re-render markers and route when activeStore, roadRoute, fleet, supervisor or filter changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     renderMapElements(mapInstanceRef.current);
@@ -783,6 +795,9 @@ export default function SellerRouteMapModal({
     roadRoute, 
     phoneGpsLocation, 
     activeFleet, 
+    supervisorCar,
+    isSupervisor,
+    isSupervisorOverride,
     mapStoreStatusFilter, 
     focusedTruckId
   ]);
@@ -1579,8 +1594,8 @@ export default function SellerRouteMapModal({
         )}
 
         {/* 2. LEAFLET INTERACTIVE MAP CANVAS */}
-        <div className="flex-1 w-full h-full relative">
-          <div ref={mapContainerRef} className="w-full h-full z-10" />
+        <div className="flex-1 w-full h-full relative bg-slate-100">
+          <div ref={mapContainerRef} className="w-full h-full z-10 bg-slate-100" />
 
           {/* Map Controls: Center on Phone, Center on Car & Re-fit Bounds */}
           <div className="absolute right-3 bottom-56 z-30 flex flex-col gap-2">

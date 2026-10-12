@@ -14,12 +14,14 @@ import {
   DollarSign,
   Compass,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Truck
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
 import DeliveryVanIcon from "../../icons/DeliveryVanIcon";
-import { getRouteTheme, getStoreRouteId } from "../../../utils/routeColorUtils";
+import SupervisorCarIcon from "../../icons/SupervisorCarIcon";
+import { getRouteTheme, getStoreRouteId, SUPERVISOR_THEME } from "../../../utils/routeColorUtils";
 
 export default function SellerRouteScreen({
   seller,
@@ -40,6 +42,28 @@ export default function SellerRouteScreen({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // 'all' | 'pending' | 'in_progress' | 'completed'
   const [routeFilter, setRouteFilter] = useState(selectedRouteFilter || "all");
+
+  const isSupervisor = Boolean(
+    currentUser?.role === "supervisor" || 
+    currentUser?.id === "USR-SUP-01" ||
+    currentUser?.name?.toLowerCase().includes("almanza") ||
+    currentUser?.role === "gerente" || 
+    currentUser?.role === "gerente_cedis" || 
+    currentUser?.role === "director_comercial" || 
+    currentUser?.role === "propietario"
+  );
+
+  // Guaranteed 5-route fleet for Aguascalientes
+  const effectiveVendors = useMemo(() => {
+    if (assignedVendors && assignedVendors.length >= 5) return assignedVendors;
+    return [
+      { id: "USR-VEND-104", name: "Juan Pablo Morales", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos" },
+      { id: "USR-VEND-106", name: "Carlos Estrada Rincón", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos" },
+      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial" },
+      { id: "USR-VEND-108", name: "Fernando Ruiz Esparza", routeId: "RUTA-04", routeName: "Ruta 04 - Ags Oriente & Morelos" },
+      { id: "USR-VEND-109", name: "Brenda Morales Valdivia", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo" }
+    ];
+  }, [assignedVendors]);
 
   useEffect(() => {
     if (selectedRouteFilter) {
@@ -209,6 +233,95 @@ export default function SellerRouteScreen({
         </div>
       </div>
 
+      {/* 1.5. TARJETA DESTACADA DEL VEHÍCULO DE SUPERVISIÓN (Exclusivo Supervisor/Gerente) */}
+      {isSupervisor && (
+        <div className="px-4 mb-3">
+          <div className="p-4 rounded-[22px] bg-slate-950 text-white border-2 border-amber-400 shadow-xl space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400 p-1 flex items-center justify-center shrink-0 shadow-md">
+                  <SupervisorCarIcon className="w-9 h-8" beaconColor="#f59e0b" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                    <span className="text-[10px] font-black uppercase text-amber-300 tracking-wider">
+                      Vehículo de Supervisión • GPS Activo
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm text-white truncate mt-0.5">
+                    {currentUser?.name || "Ing. Roberto Almanza"} (Supervisor)
+                  </h4>
+                  <p className="text-[11px] text-slate-300 truncate mt-0.5">
+                    Sin ruta asignada fija • Supervisando {effectiveVendors.length} Camiones ({stores.length} Tiendas)
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+                className="tap-effect px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer transition active:scale-95"
+                title="Abrir mapa con tu vehículo de supervisión y todos los camiones"
+              >
+                <Compass className="w-4 h-4 stroke-[2.5]" />
+                <span>Ver Mapa</span>
+              </button>
+            </div>
+
+            {/* Flota Supervisada de 5 Camiones en Tiempo Real */}
+            <div className="pt-2.5 border-t border-slate-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Flota Supervisada ({effectiveVendors.length} Camiones):</span>
+                </span>
+                <span className="text-[9px] text-amber-300 font-extrabold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                  Toca para filtrar ruta
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {effectiveVendors.map((vendor, idx) => {
+                  const theme = getRouteTheme(vendor.routeId, idx);
+                  const vendorStores = stores.filter(s => s.routeId === vendor.routeId);
+                  const isSelected = routeFilter === vendor.routeId;
+                  return (
+                    <button
+                      key={vendor.id}
+                      type="button"
+                      onClick={() => {
+                        setRouteFilter(vendor.routeId);
+                        onSelectRouteFilter?.(vendor.routeId);
+                      }}
+                      className={`tap-effect p-2 rounded-xl text-left transition flex items-center gap-2 cursor-pointer border ${
+                        isSelected 
+                          ? "bg-amber-400 text-slate-950 border-amber-400 font-bold shadow-md"
+                          : "bg-slate-900/90 text-white border-slate-700/80 hover:bg-slate-800"
+                      }`}
+                    >
+                      <div 
+                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
+                        style={{ backgroundColor: theme.primary }}
+                      >
+                        <DeliveryVanIcon className="w-4 h-3.5 text-white" cargoColor={theme.cargo} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className={`text-[10px] font-black block truncate ${isSelected ? "text-slate-950" : "text-white"}`}>
+                          {theme.short} • {vendor.name.split(" ")[0]}
+                        </span>
+                        <span className={`text-[9px] block truncate ${isSelected ? "text-slate-800" : "text-slate-400"}`}>
+                          {vendorStores.length} tiendas
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. Daily Goal Card - DYNAMIC PER ROUTE */}
       <div className="px-4 mb-4">
         <div className="p-4 rounded-[22px] bg-white border border-slate-300 shadow-[0_2px_8px_rgba(15,23,42,0.04)] space-y-3 transition-all duration-300">
@@ -338,19 +451,28 @@ export default function SellerRouteScreen({
 
           <div className="flex items-center gap-3.5 min-w-0 relative z-10">
             <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg group-hover:scale-105 transition-transform">
-              <DeliveryVanIcon className="w-9 h-8 text-white" />
+              {isSupervisor ? (
+                <SupervisorCarIcon className="w-9 h-8" beaconColor="#f59e0b" />
+              ) : (
+                <DeliveryVanIcon className="w-9 h-8 text-white" />
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-wider mb-0.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-ping" />
-                <span>📍 TIENDAS EN RUTA • GPS EN VIVO</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping" />
+                <span>{isSupervisor ? "🚗 SUPERVISIÓN DE CAMPO • GPS EN VIVO" : "📍 TIENDAS EN RUTA • GPS EN VIVO"}</span>
               </div>
               <h3 className="font-black text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
-                <span>Ver Tiendas y Camiones en Ruta</span>
+                <span>{isSupervisor ? "Ver Flota de Camiones y Mi Auto GPS" : "Ver Tiendas y Camiones en Ruta"}</span>
               </h3>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {isSupervisor && (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950 text-amber-300 border border-amber-400/60 shadow-xs">
+                    🚗 Auto Supervisor (GPS)
+                  </span>
+                )}
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-400/50">
-                  🚚 {assignedVendors?.length || 3} Camiones
+                  🚚 {effectiveVendors.length} Camiones
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
                   ✓ {counts.completed} Atendidas
@@ -383,8 +505,17 @@ export default function SellerRouteScreen({
           className="tap-effect h-9 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer shrink-0 border border-emerald-300/80 ring-2 ring-emerald-500/20"
           title="Ver mapa completo con todos los camiones y tiendas"
         >
-          <Compass className="w-4 h-4 stroke-[2.5] animate-pulse" />
-          <span>Ver Mapa ({assignedVendors?.length || 3} Camiones)</span>
+          {isSupervisor ? (
+            <>
+              <SupervisorCarIcon className="w-4 h-3.5" beaconColor="#f59e0b" />
+              <span>Ver Mapa ({effectiveVendors.length} Camiones + Mi Auto)</span>
+            </>
+          ) : (
+            <>
+              <Compass className="w-4 h-4 stroke-[2.5] animate-pulse" />
+              <span>Ver Mapa ({effectiveVendors.length} Camiones)</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -394,8 +525,8 @@ export default function SellerRouteScreen({
           <div className="p-3.5 rounded-[20px] bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 text-white border border-emerald-500/40 shadow-md flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 text-[10.5px] font-black text-emerald-400 uppercase tracking-wider mb-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Siguiente Parada a Atender</span>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span>{isSupervisor ? "🎯 PDV Seleccionado para Auditoría" : "Siguiente Parada a Atender"}</span>
               </div>
               <h4 className="font-extrabold text-sm text-white truncate">
                 {currentTargetStore.name}

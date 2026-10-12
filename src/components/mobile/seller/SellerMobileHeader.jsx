@@ -14,7 +14,8 @@ import {
   Crown,
   Building2,
   BarChart3,
-  Truck
+  Truck,
+  RefreshCw
 } from "lucide-react";
 import { ROLES } from "../../../data/authRolesData";
 
@@ -110,6 +111,23 @@ export default function SellerMobileHeader({
               <span className="text-[11px]">Escanear</span>
             </button>
           )}
+
+          {/* Quick Force-Refresh / Sincronizar Datos */}
+          <button
+            onClick={() => {
+              if ('caches' in window) {
+                caches.keys().then((keys) => {
+                  for (const key of keys) caches.delete(key);
+                });
+              }
+              window.location.reload();
+            }}
+            className="tap-effect p-1.5 text-slate-500 hover:text-emerald-600 cursor-pointer rounded-full hover:bg-slate-100 transition"
+            title="Sincronizar y actualizar datos (Recargar)"
+            aria-label="Sincronizar datos"
+          >
+            <RefreshCw className="w-4 h-4 stroke-[1.8]" />
+          </button>
 
           {/* Notifications Button */}
           <button
