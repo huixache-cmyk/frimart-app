@@ -982,21 +982,22 @@ export default function SellerRouteMapModal({
              style="transform: translate(-50%, -50%); z-index: 1400;">
           
           <!-- Concentric amber radar pulse for supervisor GPS -->
-          <div class="absolute w-14 h-14 rounded-full pointer-events-none" 
-               style="background: radial-gradient(circle, rgba(245, 158, 11, 0.45) 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
-          <div class="absolute w-8 h-8 rounded-full pointer-events-none bg-amber-400/25 animate-ping"></div>
+          <div class="absolute w-12 h-12 rounded-full pointer-events-none" 
+               style="background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
+          <div class="absolute w-6 h-6 rounded-full pointer-events-none bg-amber-400/20 animate-ping"></div>
 
-          <!-- Supervisor Vehicle Vector Icon (38x26) -->
-          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115 rounded-xl p-0.5 bg-slate-900/95 shadow-xl border-2 border-amber-400 ring-2 ring-amber-400/40" 
-               style="width: 40px; height: 28px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));">
+          <!-- Supervisor Vehicle Vector Icon (38x26) with 100% transparent background -->
+          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115" 
+               style="width: 38px; height: 26px; background: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
             ${supSvg}
           </div>
 
-          <!-- Supervisor Badge: Sin ruta fija, libre inspección -->
-          <div class="mt-0.5 px-2 py-0.5 rounded-full text-white text-[8px] font-black border shadow-lg whitespace-nowrap flex items-center gap-1 bg-slate-950 border-amber-400 ring-1 ring-amber-400/50">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-            <span>🚗 Sup. ${supervisorCar.firstName}</span>
-            <span class="text-amber-300 font-extrabold">• GPS</span>
+          <!-- Supervisor Badge with 100% transparent background and crisp legible text shadow -->
+          <div class="mt-0.5 px-1 py-0.2 whitespace-nowrap flex items-center gap-1 text-[8.5px] font-black"
+               style="background: transparent; border: none; box-shadow: none; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 3px #000, 0 0 2px #000;">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" style="box-shadow: 0 0 3px #000;"></span>
+            <span style="color: #ffffff; font-weight: 800;">🚗 Sup. ${supervisorCar.firstName}</span>
+            <span style="color: #fbbf24; font-weight: 900;">• GPS</span>
           </div>
         </div>
       `;
@@ -1369,93 +1370,100 @@ export default function SellerRouteMapModal({
                 <span>Volver</span>
               </button>
 
-              {/* Mode Toggle Switch: [ 📍 Mi GPS ] [ 🏢 Aguascalientes ] [ 🏝️ Cancún ] */}
-              <div className="pointer-events-auto flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md">
+              {/* Mode Toggle: In supervisor mode only show Mi GPS (no CEDIS options); for seller keep CEDIS switcher */}
+              {isSupervisor ? (
                 <button
+                  type="button"
                   onClick={() => handleSwitchMode("real_phone_gps")}
-                  className={`tap-effect px-2 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                  className={`tap-effect pointer-events-auto h-9 px-3 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200 text-xs font-bold shadow-md flex items-center gap-1.5 transition cursor-pointer ${
                     mapLocationMode === "real_phone_gps"
-                      ? "bg-slate-900 text-white shadow-xs"
+                      ? "text-slate-900 bg-white"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
-                  title="Usar la ubicación en tiempo real de tu celular"
+                  title="Ubicación GPS en vivo de tu dispositivo móvil"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${phoneGpsLocation ? "bg-sky-400 animate-ping" : "bg-emerald-400"}`} />
+                  <span className={`w-2 h-2 rounded-full ${phoneGpsLocation ? "bg-sky-400 animate-ping" : "bg-emerald-500"}`} />
                   <span>Mi GPS</span>
                 </button>
+              ) : (
+                <div className="pointer-events-auto flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md">
+                  <button
+                    onClick={() => handleSwitchMode("real_phone_gps")}
+                    className={`tap-effect px-2 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                      mapLocationMode === "real_phone_gps"
+                        ? "bg-slate-900 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    title="Usar la ubicación en tiempo real de tu celular"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${phoneGpsLocation ? "bg-sky-400 animate-ping" : "bg-emerald-400"}`} />
+                    <span>Mi GPS</span>
+                  </button>
 
-                <button
-                  onClick={() => handleSwitchMode("ags_route")}
-                  className={`tap-effect px-2 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
-                    mapLocationMode === "ags_route"
-                      ? "bg-emerald-700 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                  title="Ruta de Puntos de Venta Reales CEDIS Aguascalientes"
-                >
-                  <span>🏢 Aguascalientes</span>
-                </button>
+                  <button
+                    onClick={() => handleSwitchMode("ags_route")}
+                    className={`tap-effect px-2 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                      mapLocationMode === "ags_route"
+                        ? "bg-emerald-700 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    title="Ruta de Puntos de Venta Reales CEDIS Aguascalientes"
+                  >
+                    <span>🏢 Aguascalientes</span>
+                  </button>
 
-                <button
-                  onClick={() => handleSwitchMode("cancun_demo")}
-                  className={`tap-effect px-1.5 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
-                    mapLocationMode === "cancun_demo"
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                  title="Ver la ruta de demostración de Cancún"
-                >
-                  <span>🏝️ Cancún</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => handleSwitchMode("cancun_demo")}
+                    className={`tap-effect px-1.5 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                      mapLocationMode === "cancun_demo"
+                        ? "bg-slate-900 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-900"
+                    }`}
+                    title="Ver la ruta de demostración de Cancún"
+                  >
+                    <span>🏝️ Cancún</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Direct Map Vehicle Mode Switcher: [ 🚚 Modo Camión ] [ 🚗 Carrito Supervisor (GPS) ] */}
-            <div className="self-center pointer-events-auto">
-              <div className="flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md gap-1">
-                <button
-                  type="button"
-                  onClick={() => setIsSupervisorOverride(false)}
-                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                    !isSupervisor
-                      ? "bg-emerald-700 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                  title="Ver mapa en vista de Camión Repartidor"
-                >
-                  <DeliveryVanIcon className="w-3.5 h-3" />
-                  <span>🚚 Modo Camión</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsSupervisorOverride(true)}
-                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                    isSupervisor
-                      ? "bg-slate-950 text-amber-300 border border-amber-400/80 shadow-xs ring-1 ring-amber-400/50"
-                      : "text-slate-700 hover:text-slate-950"
-                  }`}
-                  title="Ver mapa como Carrito de Supervisión con tu GPS en vivo"
-                >
-                  <SupervisorCarIcon className="w-3.5 h-3" beaconColor="#f59e0b" />
-                  <span>🚗 Carrito Supervisor (GPS)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Supervisor Mode Banner Pill */}
-            {isSupervisor && (
+            {/* Direct Map Vehicle Mode Switcher: NOT shown for supervisor */}
+            {!isSupervisor && (
               <div className="self-center pointer-events-auto">
-                <div className="px-3 py-1 rounded-full bg-slate-950/95 text-white backdrop-blur-md border border-amber-400/60 shadow-md text-[10px] flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                  <span className="text-amber-300 font-extrabold">🚗 Supervisión de Campo:</span>
-                  <span className="text-slate-200">Sin ruta fija • Toca cualquier PDV en el mapa para auditar</span>
+                <div className="flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsSupervisorOverride(false)}
+                    className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                      !isSupervisor
+                        ? "bg-emerald-700 text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                    title="Ver mapa en vista de Camión Repartidor"
+                  >
+                    <DeliveryVanIcon className="w-3.5 h-3" />
+                    <span>🚚 Modo Camión</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSupervisorOverride(true)}
+                    className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                      isSupervisor
+                        ? "bg-slate-950 text-amber-300 border border-amber-400/80 shadow-xs ring-1 ring-amber-400/50"
+                        : "text-slate-700 hover:text-slate-950"
+                    }`}
+                    title="Ver mapa como Carrito de Supervisión con tu GPS en vivo"
+                  >
+                    <SupervisorCarIcon className="w-3.5 h-3" beaconColor="#f59e0b" />
+                    <span>🚗 Carrito Supervisor (GPS)</span>
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* CEDIS Aguascalientes Banner Pill */}
-            {mapLocationMode === "ags_route" && (
+            {/* CEDIS Aguascalientes Banner Pill (Only for non-supervisor) */}
+            {mapLocationMode === "ags_route" && !isSupervisor && (
               <div className="self-center pointer-events-auto">
                 <div className="px-3 py-1 rounded-full bg-emerald-950/90 text-white backdrop-blur-md border border-emerald-700 shadow-md text-[10px] flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
