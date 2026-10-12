@@ -2,20 +2,11 @@ import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Printer,
-  Bluetooth,
   Wifi,
-  Radio,
-  RefreshCw,
   CheckCircle2,
   AlertCircle,
   X,
   Layers,
-  QrCode,
-  Tag,
-  Copy,
-  ChevronRight,
-  Sparkles,
-  Sliders,
   FileText
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
@@ -32,15 +23,20 @@ export default function QRPrintModal({
   // Print Mode / Scope: 'full_sheet' | 'selected' | 'single'
   const [printScope, setPrintScope] = useState(initialScope);
   const [selectedCodes, setSelectedCodes] = useState(initialSelectedCodes);
-  const [singleCode, setSingleCode] = useState(initialSelectedCodes[0] || (currentPageItems[0]?.code) || "FRM-0001");
+  const [singleCode, setSingleCode] = useState(initialSelectedCodes[0] || (currentPageItems[0]?.code) || "");
   const [copiesCount, setCopiesCount] = useState(1);
-  const [printFormat, setPrintFormat] = useState("sheet_a4"); // 'sheet_a4' | 'thermal_roll'
 
-  // Nearby Printer Scanner State
-  const [isScanning, setIsScanning] = useState(true);
-  const [detectedPrinters, setDetectedPrinters] = useState([]);
-  const [selectedPrinterId, setSelectedPrinterId] = useState("");
+  // Resultado real del diálogo de impresión del sistema (evento afterprint)
   const [printSuccessFeedback, setPrintSuccessFeedback] = useState(null);
+
+  // Plataforma real del dispositivo para mostrar instrucciones correctas
+  const platform = useMemo(() => {
+    if (typeof navigator === "undefined") return "other";
+    const ua = navigator.userAgent || "";
+    if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/i.test(ua)) return "android";
+    return "other";
+  }, []);
 
   // Sync initial scope and selection when opening
   useEffect(() => {
@@ -53,110 +49,19 @@ export default function QRPrintModal({
         setSingleCode(currentPageItems[0].code);
       }
       setPrintSuccessFeedback(null);
-      startPrinterScan();
     }
   }, [isOpen, initialScope, initialSelectedCodes]);
-
-  // Scan for nearby printers (Bluetooth / Local Network Wi-Fi / System)
-  const startPrinterScan = () => {
-    setIsScanning(true);
-    setDetectedPrinters([]);
-
-    setTimeout(() => {
-      const mockPrinters = [
-        {
-          id: "zebra-zd421",
-          name: "Zebra ZD421 Direct Thermal (Bluetooth)",
-          type: "bluetooth",
-          distance: "0.4 m",
-          signal: "98%",
-          isClosest: true,
-          status: "connected",
-          details: "Cabezal térmico 203 dpi • Bobina 50x50 mm lista"
-        },
-        {
-          id: "epson-tm88",
-          name: "Epson TM-T88VI (Wi-Fi Red CEDIS Ags)",
-          type: "wifi",
-          distance: "2.8 m",
-          signal: "85%",
-          isClosest: false,
-          status: "ready",
-          details: "IP: 192.168.1.150 • Red Local Frimart"
-        },
-        {
-          id: "brother-ql820",
-          name: "Brother QL-820NWB (Wi-Fi / AirPrint)",
-          type: "wifi",
-          distance: "4.5 m",
-          signal: "70%",
-          isClosest: false,
-          status: "ready",
-          details: "AirPrint activo • Etiquetas continuas"
-        },
-        {
-          id: "system-dialog",
-          name: "Impresora del Sistema / Guardar PDF",
-          type: "system",
-          distance: "En este dispositivo",
-          signal: "100%",
-          isClosest: false,
-          status: "ready",
-          details: "Diálogo estándar de impresión de tu navegador"
-        }
-      ];
-
-      setDetectedPrinters(mockPrinters);
-      // Auto-select the nearest printer
-      setSelectedPrinterId(mockPrinters[0].id);
-      setIsScanning(false);
-    }, 1100);
-  };
-
-  // Web Bluetooth Pairing Trigger (if supported by browser)
-  const handleScanWebBluetooth = async () => {
-    if (typeof navigator !== "undefined" && navigator.bluetooth) {
-      try {
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true
-        });
-        if (device) {
-          const newPrinter = {
-            id: `bt-${device.id}`,
-            name: `${device.name || "Impresora Bluetooth"} (Emparejada)`,
-            type: "bluetooth",
-            distance: "0.2 m",
-            signal: "100%",
-            isClosest: true,
-            status: "connected",
-            details: "Dispositivo Bluetooth conectado en vivo"
-          };
-          setDetectedPrinters(prev => [newPrinter, ...prev]);
-          setSelectedPrinterId(newPrinter.id);
-        }
-      } catch (err) {
-        // User cancelled or unsupported
-        console.log("Bluetooth scan closed:", err);
-      }
-    } else {
-      startPrinterScan();
-    }
-  };
 
   // Determine items to print based on selected scope
   const itemsToPrint = useMemo(() => {
     if (printScope === "single") {
-      const item = qrBatch.find(q => q.code === singleCode) || {
-        code: singleCode,
-        serial: parseInt(singleCode.replace(/\D/g, "") || "1", 10),
-        batchDate: new Date().toISOString().slice(0, 10)
-      };
-      // Repeat according to copies count
+      // Solo folios reales existentes en el lote cargado
+      const item = qrBatch.find(q => q.code === singleCode.trim());
+      if (!item) return [];
       return Array(copiesCount).fill(item);
     }
 
     if (printScope === "selected") {
-      if (selectedCodes.length === 0) return currentPageItems.slice(0, 6);
       return qrBatch.filter(q => selectedCodes.includes(q.code));
     }
 
@@ -168,21 +73,19 @@ export default function QRPrintModal({
   }, [printScope, singleCode, copiesCount, selectedCodes, currentPageItems, qrBatch]);
 
   // Execute Print
+  // Abre el servicio de impresión real del sistema operativo:
+  // Android -> Servicio de impresión (Mopria / HP Print Service Plugin) detecta impresoras WiFi de la red.
+  // iPhone  -> AirPrint detecta impresoras compatibles en la misma red WiFi.
   const handleExecutePrint = () => {
-    const selectedPrinter = detectedPrinters.find(p => p.id === selectedPrinterId) || detectedPrinters[0];
-    
-    // Trigger native print dialog which formats #frimart-printable-sheet
+    if (itemsToPrint.length === 0) return;
+    const count = itemsToPrint.length;
+    const onAfterPrint = () => {
+      window.removeEventListener("afterprint", onAfterPrint);
+      // El navegador no informa si se imprimió o se canceló; solo que el diálogo se cerró.
+      setPrintSuccessFeedback({ count });
+    };
+    window.addEventListener("afterprint", onAfterPrint);
     window.print();
-
-    setPrintSuccessFeedback({
-      printerName: selectedPrinter?.name || "Impresora Seleccionada",
-      count: itemsToPrint.length,
-      format: printFormat === "sheet_a4" ? "Planilla A4 (Stickers 50x50mm)" : "Rollo Térmico Directo"
-    });
-
-    setTimeout(() => {
-      setPrintSuccessFeedback(null);
-    }, 4500);
   };
 
   if (!isOpen) return null;
@@ -190,7 +93,7 @@ export default function QRPrintModal({
   const modalContent = (
     <>
       {/* 1. INTERACTIVE CONFIGURATION MODAL (Light Corporate Theme) */}
-      <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 bg-slate-900/35 backdrop-blur-xs animate-fade-in font-sans">
+      <div className="frimart-print-ui fixed inset-0 z-[99999] flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 bg-slate-900/35 backdrop-blur-xs animate-fade-in font-sans">
         <div className="relative w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-2xl bg-white sm:rounded-[26px] shadow-2xl flex flex-col overflow-hidden border-0 sm:border sm:border-slate-200">
           
           {/* Header (Corporate Emerald) */}
@@ -228,100 +131,40 @@ export default function QRPrintModal({
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div className="text-xs">
                   <span className="font-extrabold block text-emerald-950">
-                    ¡Orden de impresión enviada con éxito!
+                    Diálogo de impresión cerrado
                   </span>
                   <span className="text-emerald-800">
-                    {printSuccessFeedback.count} stickers enviados a <strong>{printSuccessFeedback.printerName}</strong> ({printSuccessFeedback.format}).
+                    Se prepararon {printSuccessFeedback.count} etiquetas. Verifica en la impresora que salió la hoja.
                   </span>
                 </div>
               </div>
             )}
 
-            {/* SECCIÓN 1: BÚSQUEDA AUTOMÁTICA DE IMPRESORA MÁS CERCANA */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Radio className="w-4 h-4 animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
-                      Impresora más cercana disponible
-                    </h3>
-                    <p className="text-[10.5px] text-slate-500">
-                      Detección automática por Bluetooth y Red Local CEDIS
-                    </p>
-                  </div>
+            {/* SECCIÓN 1: IMPRESORA (detectada por el servicio de impresión real del sistema) */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <Wifi className="w-4 h-4" />
                 </div>
-
-                <button
-                  type="button"
-                  onClick={startPrinterScan}
-                  disabled={isScanning}
-                  className="tap-effect px-2.5 py-1 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition"
-                  title="Volver a buscar impresoras cercanas"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isScanning ? "animate-spin" : ""}`} />
-                  <span>{isScanning ? "Buscando..." : "Buscar de nuevo"}</span>
-                </button>
+                <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                  Impresora WiFi de tu CEDIS
+                </h3>
               </div>
-
-              {/* Scanning Radar or Discovered List */}
-              {isScanning ? (
-                <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-center gap-3 text-xs text-slate-600 animate-pulse">
-                  <Radio className="w-5 h-5 text-emerald-600 animate-ping" />
-                  <span className="font-bold">Buscando impresora más cercana disponible en el entorno...</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {detectedPrinters.map((printer) => {
-                    const isSelected = printer.id === selectedPrinterId;
-                    return (
-                      <button
-                        key={printer.id}
-                        type="button"
-                        onClick={() => setSelectedPrinterId(printer.id)}
-                        className={`tap-effect p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${
-                          isSelected
-                            ? "bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs"
-                            : "bg-white border-slate-200 hover:border-slate-300"
-                        }`}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                          printer.type === "bluetooth"
-                            ? "bg-sky-50 text-sky-600 border border-sky-200"
-                            : printer.type === "wifi"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-600"
-                        }`}>
-                          {printer.type === "bluetooth" ? (
-                            <Bluetooth className="w-4 h-4" />
-                          ) : printer.type === "wifi" ? (
-                            <Wifi className="w-4 h-4" />
-                          ) : (
-                            <Printer className="w-4 h-4" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-black text-slate-900 truncate">
-                              {printer.name}
-                            </span>
-                            {printer.isClosest && (
-                              <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold uppercase border border-emerald-300">
-                                Más cercana ({printer.distance})
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-500 block truncate mt-0.5">
-                            {printer.details}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Al presionar <strong>Imprimir</strong> se abre el servicio de impresión de tu teléfono, que busca las
+                impresoras disponibles en la red WiFi donde estás conectado. Elige ahí la impresora de tu zona.
+              </p>
+              {platform === "android" && (
+                <p className="text-[10.5px] text-slate-500 flex gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                  <span>Android: si no aparece la impresora, activa en Ajustes › Dispositivos conectados › Impresión el "Servicio de impresión predeterminado" o instala "HP Print Service Plugin" / "Mopria".</span>
+                </p>
+              )}
+              {platform === "ios" && (
+                <p className="text-[10.5px] text-slate-500 flex gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                  <span>iPhone: la impresora debe ser compatible con AirPrint y estar en la misma red WiFi. Toca "Seleccionar impresora" en el menú.</span>
+                </p>
               )}
             </div>
 
@@ -541,7 +384,8 @@ export default function QRPrintModal({
             <button
               type="button"
               onClick={handleExecutePrint}
-              className="tap-effect flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-700 hover:brightness-105 active:scale-98 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
+              disabled={itemsToPrint.length === 0}
+              className="disabled:opacity-40 disabled:cursor-not-allowed tap-effect flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-700 hover:brightness-105 active:scale-98 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md transition cursor-pointer"
             >
               <Printer className="w-4 h-4 stroke-[2.5]" />
               <span>
@@ -553,7 +397,7 @@ export default function QRPrintModal({
       </div>
 
       {/* 2. DEDICATED PRINTABLE CONTAINER (Only visible during @media print) */}
-      <div id="frimart-printable-sheet" className="hidden">
+      <div id="frimart-printable-sheet" className="hidden" style={{ background: "#fff" }}>
         <div style={{ padding: "8mm", fontFamily: "sans-serif" }}>
           {/* Print Sheet Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #059669", paddingBottom: "4mm", marginBottom: "6mm" }}>

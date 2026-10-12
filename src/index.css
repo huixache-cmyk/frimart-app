@@ -263,31 +263,33 @@ html, body {
    PRINT STYLES FOR FRIMART QR STICKERS & SHEETS
    ================================================== */
 @media print {
-  /* Hide the rest of the application chrome, header, navigations and modals */
-  body * {
-    visibility: hidden !important;
+  /* Ocultar por completo la app (display:none evita páginas en blanco en móviles) */
+  #root,
+  .frimart-print-ui {
+    display: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   /* Exclusively display the dedicated print sheet container */
-  #frimart-printable-sheet, 
-  #frimart-printable-sheet * {
-    visibility: visible !important;
-  }
-
   #frimart-printable-sheet {
     display: block !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
     color: #0f172a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
+  /* Tamaño de papel lo define el diálogo del teléfono (Carta / A4) */
   @page {
-    size: A4 portrait;
     margin: 6mm;
   }
 
