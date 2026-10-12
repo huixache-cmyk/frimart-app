@@ -22,6 +22,7 @@ import SectionHeader from "../SectionHeader";
 import DeliveryVanIcon from "../../icons/DeliveryVanIcon";
 import SupervisorCarIcon from "../../icons/SupervisorCarIcon";
 import { getRouteTheme, getStoreRouteId, SUPERVISOR_THEME } from "../../../utils/routeColorUtils";
+import { ROLES } from "../../../data/authRolesData";
 
 export default function SellerRouteScreen({
   seller,
@@ -45,24 +46,16 @@ export default function SellerRouteScreen({
 
   const isSupervisor = Boolean(
     currentUser?.role === "supervisor" || 
-    currentUser?.id === "USR-SUP-01" ||
-    currentUser?.name?.toLowerCase().includes("almanza") ||
     currentUser?.role === "gerente" || 
     currentUser?.role === "gerente_cedis" || 
     currentUser?.role === "director_comercial" || 
     currentUser?.role === "propietario"
   );
 
-  // Guaranteed 5-route fleet for Aguascalientes
+  // Dynamic fleet of assigned vendors passed to this screen
   const effectiveVendors = useMemo(() => {
-    if (assignedVendors && assignedVendors.length >= 5) return assignedVendors;
-    return [
-      { id: "USR-VEND-104", name: "Juan Pablo Morales", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos" },
-      { id: "USR-VEND-106", name: "Carlos Estrada Rincón", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos" },
-      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial" },
-      { id: "USR-VEND-108", name: "Fernando Ruiz Esparza", routeId: "RUTA-04", routeName: "Ruta 04 - Ags Oriente & Morelos" },
-      { id: "USR-VEND-109", name: "Brenda Morales Valdivia", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo" }
-    ];
+    if (assignedVendors && Array.isArray(assignedVendors)) return assignedVendors;
+    return [];
   }, [assignedVendors]);
 
   useEffect(() => {
@@ -250,7 +243,7 @@ export default function SellerRouteScreen({
                     </span>
                   </div>
                   <h4 className="font-extrabold text-sm text-white truncate mt-0.5">
-                    {currentUser?.name || "Ing. Roberto Almanza"} (Supervisor)
+                    {currentUser?.name || "Supervisor"} ({ROLES[currentUser?.role]?.shortName || "Supervisión"})
                   </h4>
                   <p className="text-[11px] text-slate-300 truncate mt-0.5">
                     Sin ruta asignada fija • Supervisando {effectiveVendors.length} Camiones ({stores.length} Tiendas)

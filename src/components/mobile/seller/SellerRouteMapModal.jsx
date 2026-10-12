@@ -65,8 +65,6 @@ export default function SellerRouteMapModal({
   // Determine if the current session is in Supervisor / Manager / Owner mode
   const isSupervisorSession = Boolean(
     currentUser?.role === "supervisor" || 
-    currentUser?.id === "USR-SUP-01" ||
-    currentUser?.name?.toLowerCase().includes("almanza") ||
     currentUser?.role === "gerente" || 
     currentUser?.role === "gerente_cedis" || 
     currentUser?.role === "director_comercial" || 
@@ -196,7 +194,7 @@ export default function SellerRouteMapModal({
       { id: "USR-VEND-109", name: "Brenda Morales Valdivia", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" }
     ];
 
-    const vendors = (assignedVendors && assignedVendors.length >= 5)
+    const vendors = (assignedVendors && assignedVendors.length > 0)
       ? assignedVendors
       : defaultAgsVendors;
 
@@ -280,20 +278,13 @@ export default function SellerRouteMapModal({
   // Supervisor Inspection Vehicle (Live GPS tracking on supervisor device with no fixed route)
   const supervisorCar = useMemo(() => {
     if (!isSupervisor) return null;
-    const supervisorUser = (
-      currentUser?.role === "supervisor" || 
-      currentUser?.role === "gerente_cedis" || 
-      currentUser?.role === "director_comercial" || 
-      currentUser?.role === "propietario"
-    )
-      ? currentUser
-      : (assignedVendors?.[0]?.supervisorName ? { name: assignedVendors[0].supervisorName } : { name: "Ing. Roberto Almanza" });
+    const supervisorUser = currentUser || { name: "Supervisor de Campo", role: "supervisor" };
 
     return {
-      id: "VEH-SUPERVISOR-01",
-      name: supervisorUser?.name || "Ing. Roberto Almanza",
-      firstName: supervisorUser?.name?.split(" ")[0] || "Roberto",
-      role: "supervisor",
+      id: `VEH-SUPERVISOR-${supervisorUser.id || "GENERIC"}`,
+      name: supervisorUser.name || "Supervisor de Campo",
+      firstName: supervisorUser.name ? supervisorUser.name.split(" ")[0] : "Supervisor",
+      role: supervisorUser.role || "supervisor",
       lat: sellerLat,
       lng: sellerLng,
       status: "Supervisión en Campo",
@@ -304,7 +295,7 @@ export default function SellerRouteMapModal({
       primaryColor: SUPERVISOR_THEME.primary,
       hasPhoneGps: isUsingRealPhoneGps
     };
-  }, [isSupervisor, currentUser, assignedVendors, sellerLat, sellerLng, isUsingRealPhoneGps, phoneGpsLocation]);
+  }, [isSupervisor, currentUser, sellerLat, sellerLng, isUsingRealPhoneGps, phoneGpsLocation]);
 
   // Selected store for detail HUD card & road trajectory routing
   const externalTargetId = initialStoreId || activeTargetStoreId;

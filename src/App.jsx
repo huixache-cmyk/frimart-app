@@ -170,20 +170,25 @@ export default function App() {
   const assignedVendors = useMemo(() => {
     const allVendors = users.filter((u) => u.role === "vendedor");
     if (!currentUser) return allVendors;
+
     if (currentUser.role === "vendedor") {
-      // In route and map monitoring, include all assigned fleet vendors of the CEDIS
       const sameCedis = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
       return sameCedis.length > 0 ? sameCedis : allVendors;
     }
-    // For supervisor or management, guarantee all 5 vendors are returned
-    if (currentUser.role === "supervisor" || currentUser.id === "USR-SUP-01" || currentUser.name?.toLowerCase().includes("almanza")) {
+
+    if (currentUser.role === "supervisor") {
+      if (currentUser.assignedVendors && Array.isArray(currentUser.assignedVendors) && currentUser.assignedVendors.length > 0) {
+        const filtered = allVendors.filter((u) => currentUser.assignedVendors.includes(u.id));
+        if (filtered.length > 0) return filtered;
+      }
+      if (currentUser.cedisId && currentUser.cedisId !== "ALL") {
+        const cedisVendors = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
+        if (cedisVendors.length > 0) return cedisVendors;
+      }
       return allVendors;
     }
-    if (currentUser.assignedVendors && Array.isArray(currentUser.assignedVendors) && currentUser.assignedVendors.length > 0) {
-      const filtered = allVendors.filter((u) => currentUser.assignedVendors.includes(u.id));
-      if (filtered.length > 0) return filtered;
-    }
-    if (currentUser.cedisId) {
+
+    if (currentUser.cedisId && currentUser.cedisId !== "ALL") {
       const cedisVendors = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
       if (cedisVendors.length > 0) return cedisVendors;
     }
@@ -285,38 +290,6 @@ export default function App() {
     localStorage.setItem("frimart_freezers", JSON.stringify(freezers));
   }, [freezers]);
 
-  // Reactive Auto-Migration: forces all 5 routes, 5 vendors, and Roberto Almanza's vehicle to load
-  useEffect(() => {
-    // 1. Ensure all 9 stores (5 routes) are loaded in state and localStorage
-    const hasAllStores = stores && stores.length >= INITIAL_STORES.length && INITIAL_STORES.every(is => stores.some(s => s.id === is.id));
-    if (!hasAllStores) {
-      setStores(INITIAL_STORES);
-      localStorage.setItem("frimart_stores", JSON.stringify(INITIAL_STORES));
-    }
-
-    // 2. Ensure all 5 vendors are present in users state and localStorage
-    const hasAllUsers = users && users.length >= INITIAL_USERS.length && INITIAL_USERS.every(iu => users.some(u => u.id === iu.id));
-    if (!hasAllUsers) {
-      setUsers(INITIAL_USERS);
-      localStorage.setItem("frimart_users", JSON.stringify(INITIAL_USERS));
-    }
-
-    // 3. Ensure supervisor Roberto Almanza has all 5 assigned vendors
-    if (currentUser && (currentUser.id === "USR-SUP-01" || currentUser.role === "supervisor" || currentUser.name?.toLowerCase().includes("almanza"))) {
-      const targetVendors = ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107", "USR-VEND-108", "USR-VEND-109"];
-      const missingVendors = !currentUser.assignedVendors || targetVendors.some(vid => !currentUser.assignedVendors.includes(vid));
-      if (missingVendors) {
-        const updated = {
-          ...currentUser,
-          role: "supervisor",
-          assignedVendors: targetVendors
-        };
-        setCurrentUser(updated);
-        saveStoredActiveUser(updated);
-      }
-    }
-  }, [stores, users, currentUser]);
-
   // Helper to trigger mobile haptic toast
   const showToast = (message, type = "success", icon = null) => {
     setToast({ message, type, icon });
@@ -332,26 +305,18 @@ export default function App() {
 
   // Authentication Handlers
   const handleLoginSuccess = (authenticatedUser) => {
-    let userToSet = authenticatedUser;
-    if (authenticatedUser.role === "supervisor" || authenticatedUser.id === "USR-SUP-01" || authenticatedUser.name?.toLowerCase().includes("almanza")) {
-      userToSet = {
-        ...authenticatedUser,
-        role: "supervisor",
-        assignedVendors: ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107", "USR-VEND-108", "USR-VEND-109"]
-      };
-    }
-    setCurrentUser(userToSet);
-    saveStoredActiveUser(userToSet);
+    setCurrentUser(authenticatedUser);
+    saveStoredActiveUser(authenticatedUser);
     setIsLocked(false);
     
     // Auto switch to home tab for that role
-    if (userToSet.role === "vendedor") setActiveTab("ruta");
-    else if (userToSet.role === "supervisor") setActiveTab("supervision");
-    else if (userToSet.role === "gerente_cedis") setActiveTab("cedis");
-    else if (userToSet.role === "director_comercial") setActiveTab("direccion");
-    else if (userToSet.role === "propietario") setActiveTab("propietario_hub");
+    if (authenticatedUser.role === "vendedor") setActiveTab("ruta");
+    else if (authenticatedUser.role === "supervisor") setActiveTab("supervision");
+    else if (authenticatedUser.role === "gerente_cedis") setActiveTab("cedis");
+    else if (authenticatedUser.role === "director_comercial") setActiveTab("direccion");
+    else if (authenticatedUser.role === "propietario") setActiveTab("propietario_hub");
 
-    showToast(`Bienvenido ${userToSet.name} (${ROLES[userToSet.role]?.shortName})`, "success");
+    showToast(`Bienvenido ${authenticatedUser.name} (${ROLES[authenticatedUser.role]?.shortName})`, "success");
   };
 
   const handleLockSession = () => {
@@ -362,15 +327,8 @@ export default function App() {
   };
 
   const handleSwitchSimulatedRole = (targetRoleKey) => {
-    let targetUser = users.find((u) => u.role === targetRoleKey);
+    const targetUser = users.find((u) => u.role === targetRoleKey);
     if (targetUser) {
-      if (targetRoleKey === "supervisor") {
-        targetUser = {
-          ...targetUser,
-          role: "supervisor",
-          assignedVendors: ["USR-VEND-104", "USR-VEND-106", "USR-VEND-107", "USR-VEND-108", "USR-VEND-109"]
-        };
-      }
       setCurrentUser(targetUser);
       saveStoredActiveUser(targetUser);
       if (targetRoleKey === "vendedor") setActiveTab("ruta");
