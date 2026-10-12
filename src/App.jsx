@@ -319,6 +319,7 @@ export default function App() {
     const targetUser = users.find((u) => u.role === targetRoleKey);
     if (targetUser) {
       setCurrentUser(targetUser);
+      saveStoredActiveUser(targetUser);
       if (targetRoleKey === "vendedor") setActiveTab("ruta");
       else if (targetRoleKey === "supervisor") setActiveTab("supervision");
       else if (targetRoleKey === "gerente_cedis") setActiveTab("cedis");

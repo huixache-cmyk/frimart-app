@@ -49,16 +49,20 @@ export default function SellerMobileHeader({
               <span className="font-extrabold text-[15px] tracking-tight text-[#0f172a] font-['Outfit']">
                 FRIMART
               </span>
-              <span 
-                className="text-[9px] font-bold px-1.5 py-0.2 rounded-full border truncate"
+              <button 
+                type="button"
+                onClick={onLockSession}
+                className="text-[9px] font-bold px-1.5 py-0.2 rounded-full border truncate cursor-pointer hover:brightness-95 transition flex items-center gap-0.5"
                 style={{
                   backgroundColor: currentRole.bgColor,
                   color: currentRole.color,
                   borderColor: currentRole.borderColor
                 }}
+                title="Toca para cambiar de rol o iniciar sesión como supervisor"
               >
-                {currentRole.shortName}
-              </span>
+                <span>{currentRole.shortName}</span>
+                <span className="text-[7.5px] opacity-70">▾</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate">

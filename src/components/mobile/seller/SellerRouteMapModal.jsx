@@ -62,8 +62,23 @@ export default function SellerRouteMapModal({
   const routeLineRef = useRef(null);
   const radarsGroupRef = useRef(null);
 
-  // Determine if the current session is in Supervisor / Manager mode
-  const isSupervisor = currentUser?.role === "supervisor" || currentUser?.role === "gerente";
+  // Determine if the current session is in Supervisor / Manager / Owner mode
+  const isSupervisorSession = Boolean(
+    currentUser?.role === "supervisor" || 
+    currentUser?.role === "gerente" || 
+    currentUser?.role === "gerente_cedis" || 
+    currentUser?.role === "director_comercial" || 
+    currentUser?.role === "propietario"
+  );
+
+  // Interactive Map Role Override: allows toggling into Supervisor mode from any device / session
+  const [isSupervisorOverride, setIsSupervisorOverride] = useState(isSupervisorSession);
+
+  useEffect(() => {
+    setIsSupervisorOverride(isSupervisorSession);
+  }, [currentUser?.role, isSupervisorSession]);
+
+  const isSupervisor = isSupervisorOverride;
 
   // Status Filter for Map Elements: 'all' | 'completed' | 'in_progress' | 'pending' | 'trucks'
   const [mapStoreStatusFilter, setMapStoreStatusFilter] = useState("all");
@@ -255,11 +270,20 @@ export default function SellerRouteMapModal({
   // Supervisor Inspection Vehicle (Live GPS tracking on supervisor device with no fixed route)
   const supervisorCar = useMemo(() => {
     if (!isSupervisor) return null;
+    const supervisorUser = (
+      currentUser?.role === "supervisor" || 
+      currentUser?.role === "gerente_cedis" || 
+      currentUser?.role === "director_comercial" || 
+      currentUser?.role === "propietario"
+    )
+      ? currentUser
+      : (assignedVendors?.[0]?.supervisorName ? { name: assignedVendors[0].supervisorName } : { name: "Ing. Roberto Almanza" });
+
     return {
       id: "VEH-SUPERVISOR-01",
-      name: currentUser?.name || "Supervisor de Campo",
-      firstName: currentUser?.name?.split(" ")[0] || "Supervisor",
-      role: currentUser?.role || "supervisor",
+      name: supervisorUser?.name || "Ing. Roberto Almanza",
+      firstName: supervisorUser?.name?.split(" ")[0] || "Roberto",
+      role: "supervisor",
       lat: sellerLat,
       lng: sellerLng,
       status: "Supervisión en Campo",
@@ -270,7 +294,7 @@ export default function SellerRouteMapModal({
       primaryColor: SUPERVISOR_THEME.primary,
       hasPhoneGps: isUsingRealPhoneGps
     };
-  }, [isSupervisor, currentUser, sellerLat, sellerLng, isUsingRealPhoneGps, phoneGpsLocation]);
+  }, [isSupervisor, currentUser, assignedVendors, sellerLat, sellerLng, isUsingRealPhoneGps, phoneGpsLocation]);
 
   // Selected store for detail HUD card & road trajectory routing
   const externalTargetId = initialStoreId || activeTargetStoreId;
@@ -1376,6 +1400,39 @@ export default function SellerRouteMapModal({
                   title="Ver la ruta de demostración de Cancún"
                 >
                   <span>🏝️ Cancún</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Map Vehicle Mode Switcher: [ 🚚 Modo Camión ] [ 🚗 Carrito Supervisor (GPS) ] */}
+            <div className="self-center pointer-events-auto">
+              <div className="flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsSupervisorOverride(false)}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                    !isSupervisor
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Ver mapa en vista de Camión Repartidor"
+                >
+                  <DeliveryVanIcon className="w-3.5 h-3" />
+                  <span>🚚 Modo Camión</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSupervisorOverride(true)}
+                  className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                    isSupervisor
+                      ? "bg-slate-950 text-amber-300 border border-amber-400/80 shadow-xs ring-1 ring-amber-400/50"
+                      : "text-slate-700 hover:text-slate-950"
+                  }`}
+                  title="Ver mapa como Carrito de Supervisión con tu GPS en vivo"
+                >
+                  <SupervisorCarIcon className="w-3.5 h-3" beaconColor="#f59e0b" />
+                  <span>🚗 Carrito Supervisor (GPS)</span>
                 </button>
               </div>
             </div>
