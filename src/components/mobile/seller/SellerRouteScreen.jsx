@@ -15,7 +15,8 @@ import {
   Compass,
   ExternalLink,
   ShieldCheck,
-  Truck
+  Truck,
+  Layers
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
@@ -250,15 +251,34 @@ export default function SellerRouteScreen({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
-                className="tap-effect px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer transition active:scale-95"
-                title="Abrir mapa con tu vehículo de supervisión y todos los camiones"
-              >
-                <Compass className="w-4 h-4 stroke-[2.5]" />
-                <span>Ver Mapa</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRouteFilter("all");
+                    onSelectRouteFilter?.("all");
+                  }}
+                  className={`tap-effect px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 border transition cursor-pointer active:scale-95 ${
+                    routeFilter === "all"
+                      ? "bg-amber-400 text-slate-950 border-amber-400 font-black shadow-sm"
+                      : "bg-slate-900/90 text-amber-300 border-amber-400/50 hover:bg-slate-800"
+                  }`}
+                  title="Mostrar todas las rutas asignadas"
+                >
+                  <Layers className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>Todas las Rutas</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+                  className="tap-effect px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shrink-0 shadow-md cursor-pointer transition active:scale-95"
+                  title="Abrir mapa con tu vehículo de supervisión y todos los camiones"
+                >
+                  <Compass className="w-4 h-4 stroke-[2.5]" />
+                  <span>Ver Mapa</span>
+                </button>
+              </div>
             </div>
 
             {/* Flota Supervisada de 5 Camiones en Tiempo Real */}
@@ -432,84 +452,70 @@ export default function SellerRouteScreen({
         </div>
       </div>
 
-      {/* 3.8. BOTÓN DESTACADO: TIENDAS EN RUTA Y FLOTA EN VIVO */}
-      <div className="px-4 mb-4">
-        <button
-          type="button"
-          onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
-          className="tap-effect w-full p-4 rounded-[24px] bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-800 text-white shadow-[0_8px_25px_rgba(5,150,105,0.25)] border-2 border-emerald-300 hover:brightness-105 active:scale-[0.99] transition cursor-pointer flex items-center justify-between gap-3 text-left relative overflow-hidden group"
-        >
-          {/* Subtle background glow */}
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
+      {/* 3.8. BOTÓN DESTACADO: TIENDAS EN RUTA Y FLOTA EN VIVO (Omitido para supervisor ya que tiene su tarjeta destacada arriba) */}
+      {!isSupervisor && (
+        <div className="px-4 mb-4">
+          <button
+            type="button"
+            onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+            className="tap-effect w-full p-4 rounded-[24px] bg-gradient-to-r from-emerald-600 via-[#059669] to-teal-800 text-white shadow-[0_8px_25px_rgba(5,150,105,0.25)] border-2 border-emerald-300 hover:brightness-105 active:scale-[0.99] transition cursor-pointer flex items-center justify-between gap-3 text-left relative overflow-hidden group"
+          >
+            {/* Subtle background glow */}
+            <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
 
-          <div className="flex items-center gap-3.5 min-w-0 relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg group-hover:scale-105 transition-transform">
-              {isSupervisor ? (
-                <SupervisorCarIcon className="w-9 h-8" beaconColor="#f59e0b" />
-              ) : (
+            <div className="flex items-center gap-3.5 min-w-0 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg group-hover:scale-105 transition-transform">
                 <DeliveryVanIcon className="w-9 h-8 text-white" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-wider mb-0.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping" />
-                <span>{isSupervisor ? "🚗 SUPERVISIÓN DE CAMPO • GPS EN VIVO" : "📍 TIENDAS EN RUTA • GPS EN VIVO"}</span>
               </div>
-              <h3 className="font-black text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
-                <span>{isSupervisor ? "Ver Flota de Camiones y Mi Auto GPS" : "Ver Tiendas y Camiones en Ruta"}</span>
-              </h3>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {isSupervisor && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-950 text-amber-300 border border-amber-400/60 shadow-xs">
-                    🚗 Auto Supervisor (GPS)
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-200 uppercase tracking-wider mb-0.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping" />
+                  <span>📍 TIENDAS EN RUTA • GPS EN VIVO</span>
+                </div>
+                <h3 className="font-black text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
+                  <span>Ver Tiendas y Camiones en Ruta</span>
+                </h3>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-400/50">
+                    🚚 {effectiveVendors.length} Camiones
                   </span>
-                )}
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-400/50">
-                  🚚 {effectiveVendors.length} Camiones
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
-                  ✓ {counts.completed} Atendidas
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 border border-amber-300/40">
-                  ● {counts.in_progress} En Proceso
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-slate-200">
-                  ⏳ {counts.pending} Faltan
-                </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-xs">
+                    ✓ {counts.completed} Atendidas
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-200 border border-amber-300/40">
+                    ● {counts.in_progress} En Proceso
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 text-slate-200">
+                    ⏳ {counts.pending} Faltan
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="w-11 h-11 rounded-2xl bg-white text-emerald-800 flex items-center justify-center shrink-0 shadow-lg group-hover:translate-x-1 group-hover:bg-emerald-50 transition-all relative z-10">
-            <Compass className="w-6 h-6 stroke-[2.5]" />
-          </div>
-        </button>
-      </div>
+            <div className="w-11 h-11 rounded-2xl bg-white text-emerald-800 flex items-center justify-center shrink-0 shadow-lg group-hover:translate-x-1 group-hover:bg-emerald-50 transition-all relative z-10">
+              <Compass className="w-6 h-6 stroke-[2.5]" />
+            </div>
+          </button>
+        </div>
+      )}
 
-      {/* 4. Section Header with Separation & Highlighted In-App Map Trigger */}
+      {/* 4. Section Header with Separation (Botón de mapa redundante eliminado para supervisor) */}
       <div className="px-4 mb-3 flex items-center justify-between gap-2">
         <SectionHeader 
           title="Tiendas en tu Ruta"
           subtitle={`${filteredStores.length} paradas asignadas para hoy`}
         />
-        <button
-          type="button"
-          onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
-          className="tap-effect h-9 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer shrink-0 border border-emerald-300/80 ring-2 ring-emerald-500/20"
-          title="Ver mapa completo con todos los camiones y tiendas"
-        >
-          {isSupervisor ? (
-            <>
-              <SupervisorCarIcon className="w-4 h-3.5" beaconColor="#f59e0b" />
-              <span>Ver Mapa ({effectiveVendors.length} Camiones + Mi Auto)</span>
-            </>
-          ) : (
-            <>
-              <Compass className="w-4 h-4 stroke-[2.5] animate-pulse" />
-              <span>Ver Mapa ({effectiveVendors.length} Camiones)</span>
-            </>
-          )}
-        </button>
+        {!isSupervisor && (
+          <button
+            type="button"
+            onClick={() => onOpenMap?.(currentTargetStore?.id || null)}
+            className="tap-effect h-9 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer shrink-0 border border-emerald-300/80 ring-2 ring-emerald-500/20"
+            title="Ver mapa completo con todos los camiones y tiendas"
+          >
+            <Compass className="w-4 h-4 stroke-[2.5] animate-pulse" />
+            <span>Ver Mapa ({effectiveVendors.length} Camiones)</span>
+          </button>
+        )}
       </div>
 
       {/* 4.1 Spotlight Banner: Siguiente Punto a Atender en Ruta */}

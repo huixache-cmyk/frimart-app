@@ -992,12 +992,12 @@ export default function SellerRouteMapModal({
             ${supSvg}
           </div>
 
-          <!-- Supervisor Badge with 100% transparent background and crisp legible text shadow -->
-          <div class="mt-0.5 px-1 py-0.2 whitespace-nowrap flex items-center gap-1 text-[8.5px] font-black"
-               style="background: transparent; border: none; box-shadow: none; text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 3px #000, 0 0 2px #000;">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" style="box-shadow: 0 0 3px #000;"></span>
-            <span style="color: #ffffff; font-weight: 800;">🚗 Sup. ${supervisorCar.firstName}</span>
-            <span style="color: #fbbf24; font-weight: 900;">• GPS</span>
+          <!-- Supervisor Badge: Fondo negro, mismo formato que los camiones, sin emoji de carrito rojo -->
+          <div class="mt-0.5 px-1.5 py-0.5 rounded-full text-white text-[8px] font-black border shadow-md whitespace-nowrap flex items-center gap-1 transition-all duration-200" 
+               style="background: #000000; border-color: rgba(255,255,255,0.9); box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+            <span>Sup. ${supervisorCar.firstName}</span>
+            <span class="opacity-90 font-semibold text-amber-300">• GPS</span>
           </div>
         </div>
       `;
