@@ -813,8 +813,8 @@ export default function App() {
 
         {/* Operational Slide-up Modal: 2,000 Stickers Batch Generator */}
         {activeOperationalModal === "batch" && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end animate-fade-in">
-            <div className="w-full max-w-md mx-auto p-4 bg-white rounded-t-[28px] shadow-2xl space-y-3 animate-sheet-up max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-slate-900/35 backdrop-blur-xs flex flex-col justify-end sm:justify-center p-0 sm:p-4 animate-fade-in">
+            <div className="w-full max-w-md sm:max-w-4xl mx-auto p-4 sm:p-6 bg-white rounded-t-[28px] sm:rounded-[28px] shadow-2xl space-y-3 animate-sheet-up max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-[#eeeeee] pb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[#ecfdf5] text-[#059669] flex items-center justify-center">
@@ -822,12 +822,13 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="font-section-title text-[#0f172a]">Lote de 2,000 Stickers QR</h3>
-                    <p className="text-[11px] text-slate-500">Etiquetas metálicas para congeladores</p>
+                    <p className="text-[11px] text-slate-500">Etiquetas oficiales para congeladores</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setActiveOperationalModal(null)} 
-                  className="w-8 h-8 rounded-full bg-[#f8fafc] flex items-center justify-center text-slate-500 cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#f8fafc] hover:bg-slate-100 flex items-center justify-center text-slate-500 cursor-pointer"
+                  title="Cerrar ventana"
                 >
                   <X className="w-4 h-4" />
                 </button>
