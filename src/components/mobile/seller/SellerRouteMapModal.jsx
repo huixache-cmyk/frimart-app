@@ -26,7 +26,8 @@ import {
   Radio
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
-import DeliveryVanIcon, { DELIVERY_VAN_SVG_HTML } from "../../icons/DeliveryVanIcon";
+import DeliveryVanIcon, { DELIVERY_VAN_SVG_HTML, getDeliveryVanSvgHtml } from "../../icons/DeliveryVanIcon";
+import { getRouteTheme, getStoreRouteId, ROUTE_PALETTE } from "../../../utils/routeColorUtils";
 
 // Calculate bearing angle between two coordinates in degrees (0 - 360)
 function calculateBearing(lat1, lng1, lat2, lng2) {
@@ -172,8 +173,6 @@ export default function SellerRouteMapModal({
       ? assignedVendors
       : defaultAgsVendors;
 
-    const truckColors = ["#059669", "#0284c7", "#7c3aed", "#d97706", "#db2777", "#0d9488"];
-
     return vendors.map((vendor, index) => {
       const isCurrentDevice = (currentUser?.id === vendor.id) || (currentUser?.role === "vendedor" && index === 0);
       const hasPhoneGps = isCurrentDevice && isUsingRealPhoneGps && phoneGpsLocation;
@@ -182,6 +181,8 @@ export default function SellerRouteMapModal({
       const inProgressStore = vendorStores.find((s) => s.status === "in_progress");
       const completedStores = vendorStores.filter((s) => s.status === "completed");
       const pendingStores = vendorStores.filter((s) => s.status === "pending");
+
+      const routeTheme = getRouteTheme(vendor.routeId, index);
 
       let lat, lng, truckStatus, currentActivity;
 
@@ -235,7 +236,9 @@ export default function SellerRouteMapModal({
         isCurrentDevice,
         truckStatus,
         currentActivity,
-        color: truckColors[index % truckColors.length],
+        color: routeTheme.primary,
+        cargoColor: routeTheme.cargo,
+        routeTheme,
         totalStores: vendorStores.length,
         completedCount: completedStores.length,
         pendingCount: pendingStores.length,
@@ -744,7 +747,7 @@ export default function SellerRouteMapModal({
     markersGroupRef.current.clearLayers();
     routeLineRef.current.clearLayers();
 
-    // 1. RENDER VISUALLY DISTINCT STORES (Atendidas, En Proceso, Faltan)
+    // 1. RENDER COMPACT STORES COLOR-CODED STRICTLY BY ROUTE
     storesWithDistance.forEach(store => {
       const isCompleted = store.status === "completed";
       const isInProgress = store.status === "in_progress";
@@ -760,97 +763,76 @@ export default function SellerRouteMapModal({
       const isFleetMode = mapStoreStatusFilter === "fleet";
       const storeOpacity = isFilteredOut ? 0.12 : (isFleetMode ? 0.35 : 1.0);
 
-      const radius = store.geofenceRadius || 120;
-      const radarColor = isCompleted 
-        ? "#10b981" 
-        : isInProgress 
-        ? "#f59e0b" 
-        : isTarget 
-        ? "#059669" 
-        : "#64748b";
+      // Route color matching: exact same color as this route's truck
+      const storeRouteId = getStoreRouteId(store, assignedVendors);
+      const routeTheme = getRouteTheme(storeRouteId);
+      const routeColor = routeTheme.primary;
 
-      // Render radar circle only when relevant
+      const radius = store.geofenceRadius || 100;
+
+      // Render radar circle in the exact route color
       if (!isFilteredOut || isTarget) {
         const radarCircle = L.circle([store.lat, store.lng], {
           radius: radius,
-          color: radarColor,
-          weight: isTarget ? 2 : 1.2,
-          opacity: isTarget ? 0.9 : (isInProgress ? 0.8 : 0.4),
-          dashArray: isInProgress ? "" : "4, 6",
-          fillColor: radarColor,
-          fillOpacity: isTarget ? 0.16 : (isInProgress ? 0.18 : 0.05)
+          color: routeColor,
+          weight: isTarget ? 2.5 : (isInProgress ? 2 : 1.2),
+          opacity: isTarget ? 0.9 : (isInProgress ? 0.85 : 0.4),
+          dashArray: isInProgress ? "" : (isCompleted ? "" : "3, 5"),
+          fillColor: routeColor,
+          fillOpacity: isTarget ? 0.22 : (isInProgress ? 0.22 : (isCompleted ? 0.08 : 0.05))
         });
         radarsGroupRef.current.addLayer(radarCircle);
       }
 
-      // High-Contrast Status Pill Tag
-      const statusBadgeHtml = isCompleted
-        ? `<span class="px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-emerald-500 text-white tracking-wider shadow-2xs">✓ ATENDIDA</span>`
-        : isInProgress
-        ? `<span class="px-1.5 py-0.2 rounded text-[8px] font-black uppercase bg-amber-400 text-slate-950 tracking-wider shadow-2xs flex items-center gap-0.5"><span class="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping inline-block"></span>EN PROCESO</span>`
-        : `<span class="px-1.5 py-0.2 rounded text-[8px] font-bold uppercase bg-slate-100 text-slate-600 tracking-wider border border-slate-200">⏳ PENDIENTE</span>`;
-
-      // Store Marker Pin HTML
+      // Compact Store Pin HTML: Scaled down (24px head), route-colored, status icon inside
       const storeIconHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer group transition-all duration-300" style="transform: translate(-50%, -100%); opacity: ${storeOpacity};">
+        <div class="relative flex flex-col items-center cursor-pointer group select-none transition-all duration-200" 
+             style="transform: translate(-50%, -100%); opacity: ${storeOpacity};">
+          
           ${isInProgress ? `
-            <!-- Double Ripple Radar Animation for Store In Progress -->
-            <div class="absolute top-4 w-16 h-16 rounded-full pointer-events-none -translate-y-1/2" 
-                 style="background: radial-gradient(circle, #f59e0b66 0%, transparent 70%); animation: frimart-radar-pulse 1.4s infinite ease-out;">
+            <!-- Pulse ring for store in progress -->
+            <div class="absolute top-3 w-12 h-12 rounded-full pointer-events-none -translate-y-1/2" 
+                 style="background: radial-gradient(circle, ${routeColor}66 0%, transparent 70%); animation: frimart-radar-pulse 1.4s infinite ease-out;">
             </div>
-            <div class="absolute top-4 w-10 h-10 rounded-full pointer-events-none -translate-y-1/2 bg-amber-400/25 animate-ping"></div>
+            <div class="absolute top-3 w-8 h-8 rounded-full pointer-events-none -translate-y-1/2 animate-ping" style="background-color: ${routeColor}33;"></div>
           ` : isTarget ? `
-            <div class="absolute top-4 w-12 h-12 rounded-full pointer-events-none -translate-y-1/2" 
-                 style="background: radial-gradient(circle, #05966944 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;">
+            <!-- Target spotlight ring -->
+            <div class="absolute top-3 w-10 h-10 rounded-full pointer-events-none -translate-y-1/2" 
+                 style="background: radial-gradient(circle, ${routeColor}55 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;">
             </div>
           ` : ''}
 
-          <!-- Store Marker Pin Card -->
-          <div class="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl shadow-lg border-2 transition-transform duration-200 hover:scale-110 ${
-            isTarget 
-              ? "bg-slate-950 text-white border-emerald-400 ring-4 ring-emerald-400/40 scale-105" 
-              : isCompleted
-              ? "bg-white text-emerald-950 border-emerald-400 ring-2 ring-emerald-100 shadow-emerald-500/10"
-              : isInProgress
-              ? "bg-amber-950 text-white border-amber-400 ring-4 ring-amber-400/30 scale-105 shadow-amber-500/20"
-              : "bg-white text-slate-800 border-slate-300 shadow-slate-400/10"
-          }">
-            <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+          <!-- Compact Pin Head (24px badge colored by route) -->
+          <div class="relative flex items-center justify-center rounded-full shadow-md border-2 transition-transform duration-150 group-hover:scale-120 ${
+            isTarget ? 'scale-115 ring-3 ring-amber-400' : ''
+          }" style="width: 24px; height: 24px; background: ${
+            isCompleted 
+              ? routeColor 
+              : isInProgress 
+              ? routeColor 
+              : 'white'
+          }; border-color: ${isPending ? routeColor : 'white'};">
+            ${
               isCompleted 
-                ? "bg-emerald-500 text-white shadow-xs" 
-                : isInProgress 
-                ? "bg-amber-400 text-slate-950 font-black shadow-xs" 
+                ? `<span style="color: white; font-size: 11px; font-weight: 900; line-height: 1;">✓</span>`
+                : isInProgress
+                ? `<span class="animate-pulse" style="color: #fef08a; font-size: 10px; font-weight: 900; line-height: 1;">●</span>`
                 : isTarget
-                ? "bg-emerald-400 text-slate-950 font-black"
-                : "bg-slate-100 text-slate-600"
-            }">
-              <span style="font-size: ${isCompleted ? '11px' : '10px'}; font-weight: 900;">${
-                isCompleted ? "✓" : isInProgress ? "●" : isTarget ? "🎯" : "🏪"
-              }</span>
-            </div>
-
-            <div class="flex flex-col leading-tight pr-0.5">
-              <div class="flex items-center gap-1.5">
-                <span style="font-size: 11px; font-weight: 800; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; ${isInProgress || isTarget ? 'color: white;' : ''}">
-                  ${store.name.split("-")[0]?.trim()}
-                </span>
-              </div>
-              <div class="mt-0.5">
-                ${statusBadgeHtml}
-              </div>
-            </div>
+                ? `<span style="font-size: 11px; line-height: 1;">🎯</span>`
+                : `<span style="color: ${routeColor}; font-size: 10px; line-height: 1; font-weight: 800;">🏪</span>`
+            }
           </div>
 
-          <!-- Bottom Pin Pointer Triangle -->
-          <div class="w-2.5 h-2.5 rotate-45 -mt-1.5 border-r-2 border-b-2 ${
-            isTarget 
-              ? "bg-slate-950 border-emerald-400" 
-              : isInProgress
-              ? "bg-amber-950 border-amber-400"
-              : isCompleted
-              ? "bg-white border-emerald-400"
-              : "bg-white border-slate-300"
-          }"></div>
+          <!-- Mini Pointer Arrow (colored by route) -->
+          <div style="width: 6px; height: 6px; transform: rotate(45deg); margin-top: -3px; background: ${
+            isCompleted || isInProgress ? routeColor : 'white'
+          }; border-right: 2px solid ${routeColor}; border-bottom: 2px solid ${routeColor};"></div>
+
+          <!-- Ultra-compact Store Micro-Label -->
+          <div class="mt-0.5 px-1 py-0.2 rounded text-[7.5px] font-black tracking-tight whitespace-nowrap truncate max-w-[65px] text-center shadow-2xs border"
+               style="background: rgba(255, 255, 255, 0.95); color: #0f172a; border-color: ${routeColor};">
+            ${store.name.split("-")[0]?.trim()}
+          </div>
         </div>
       `;
 
@@ -870,7 +852,7 @@ export default function SellerRouteMapModal({
       markersGroupRef.current.addLayer(storeMarker);
     });
 
-    // 2. ALL ASSIGNED VENDOR DELIVERY TRUCKS (ACTIVE FLEET ON ROUTE)
+    // 2. ALL ASSIGNED VENDOR DELIVERY TRUCKS (SCALED DOWN & COLOR-CODED BY ROUTE)
     activeFleet.forEach((truck) => {
       const isCurrent = truck.isCurrentDevice;
       const truckLat = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
@@ -879,37 +861,36 @@ export default function SellerRouteMapModal({
       const truckLng = (isCurrent && isUsingRealPhoneGps && phoneGpsLocation)
         ? currentCarCoord[1]
         : truck.lng;
-      const truckColor = truck.color || "#059669";
+      
+      const routeTheme = truck.routeTheme || getRouteTheme(truck.routeId);
+      const truckColor = routeTheme.primary;
+      const cargoColor = routeTheme.cargo;
       const isFocused = focusedTruckId === truck.id;
 
+      // Vector Delivery Van SVG dynamically scaled to 36x26 with custom route cargo color
+      const truckSvg = getDeliveryVanSvgHtml(cargoColor, 36, 26);
+
       const truckIconHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer select-none group" style="transform: translate(-50%, -50%); z-index: ${isCurrent || isFocused ? 1200 : 900};">
-          <!-- Multi-stage GPS Pulse Halos -->
-          <div class="absolute w-20 h-20 rounded-full pointer-events-none" style="background: radial-gradient(circle, ${truckColor}44 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
-          <div class="absolute w-12 h-12 rounded-full pointer-events-none" style="background: ${truckColor}33;"></div>
-
-          <!-- Custom Delivery Van Badge -->
-          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115 ${isFocused ? 'scale-115 ring-4 ring-amber-400 rounded-2xl shadow-2xl' : ''}" style="width: 72px; height: 54px; filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 4px 8px rgba(0,0,0,0.4));">
-            ${DELIVERY_VAN_SVG_HTML}
+        <div class="relative flex flex-col items-center cursor-pointer select-none group transition-transform duration-200" 
+             style="transform: translate(-50%, -50%); z-index: ${isCurrent || isFocused ? 1200 : 900};">
+          
+          <!-- Delicate GPS pulse halo -->
+          <div class="absolute w-10 h-10 rounded-full pointer-events-none" 
+               style="background: radial-gradient(circle, ${truckColor}55 0%, transparent 70%); animation: frimart-radar-pulse 2s infinite ease-out;"></div>
+          
+          <!-- Compact Delivery Van Vector Icon (36x26) -->
+          <div class="relative flex items-center justify-center transition-transform duration-200 group-hover:scale-115 ${
+            isFocused ? 'scale-115 ring-2 ring-amber-400 rounded-lg p-0.5 bg-white/90 shadow-lg' : ''
+          }" style="width: 36px; height: 26px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));">
+            ${truckSvg}
           </div>
 
-          <!-- Real-Time Floating Driver & Route Badge -->
-          <div class="mt-1 px-2.5 py-0.5 rounded-full text-white text-[9.5px] font-black border shadow-lg whitespace-nowrap flex items-center gap-1.5 transition-all duration-200 ${
-            isCurrent
-              ? "bg-slate-950 text-white border-emerald-400 ring-2 ring-emerald-400/50"
-              : isFocused
-              ? "bg-slate-950 text-white border-amber-400 ring-2 ring-amber-400/60"
-              : "bg-slate-900/95 text-slate-100 border-slate-600"
-          }">
-            <span class="w-2 h-2 rounded-full animate-ping" style="background-color: ${truckColor};"></span>
-            <span class="truncate max-w-[140px]">
-              ${isCurrent ? `🚚 Tú (${truck.firstName})` : `🚚 ${truck.firstName}`} • ${truck.routeId}
-            </span>
-          </div>
-
-          <!-- Status Sub-pill -->
-          <div class="mt-0.5 px-2 py-0.5 rounded-md text-[8.5px] font-bold text-slate-200 bg-slate-950/90 border border-slate-700/80 shadow-xs whitespace-nowrap">
-            ${truck.truckStatus}
+          <!-- Compact Single-Line Route & Driver Badge (Colored by Route) -->
+          <div class="mt-0.5 px-1.5 py-0.5 rounded-full text-white text-[8px] font-black border shadow-md whitespace-nowrap flex items-center gap-1 transition-all duration-200" 
+               style="background: ${truckColor}; border-color: rgba(255,255,255,0.9); box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+            <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            <span>${truck.routeId?.replace("RUTA-", "R-") || "R-01"}</span>
+            <span class="opacity-90 font-semibold">• ${truck.firstName || truck.name.split(" ")[0]}</span>
           </div>
         </div>
       `;
@@ -925,7 +906,7 @@ export default function SellerRouteMapModal({
 
       truckMarker.on("click", () => {
         setFocusedTruckId(truck.id);
-        map.flyTo([truckLat, truckLng], 16, { duration: 0.6 });
+        map.flyTo([truckLat, truckLng], 15, { duration: 0.5 });
       });
 
       markersGroupRef.current.addLayer(truckMarker);
@@ -949,6 +930,11 @@ export default function SellerRouteMapModal({
 
     // 3. REAL STREET ROUTE TO TARGET STORE
     if (activeStore) {
+      const targetStoreRouteId = getStoreRouteId(activeStore, assignedVendors);
+      const targetRouteTheme = getRouteTheme(targetStoreRouteId);
+      const targetRouteColor = targetRouteTheme.primary;
+      const targetGlowColor = targetRouteTheme.cargo;
+
       const coords = (roadRoute?.coordinates && roadRoute.coordinates.length > 1)
         ? roadRoute.coordinates
         : [[sellerLat, sellerLng], [activeStore.lat, activeStore.lng]];
@@ -970,11 +956,11 @@ export default function SellerRouteMapModal({
           coveredLineRef.current = coveredLine;
         }
 
-        // Remaining Path to Destination (Vibrant pulsing emerald)
+        // Remaining Path to Destination (Vibrant pulsing in route theme)
         const remainingPoints = coords.slice(currentIndex);
         if (remainingPoints.length > 1) {
           const remainingGlow = L.polyline(remainingPoints, {
-            color: "#10b981",
+            color: targetGlowColor,
             weight: 8,
             opacity: 0.4,
             lineCap: "round",
@@ -984,7 +970,7 @@ export default function SellerRouteMapModal({
           remainingGlowRef.current = remainingGlow;
 
           const remainingLine = L.polyline(remainingPoints, {
-            color: "#059669",
+            color: targetRouteColor,
             weight: 5,
             opacity: 0.95,
             dashArray: "8, 10",
@@ -997,7 +983,7 @@ export default function SellerRouteMapModal({
       } else {
         // Full route before starting trip
         const glowLine = L.polyline(coords, {
-          color: "#10b981",
+          color: targetGlowColor,
           weight: 8,
           opacity: 0.35,
           lineCap: "round",
@@ -1006,7 +992,7 @@ export default function SellerRouteMapModal({
         routeLineRef.current.addLayer(glowLine);
 
         const mainRouteLine = L.polyline(coords, {
-          color: "#059669",
+          color: targetRouteColor,
           weight: 4.5,
           opacity: 0.95,
           dashArray: "8, 10",
@@ -1473,21 +1459,36 @@ export default function SellerRouteMapModal({
         <div className="relative z-30 px-3 pb-3 -mt-6">
           {/* Focused Truck Spotlight Card */}
           {focusedTruck && !isNavigating && (
-            <div className="p-3.5 rounded-[22px] bg-slate-950 text-white border-2 border-teal-400 shadow-2xl flex items-center justify-between gap-3 animate-slide-up mb-2">
+            <div 
+              className="p-3.5 rounded-[22px] bg-slate-950 text-white border-2 shadow-2xl flex items-center justify-between gap-3 animate-slide-up mb-2"
+              style={{ borderColor: focusedTruck.color || "#059669" }}
+            >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-2xl bg-teal-900 border border-teal-400/50 p-1 flex items-center justify-center shrink-0 shadow-md">
-                  <DeliveryVanIcon className="w-8 h-7" />
+                <div 
+                  className="w-11 h-11 rounded-2xl p-1 flex items-center justify-center shrink-0 shadow-md"
+                  style={{ 
+                    backgroundColor: `${focusedTruck.color || "#059669"}25`, 
+                    border: `1.5px solid ${focusedTruck.color || "#059669"}` 
+                  }}
+                >
+                  <DeliveryVanIcon 
+                    cargoColor={focusedTruck.cargoColor || focusedTruck.color || "#10b981"} 
+                    className="w-8 h-7" 
+                  />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold text-sm text-white truncate">
                       {focusedTruck.name}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-900 text-teal-300 font-mono font-bold border border-teal-700/60">
+                    <span 
+                      className="text-[10px] px-2 py-0.5 rounded-full text-white font-mono font-bold border border-white/20"
+                      style={{ backgroundColor: focusedTruck.color || "#059669" }}
+                    >
                       {focusedTruck.routeId}
                     </span>
                   </div>
-                  <p className="text-xs text-teal-200/90 truncate mt-0.5">
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
                     {focusedTruck.currentActivity}
                   </p>
                   <div className="flex items-center gap-2 text-[10.5px] text-slate-300 mt-1">
@@ -1508,7 +1509,8 @@ export default function SellerRouteMapModal({
                       mapInstanceRef.current.flyTo([focusedTruck.lat, focusedTruck.lng], 16, { duration: 0.6 });
                     }
                   }}
-                  className="tap-effect h-8 px-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                  className="tap-effect h-8 px-2.5 rounded-xl text-white text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-xs hover:brightness-110"
+                  style={{ backgroundColor: focusedTruck.color || "#059669" }}
                   title="Centrar en este camión"
                 >
                   <LocateFixed className="w-3.5 h-3.5" />

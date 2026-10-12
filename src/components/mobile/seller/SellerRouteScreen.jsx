@@ -19,6 +19,7 @@ import {
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
 import DeliveryVanIcon from "../../icons/DeliveryVanIcon";
+import { getRouteTheme, getStoreRouteId } from "../../../utils/routeColorUtils";
 
 export default function SellerRouteScreen({
   seller,
@@ -424,23 +425,34 @@ export default function SellerRouteScreen({
       {/* 4.5. Selector Dinámico de Rutas de Campo */}
       <div className="px-4 mb-2">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-          {dynamicRoutes.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => {
-                setRouteFilter(r.id);
-                onSelectRouteFilter?.(r.id);
-              }}
-              className={`tap-effect px-3 py-1.5 rounded-full font-bold whitespace-nowrap border text-xs transition cursor-pointer shadow-2xs ${
-                routeFilter === r.id
-                  ? "bg-sky-900 text-white border-sky-900 ring-2 ring-sky-900/20"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {r.label} ({r.count})
-            </button>
-          ))}
+          {dynamicRoutes.map((r) => {
+            const isAll = r.id === "all";
+            const theme = isAll ? null : getRouteTheme(r.id);
+            const isSelected = routeFilter === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => {
+                  setRouteFilter(r.id);
+                  onSelectRouteFilter?.(r.id);
+                }}
+                className={`tap-effect px-3 py-1.5 rounded-full font-bold whitespace-nowrap border text-xs transition cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/20"
+                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {!isAll && theme && (
+                  <span 
+                    className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs" 
+                    style={{ backgroundColor: theme.primary }} 
+                  />
+                )}
+                <span>{r.label} ({r.count})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -496,12 +508,27 @@ export default function SellerRouteScreen({
                     </h3>
                   </div>
 
-                  {/* Route & Vendor badge */}
-                  {(store.routeName || store.vendorName) && (
+                  {/* Route & Vendor badge with synchronized Route color */}
+                  {(store.routeName || store.vendorName || store.routeId) && (
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 border border-sky-200">
-                        {store.routeName || "Ruta Ags"} • {store.vendorName || "Vendedor Asignado"}
-                      </span>
+                      {(() => {
+                        const storeRouteId = getStoreRouteId(store, assignedVendors);
+                        const theme = getRouteTheme(storeRouteId);
+                        return (
+                          <span 
+                            className="text-[10px] font-black px-2 py-0.5 rounded-md border flex items-center gap-1.5 shadow-2xs"
+                            style={{ 
+                              backgroundColor: theme.light, 
+                              color: theme.dark, 
+                              borderColor: `${theme.primary}55` 
+                            }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.primary }} />
+                            <span>{store.routeName || theme.label}</span>
+                            {store.vendorName && <span className="opacity-80">• {store.vendorName}</span>}
+                          </span>
+                        );
+                      })()}
                     </div>
                   )}
 
