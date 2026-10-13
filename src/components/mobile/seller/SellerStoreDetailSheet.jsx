@@ -24,6 +24,7 @@ export default function SellerStoreDetailSheet({
   freezers = [],
   sellerLocation,
   onStartAudit,
+  onStartVisit,
   onOpenQuickSale,
   onOpenMap,
   onEnrollFreezer
@@ -152,35 +153,29 @@ export default function SellerStoreDetailSheet({
         {/* Action Buttons - Compact & Elegant (No heavy black) */}
         <div className="space-y-2 pt-1">
           {storeFreezer && (
-            <button
-              onClick={() => {
-                onClose();
-                onStartAudit(storeFreezer.id);
-              }}
-              className="tap-effect w-full py-2.5 rounded-xl bg-[#059669] text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-[#047857] transition cursor-pointer shadow-2xs"
-            >
-              <Snowflake className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>
-                {store.status === "completed"
-                  ? `Revisar Planograma (${storeFreezer.qrCode})`
-                  : store.status === "in_progress"
-                  ? `Continuar Auditoría (${storeFreezer.qrCode})`
-                  : `Auditar Planograma (${storeFreezer.qrCode})`
-                }
-              </span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  onClose();
+                  (onStartVisit || onStartAudit)(storeFreezer.id);
+                }}
+                className="tap-effect w-full py-3 rounded-xl bg-[#059669] text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#047857] transition cursor-pointer shadow-sm"
+              >
+                <Snowflake className="w-4 h-4 stroke-[2.2]" />
+                <span>{store.status === "completed" ? "Repetir visita guiada" : "Iniciar visita guiada"}</span>
+              </button>
+              <button
+                onClick={() => {
+                  onClose();
+                  onStartAudit(storeFreezer.id);
+                }}
+                className="tap-effect w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Ver planograma ({storeFreezer.qrCode})</span>
+              </button>
+            </>
           )}
-
-          <button
-            onClick={() => {
-              onClose();
-              onOpenQuickSale(store);
-            }}
-            className="tap-effect w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center justify-center gap-2 hover:bg-slate-200 transition cursor-pointer"
-          >
-            <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Registrar Venta / Pedido</span>
-          </button>
         </div>
       </div>
     </div>

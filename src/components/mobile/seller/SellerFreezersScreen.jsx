@@ -29,7 +29,8 @@ export default function SellerFreezersScreen({
   onSelectFreezerId,
   onUpdateSlot,
   onSaveAudit,
-  onPlanogramChange
+  onPlanogramChange,
+  onStartVisit
 }) {
   const currentFreezer = freezers.find((f) => f.id === selectedFreezerId) || freezers[0];
   const currentStore = stores.find((s) => s.id === currentFreezer?.storeId) || {
@@ -146,6 +147,24 @@ export default function SellerFreezersScreen({
 
   return (
     <div className="space-y-3 pb-32 animate-fade-in pt-1">
+
+      {/* Acción principal: flujo de trabajo en el punto de venta */}
+      {onStartVisit && (
+        <div className="px-4">
+          <button
+            type="button"
+            onClick={() => onStartVisit(currentFreezer.id)}
+            className="tap-effect w-full p-4 rounded-[22px] bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-600/25 flex items-center justify-between gap-3 cursor-pointer"
+          >
+            <div className="text-left min-w-0">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-100">{currentStore?.name}</span>
+              <span className="block font-['Outfit'] text-lg font-black leading-tight">Iniciar visita guiada</span>
+              <span className="block text-[11px] text-emerald-50">Contar → Resurtir → Revisar equipo → Foto</span>
+            </div>
+            <Snowflake className="w-8 h-8 shrink-0 opacity-90" />
+          </button>
+        </div>
+      )}
 
       {/* 2. Mode Selector: Planograma Visual vs Lista de Resurtido */}
       <div className="px-4">

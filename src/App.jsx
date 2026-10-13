@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MobileDeviceFrame from "./components/mobile/MobileDeviceFrame";
 import SellerMobileHeader from "./components/mobile/seller/SellerMobileHeader";
 import SellerBottomNavigation from "./components/mobile/seller/SellerBottomNavigation";
@@ -9,6 +9,7 @@ import {
   createDefaultImberaPlanogram
 } from "./data/planogramModels";
 import { canSeeTabForRole, canDo, HOME_TAB } from "./data/permissions";
+import GuidedVisitFlow from "./components/mobile/seller/GuidedVisitFlow";
 
 // Authentication & Roles
 import AuthLockScreen from "./components/auth/AuthLockScreen";
@@ -109,7 +110,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.cedis?.includes("CancÃºn")) {
+        if (parsed.cedis?.includes("Cancún")) {
           localStorage.setItem("frimart_seller", JSON.stringify(INITIAL_SELLER));
           return INITIAL_SELLER;
         }
@@ -125,7 +126,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const hasAllStores = Array.isArray(parsed) && INITIAL_STORES.every(is => parsed.some(ps => ps.id === is.id));
-        const isCancunOrBroken = parsed.some(s => s.address?.includes("CancÃºn") || s.name?.includes("NichuptÃ©") || !s.routeId);
+        const isCancunOrBroken = parsed.some(s => s.address?.includes("Cancún") || s.name?.includes("Nichupté") || !s.routeId);
         if (!hasAllStores || isCancunOrBroken) {
           localStorage.setItem("frimart_stores", JSON.stringify(INITIAL_STORES));
           return INITIAL_STORES;
@@ -141,7 +142,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.some(f => f.storeName?.includes("NichuptÃ©"))) {
+        if (parsed.some(f => f.storeName?.includes("Nichupté"))) {
           localStorage.setItem("frimart_freezers", JSON.stringify(INITIAL_FREEZERS));
           return INITIAL_FREEZERS;
         }
@@ -167,9 +168,9 @@ export default function App() {
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
 
   // ==================================================
-  // ALCANCE DE DATOS POR ROL (fuente Ãºnica de permisos)
-  // Regla: si no hay asignaciÃ³n vÃ¡lida, NO se muestra nada (falla cerrada).
-  //  - vendedor: solo Ã©l mismo y su ruta
+  // ALCANCE DE DATOS POR ROL (fuente única de permisos)
+  // Regla: si no hay asignación válida, NO se muestra nada (falla cerrada).
+  //  - vendedor: solo él mismo y su ruta
   //  - supervisor: solo sus vendedores asignados (o su CEDIS si no tiene lista)
   //  - gerente_cedis: vendedores de su CEDIS
   //  - director_comercial / propietario: todo
@@ -216,11 +217,11 @@ export default function App() {
     return freezers.filter((f) => storeIds.has(f.storeId));
   }, [freezers, scopedStores, currentUser, hasGlobalScope]);
 
-  // Permisos jerÃ¡rquicos (ver src/data/permissions.js): cada rol hereda los accesos del inferior
+  // Permisos jerárquicos (ver src/data/permissions.js): cada rol hereda los accesos del inferior
   const canSeeTab = (tabId) => canSeeTabForRole(currentUser?.role, tabId);
   const canChangeFreezerType = canDo(currentUser?.role, "changeFreezerType");
 
-  // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecÃ­an al usuario anterior
+  // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecían al usuario anterior
   useEffect(() => {
     if (!currentUser) return;
     setSelectedRouteFilter(currentUser.role === "vendedor" ? (currentUser.routeId || "all") : "all");
@@ -249,7 +250,7 @@ export default function App() {
         return updated;
       });
     }
-    showToast(`Â¡Punto de Venta "${newStoreData?.name}" registrado con Ã©xito!`, "success", Store);
+    showToast(`¡Punto de Venta "${newStoreData?.name}" registrado con éxito!`, "success", Store);
   };
 
   // Route Map Interactive In-App Modal & Persistent Target Store
@@ -354,7 +355,7 @@ export default function App() {
     setIsLocked(true);
     setCurrentUser(null);
     localStorage.removeItem("frimart_active_session");
-    showToast("SesiÃ³n cerrada. Ingrese su clave PIN.", "info");
+    showToast("Sesión cerrada. Ingrese su clave PIN.", "info");
   };
 
   const handleSwitchSimulatedRole = (targetRoleKey) => {
@@ -376,8 +377,70 @@ export default function App() {
     showToast("Pendiente actualizado", "success");
   };
 
-  // Tienda pendiente de enrolar congelador (viene del botÃ³n "Sin congelador")
+  // Tienda pendiente de enrolar congelador (viene del botón "Sin congelador")
   const [pendingEnrollStoreId, setPendingEnrollStoreId] = useState(null);
+
+  // Visita guiada (flujo de trabajo en punto de venta con congelador)
+  const [visitFreezerId, setVisitFreezerId] = useState(null);
+  const visitFreezer = freezers.find((f) => f.id === visitFreezerId) || null;
+  const handleStartVisit = (freezerId) => {
+    setIsStoreDetailOpen(false);
+    setVisitFreezerId(freezerId);
+  };
+  const handleCompleteVisit = (visit) => {
+    const { metalPlanogram, imberaPlanogram, ...record } = visit;
+    setFreezers((prev) =>
+      prev.map((f) =>
+        f.id !== visit.freezerId
+          ? f
+          : {
+              ...f,
+              metalPlanogram: metalPlanogram || f.metalPlanogram,
+              imberaPlanogram: imberaPlanogram || f.imberaPlanogram,
+              temperature: visit.temperature,
+              compliancePercent: visit.compliance,
+              lastAuditedAt: visit.endedAt,
+              lastAudit: new Date(visit.endedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              photoUrl: visit.photo || f.photoUrl,
+              // Últimas 10 visitas (sin la foto en las anteriores para ahorrar espacio)
+              visits: [{ ...record, vendorId: currentUser?.id, vendorName: currentUser?.name }, ...(f.visits || []).map((v) => ({ ...v, photo: null }))].slice(0, 10)
+            }
+      )
+    );
+    setStores((prev) =>
+      prev.map((s) => (s.id === visit.storeId ? { ...s, status: "completed", lastVisit: "Hoy, " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) } : s))
+    );
+    setSeller((prev) => ({
+      ...prev,
+      dailyGoal: { ...prev.dailyGoal, currentAmount: (prev.dailyGoal?.currentAmount || 0) + visit.amount }
+    }));
+    setSalesLog((prev) => [
+      {
+        id: `SALE-${Date.now()}`,
+        vendorId: currentUser?.id,
+        storeName: visit.storeName,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        amount: visit.amount,
+        boxes: 0,
+        bags: visit.bagsRestocked,
+        ticketNumber: `TK-${Math.floor(1000 + Math.random() * 9000)}`,
+        paymentType: "Cobro de resurtido",
+        itemsSummary: `${visit.bagsRestocked} bolsas surtidas en congelador ${visit.freezerId}`,
+        commission: Math.round(visit.amount * 0.04),
+        visitScore: visit.score
+      },
+      ...prev
+    ]);
+    setVisitFreezerId(null);
+    showToast(
+      `Visita cerrada: $${visit.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} · ${visit.bagsRestocked} bolsas · ${visit.score}/100`,
+      "success",
+      CheckCircle2
+    );
+    if (visit.tempAlert) {
+      setTimeout(() => showToast(`Alerta de temperatura (${visit.temperature}°C) enviada al supervisor`, "info"), 2600);
+    }
+  };
   const pendingEnrollStore = stores.find((s) => s.id === pendingEnrollStoreId) || null;
 
   const handleEnrollFreezerForStore = (store) => {
@@ -397,6 +460,7 @@ export default function App() {
     if (existingFreezer) {
       setSelectedFreezerId(existingFreezer.id);
       setActiveTab("congeladores");
+      setVisitFreezerId(existingFreezer.id);
       showToast(`Congelador ${code} identificado en ${existingFreezer.storeName}`, "success", Snowflake);
     } else {
       setPendingScannedCode(code);
@@ -457,7 +521,7 @@ export default function App() {
     setPendingEnrollStoreId(null);
     setSelectedFreezerId(newFreezer.id);
     setActiveTab("congeladores");
-    showToast(`Â¡Congelador ${newFreezer.qrCode} enrolado con Ã©xito!`, "success", CheckCircle2);
+    showToast(`¡Congelador ${newFreezer.qrCode} enrolado con éxito!`, "success", CheckCircle2);
   };
 
   // Update Planogram Slot
@@ -712,6 +776,7 @@ export default function App() {
               onUpdateSlot={handleUpdateStorePlanogram}
               onSaveAudit={handleSavePlanogramAudit}
               onPlanogramChange={handlePlanogramChange}
+              onStartVisit={handleStartVisit}
             />
           )}
 
@@ -729,7 +794,7 @@ export default function App() {
             />
           )}
 
-          {/* CATÃLOGO DE PRODUCTOS */}
+          {/* CATÁLOGO DE PRODUCTOS */}
           {activeTab === "catalogo" && canSeeTab("catalogo") && (
             <SellerCatalogScreen
               categories={CATEGORIES}
@@ -785,7 +850,7 @@ export default function App() {
             companyBrand: "Frimart S.A. de C.V. & La Huerta"
           }}
           onUpdateAppSettings={() => {
-            showToast("Ajustes guardados con Ã©xito", "success");
+            showToast("Ajustes guardados con éxito", "success");
           }}
         />
 
@@ -796,7 +861,7 @@ export default function App() {
           otaConfig={otaConfig}
           onDeployUpdate={(newOtaConfig) => {
             setOtaConfig(newOtaConfig);
-            showToast(`Â¡ActualizaciÃ³n ${newOtaConfig.currentVersion} enviada a ${newOtaConfig.activeFleetDevices} dispositivos!`, "success", Sparkles);
+            showToast(`¡Actualización ${newOtaConfig.currentVersion} enviada a ${newOtaConfig.activeFleetDevices} dispositivos!`, "success", Sparkles);
           }}
           onToggleSandboxPreview={() => {}}
         />
@@ -835,6 +900,7 @@ export default function App() {
             setSelectedFreezerId(freezerId);
             setActiveTab("congeladores");
           }}
+          onStartVisit={handleStartVisit}
           onOpenQuickSale={(store) => {
             setQuickSaleStore(store);
             setIsQuickSaleOpen(true);
@@ -879,7 +945,7 @@ export default function App() {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(p, qty) => {
-            showToast(`+${qty} cajas de ${p.name} aÃ±adidas al pedido`, "success");
+            showToast(`+${qty} cajas de ${p.name} añadidas al pedido`, "success");
             setSelectedProduct(null);
           }}
           isFavorite={false}
@@ -896,6 +962,19 @@ export default function App() {
           onCodeDetected={handleCodeDetected}
           existingFreezerCodes={freezers.map((f) => f.qrCode)}
         />
+
+        {/* Visita guiada a pantalla completa */}
+        {visitFreezer && (
+          <GuidedVisitFlow
+            key={visitFreezer.id}
+            isOpen
+            freezer={visitFreezer}
+            store={stores.find((s) => s.id === visitFreezer.storeId)}
+            sellerLocation={seller.currentLocation}
+            onClose={() => setVisitFreezerId(null)}
+            onComplete={handleCompleteVisit}
+          />
+        )}
 
         {/* Freezer GPS Onboarding Modal */}
         <FreezerOnboardingModal 
@@ -945,8 +1024,8 @@ export default function App() {
                     <BarChart3 className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-section-title text-[#0f172a]">Consola de SupervisiÃ³n</h3>
-                    <p className="text-[11px] text-slate-500">TelemetrÃ­a y rutas en Aguascalientes</p>
+                    <h3 className="font-section-title text-[#0f172a]">Consola de Supervisión</h3>
+                    <p className="text-[11px] text-slate-500">Telemetría y rutas en Aguascalientes</p>
                   </div>
                 </div>
                 <button 
@@ -981,8 +1060,8 @@ export default function App() {
                     <Database className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-section-title text-[#0f172a]">CatÃ¡logo Maestro</h3>
-                    <p className="text-[11px] text-slate-500">Costos, precios y configuraciÃ³n</p>
+                    <h3 className="font-section-title text-[#0f172a]">Catálogo Maestro</h3>
+                    <p className="text-[11px] text-slate-500">Costos, precios y configuración</p>
                   </div>
                 </div>
                 <button 
@@ -1027,11 +1106,11 @@ export default function App() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-rose-900">Alerta de Stock CrÃ­tico</span>
+                      <span className="font-bold text-xs text-rose-900">Alerta de Stock Crítico</span>
                       <span className="text-[10px] text-rose-600 font-bold">Hace 15 min</span>
                     </div>
                     <p className="text-xs text-rose-700 mt-1">
-                      El congelador <strong className="font-mono">FRM-0089</strong> en CremerÃ­a Nueva BenjamÃ­n de Alba tiene solo 2 piezas de BrÃ³coli La Huerta. Se requiere resurtido prioritario hoy.
+                      El congelador <strong className="font-mono">FRM-0089</strong> en Cremería Nueva Benjamín de Alba tiene solo 2 piezas de Brócoli La Huerta. Se requiere resurtido prioritario hoy.
                     </p>
                   </div>
                 </div>
@@ -1046,7 +1125,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400">Hoy 06:45 AM</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">
-                      LlegÃ³ embarque con 400 cajas de FranuÃ­ Pink y Mezcla California La Huerta disponibles para entrega inmediata.
+                      Llegó embarque con 400 cajas de Franuí Pink y Mezcla California La Huerta disponibles para entrega inmediata.
                     </p>
                   </div>
                 </div>
