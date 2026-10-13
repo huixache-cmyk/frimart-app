@@ -773,7 +773,6 @@ export default function SellerRouteMapModal({
     activeFleet, 
     supervisorCar,
     isSupervisor,
-    isSupervisorOverride,
     mapStoreStatusFilter, 
     focusedTruckId
   ]);
