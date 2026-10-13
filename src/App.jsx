@@ -10,6 +10,8 @@ import {
 } from "./data/planogramModels";
 import { canSeeTabForRole, canDo, HOME_TAB } from "./data/permissions";
 import GuidedVisitFlow from "./components/mobile/seller/GuidedVisitFlow";
+import SupervisorVisitsPanel from "./components/roles/SupervisorVisitsPanel";
+import { submitVisit, startVisitQueueWorker } from "./lib/visitsSync";
 
 // Authentication & Roles
 import AuthLockScreen from "./components/auth/AuthLockScreen";
@@ -339,6 +341,12 @@ export default function App() {
     }, 2800);
   };
 
+  // Reenvío automático de visitas guardadas sin señal
+  useEffect(() => {
+    return startVisitQueueWorker((n) => showToast(`${n} visita(s) pendiente(s) enviadas`, "success"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Authentication Handlers
   const handleLoginSuccess = (authenticatedUser) => {
     setCurrentUser(authenticatedUser);
@@ -387,7 +395,21 @@ export default function App() {
     setIsStoreDetailOpen(false);
     setVisitFreezerId(freezerId);
   };
-  const handleCompleteVisit = (visit) => {
+  const handleCompleteVisit = (visitRaw) => {
+    const visit = {
+      ...visitRaw,
+      vendorId: currentUser?.id,
+      vendorName: currentUser?.name,
+      cedisId: currentUser?.cedisId,
+      routeId: currentUser?.routeId || stores.find((s) => s.id === visitRaw.storeId)?.routeId
+    };
+    // Envío en línea (foto a Storage + visita + alertas). Si no hay señal queda en cola.
+    submitVisit(visit).then(({ synced, photoUrl }) => {
+      if (photoUrl) {
+        setFreezers((prev) => prev.map((f) => (f.id === visit.freezerId ? { ...f, photoUrl } : f)));
+      }
+      setTimeout(() => showToast(synced ? "Visita enviada al supervisor" : "Sin señal: la visita se enviará al recuperar conexión", synced ? "success" : "info"), 2800);
+    });
     const { metalPlanogram, imberaPlanogram, ...record } = visit;
     setFreezers((prev) =>
       prev.map((f) =>
@@ -674,6 +696,13 @@ export default function App() {
           )}
 
           {/* 2. SUPERVISOR HUB */}
+          {activeTab === "supervision" && canSeeTab("supervision") && (
+            <SupervisorVisitsPanel
+              reviewer={currentUser}
+              vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)}
+              onToast={(m) => showToast(m, "info")}
+            />
+          )}
           {activeTab === "supervision" && canSeeTab("supervision") && (
             <SupervisorHubScreen
               supervisorUser={currentUser}
