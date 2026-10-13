@@ -486,427 +486,184 @@ export default function PlanogramViewer({
                 </div>
               </div>
 
-              {/* RENDER MODEL A: CONGELADOR PUERTA DE VIDRIO (IMBERA) */}
-              {activeModelType === FREEZER_MODEL_TYPES.GLASS_IMBERA && (
-                <div className="imbera-freezer-cabinet bg-slate-900 rounded-[28px] p-2.5 sm:p-5 shadow-xl border-3 border-slate-700 relative overflow-hidden">
-                  {/* Top Imbera Curved Header Lightbox with La Huerta Brand Banner */}
-                  <div className="bg-gradient-to-b from-white via-white to-slate-100 rounded-xl p-2.5 sm:p-3 mb-3 shadow-sm border-b-3 border-emerald-600 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-black text-xs shadow-inner shrink-0">
-                        LH
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-['Outfit'] font-black text-emerald-900 text-sm sm:text-base tracking-tight leading-none">
-                          La Huerta.
-                        </h3>
-                        <p className="text-[10px] text-emerald-700 font-bold italic mt-0.5 truncate">
-                          Cosecha una vida saludable.
-                        </p>
-                      </div>
-                    </div>
+              {/* RENDER UNIFICADO: mismo estilo de tarjeta clara para todos los modelos de congelador */}
+              {(() => {
+                const STATUS_BADGES = {
+                  new: { label: "NUEVO", cls: "bg-emerald-600", card: "border-emerald-500 ring-1 ring-emerald-500/30" },
+                  shelf_change: { label: "CAMBIO", cls: "bg-sky-600", card: "border-sky-500 ring-1 ring-sky-500/30" },
+                  discontinued: { label: "SALIÓ", cls: "bg-rose-600", card: "border-rose-400 bg-rose-50/50 opacity-60" },
+                };
 
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg shrink-0">
-                      <QrCode className="w-4 h-4 text-slate-800" />
-                      <div className="text-[9px] leading-tight font-mono">
-                        <strong className="text-slate-900">{freezer?.qrCode || "FRM-0089"}</strong>
-                        <p className="text-emerald-700 font-bold">Imbera VR</p>
-                      </div>
-                    </div>
-                  </div>
+                const renderFacingCard = (facing, shelf, section) => {
+                  const product = getProductById(facing.skuId);
+                  const isCompliant = facing.facingsCurrent >= facing.facingsExpected;
+                  const badge = STATUS_BADGES[facing.statusTag];
 
-                  {/* Vertical Shelves Rack with Horizontal Touch Scroll */}
-                  <div className="space-y-3.5 relative py-1 px-1 bg-slate-800/40 rounded-xl border border-slate-700/60 shadow-inner">
-                    {imberaPlanogram.shelves.map((shelf) => (
-                      <div key={shelf.shelfNumber} className="relative">
-                        {/* Shelf Header Tag */}
-                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1 px-1 font-mono">
-                          <span className="text-sky-300 truncate">{shelf.title}</span>
-                          <span className="bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded border border-slate-600 text-[9px] shrink-0">
-                            Ch {shelf.shelfNumber}/{imberaShelvesCount}
-                          </span>
-                        </div>
+                  return (
+                    <div
+                      key={facing.facingIndex}
+                      className={`group relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-white border cursor-pointer hover:shadow-md min-h-[150px] ${
+                        badge ? badge.card : "border-slate-200"
+                      }`}
+                      onClick={() => handleOpenFacingEditor(facing, shelf.shelfNumber, shelf.title, section)}
+                    >
+                      {badge && (
+                        <span className={`absolute -top-1.5 left-1.5 ${badge.cls} text-white text-[7px] font-black px-1.5 py-0.2 rounded shadow-2xs z-10`}>
+                          {badge.label}
+                        </span>
+                      )}
 
-                        {/* Shelf Facings Row - Horizontally Scrollable on Mobile so cards never squish */}
-                        <div className="overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-0.5 px-0.5">
-                          <div 
-                            className="grid gap-2 bg-slate-100/95 p-2 rounded-t-xl border-t-2 border-slate-300 items-end shadow-inner"
-                            style={{
-                              gridTemplateColumns: `repeat(${imberaFacingsPerShelf}, minmax(82px, 1fr))`,
-                              minWidth: `${imberaFacingsPerShelf * 86}px`
-                            }}
-                          >
-                            {shelf.facings.map((facing) => {
-                              const product = getProductById(facing.skuId);
-                              const isCompliant = facing.facingsCurrent >= facing.facingsExpected;
-
-                              return (
-                                <div
-                                  key={facing.facingIndex}
-                                  className={`group relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-white border cursor-pointer hover:shadow-md min-h-[142px] ${
-                                    facing.statusTag === "new"
-                                      ? "border-emerald-500 ring-1 ring-emerald-500/30 shadow-xs"
-                                      : facing.statusTag === "shelf_change"
-                                      ? "border-sky-500 ring-1 ring-sky-500/30 shadow-xs"
-                                      : facing.statusTag === "discontinued"
-                                      ? "border-rose-400 bg-rose-50/50 opacity-60"
-                                      : "border-slate-200"
-                                  }`}
-                                  onClick={() => handleOpenFacingEditor(facing, shelf.shelfNumber, shelf.title, "imbera_shelf")}
-                                >
-                                  {/* Status Pill Badge */}
-                                  {facing.statusTag === "new" && (
-                                    <span className="absolute -top-1.5 left-1.5 bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded shadow-2xs z-10">
-                                      NUEVO
-                                    </span>
-                                  )}
-                                  {facing.statusTag === "shelf_change" && (
-                                    <span className="absolute -top-1.5 left-1.5 bg-sky-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded shadow-2xs z-10">
-                                      CAMBIO
-                                    </span>
-                                  )}
-                                  {facing.statusTag === "discontinued" && (
-                                    <span className="absolute -top-1.5 left-1.5 bg-rose-600 text-white text-[7px] font-black px-1.5 py-0.2 rounded shadow-2xs z-10">
-                                      SALIÓ
-                                    </span>
-                                  )}
-
-                                  {/* Facing Index Pill */}
-                                  <span className="absolute top-1 right-1 text-[8px] font-mono text-slate-400 font-bold">
-                                    F{facing.facingNumber}
-                                  </span>
-
-                                  {/* Product Image & Details */}
-                                  {product ? (
-                                    <>
-                                      <div className="w-full h-14 rounded-lg bg-slate-50 p-1 flex items-center justify-center overflow-hidden mb-1 relative">
-                                        <img
-                                          src={product.image}
-                                          alt={product.name}
-                                          className="w-full h-full object-contain drop-shadow-2xs"
-                                        />
-                                      </div>
-
-                                      <div className="min-w-0 flex-1">
-                                        <h5 className="font-bold text-[10px] text-slate-900 leading-tight line-clamp-2">
-                                          {product.name}
-                                        </h5>
-                                        <span className="text-[9px] text-slate-400 font-mono block">
-                                          {product.weight}
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div className="w-full h-20 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-300 rounded-lg">
-                                      <Plus className="w-4 h-4 text-slate-400 mb-0.5" />
-                                      <span className="text-[9px] font-bold">Asignar</span>
-                                    </div>
-                                  )}
-
-                                  {/* Bottom Facing Stepper */}
-                                  <div 
-                                    className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between gap-1"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <span className="text-[9px] font-mono text-slate-400">
-                                      R:<strong className="text-slate-700">{facing.facingsExpected}</strong>
-                                    </span>
-
-                                    <div className="flex items-center gap-0.5 bg-slate-50 rounded-lg border border-slate-200 p-0.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, -1, "imbera_shelf")}
-                                        className="w-4 h-4 rounded bg-white text-slate-700 text-[10px] font-bold hover:bg-slate-100 flex items-center justify-center cursor-pointer shadow-2xs"
-                                      >
-                                        -
-                                      </button>
-                                      <span className={`text-[10px] font-mono font-black px-1 ${
-                                        isCompliant ? "text-emerald-700" : "text-amber-700"
-                                      }`}>
-                                        {facing.facingsCurrent}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, 1, "imbera_shelf")}
-                                        className="w-4 h-4 rounded bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-500 flex items-center justify-center cursor-pointer shadow-2xs"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Red Price Rail that matches the columns exactly */}
-                          <div 
-                            className="bg-red-700 h-5 rounded-b-lg grid gap-2 px-2 text-[9px] text-white font-mono font-bold shadow-xs border-t border-red-800 items-center"
-                            style={{
-                              gridTemplateColumns: `repeat(${imberaFacingsPerShelf}, minmax(82px, 1fr))`,
-                              minWidth: `${imberaFacingsPerShelf * 86}px`
-                            }}
-                          >
-                            {shelf.facings.map((f, fIdx) => {
-                              const p = getProductById(f.skuId);
-                              return (
-                                <span key={fIdx} className="bg-red-900/80 px-1 py-0.2 rounded text-center truncate border border-red-600/50">
-                                  ${p ? p.price.toFixed(0) : "00"}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Imbera Digital Temperature Controller in Lower Kickplate */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-700 flex items-center justify-between text-xs font-mono">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span className="text-slate-400 text-[10px]">Refrigeración Imbera Eco-Smart</span>
-                    </div>
-
-                    <div className="bg-black border border-slate-600 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 shadow-inner">
-                      <span className="text-[9px] text-slate-500 font-bold">DIGITAL</span>
-                      <span className="text-emerald-400 font-bold text-xs tracking-wider">
-                        -22.0°C
+                      <span className="absolute top-1 right-1 text-[8px] font-mono text-slate-400 font-bold">
+                        F{facing.facingNumber ?? facing.facingIndex + 1}
                       </span>
+
+                      {product ? (
+                        <>
+                          <div className="w-full h-14 rounded-lg bg-slate-50 p-1 flex items-center justify-center overflow-hidden mb-1">
+                            <img src={product.image} alt={product.name} className="w-full h-full object-contain drop-shadow-2xs" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h5 className="font-bold text-[10px] text-slate-900 leading-tight line-clamp-2">{product.name}</h5>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[9px] text-slate-400 font-mono">{product.weight}</span>
+                              <span className="text-[10px] font-mono font-black text-emerald-800">
+                                ${Number(product.price || 0).toFixed(0)}
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-20 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-300 rounded-lg">
+                          <Plus className="w-4 h-4 text-slate-400 mb-0.5" />
+                          <span className="text-[9px] font-bold">Asignar</span>
+                        </div>
+                      )}
+
+                      <div
+                        className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-[9px] font-mono text-slate-400">
+                          R:<strong className="text-slate-700">{facing.facingsExpected}</strong>
+                        </span>
+                        <div className="flex items-center gap-0.5 bg-slate-50 rounded-lg border border-slate-200 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, -1, section)}
+                            className="w-4 h-4 rounded bg-white text-slate-700 text-[10px] font-bold hover:bg-slate-100 flex items-center justify-center cursor-pointer shadow-2xs"
+                          >
+                            -
+                          </button>
+                          <span className={`text-[10px] font-mono font-black px-1 ${isCompliant ? "text-emerald-700" : "text-amber-700"}`}>
+                            {facing.facingsCurrent}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, 1, section)}
+                            className="w-4 h-4 rounded bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-500 flex items-center justify-center cursor-pointer shadow-2xs"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  );
+                };
 
-              {/* RENDER MODEL B: CONGELADOR PUERTA METÁLICA (COFRE / VERTICAL CON CONTRAPUERTA) */}
-              {activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR && (
-                <div className="space-y-3">
-                  <div className={`grid gap-3 ${
-                    metalViewSection === "both" ? "grid-cols-1 md:grid-cols-12" : "grid-cols-1"
-                  }`}>
-                    {/* 1. Main Interior Cabinet (5 o 6 charolas × 5 frentes) */}
-                    {(metalViewSection === "both" || metalViewSection === "cabinet") && (
-                      <div className={`${metalViewSection === "both" ? "md:col-span-7" : "col-span-12"} bg-white rounded-2xl p-2.5 sm:p-4 shadow-md border-2 border-slate-300 relative`}>
-                        {/* Upper Warm Light Canopy */}
-                        <div className="bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 p-2 rounded-xl mb-3 border border-amber-200 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm animate-pulse" />
-                            <strong className="text-amber-950 font-mono text-[10px]">FROST FREE • GABINETE</strong>
-                          </div>
-                          <span className="text-amber-800 text-[9px] font-bold">
-                            {metalShelvesCount} Charolas (5 ftes c/u)
-                          </span>
-                        </div>
-
-                        {/* Shelves List */}
-                        <div className="space-y-3">
-                          {metalPlanogram.cabinetShelves.map((shelf) => (
-                            <div key={shelf.shelfNumber} className="relative">
-                              <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 mb-1 px-1 font-mono">
-                                <span className="text-emerald-800 truncate">{shelf.title}</span>
-                                <span className="text-slate-400 bg-slate-50 px-1 py-0.2 rounded border border-slate-200 shrink-0">
-                                  Nivel {shelf.shelfNumber}
-                                </span>
-                              </div>
-
-                              {/* 5 Facings Grid with horizontal scroll on mobile */}
-                              <div className="overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-0.5 px-0.5">
-                                <div 
-                                  className="grid gap-2 bg-slate-50 p-2 rounded-t-xl border border-slate-200 items-end shadow-inner"
-                                  style={{
-                                    gridTemplateColumns: "repeat(5, minmax(82px, 1fr))",
-                                    minWidth: "430px"
-                                  }}
-                                >
-                                  {shelf.facings.map((facing) => {
-                                    const product = getProductById(facing.skuId);
-                                    const isCompliant = facing.facingsCurrent >= facing.facingsExpected;
-
-                                    return (
-                                      <div
-                                        key={facing.facingIndex}
-                                        className={`relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-white border cursor-pointer hover:shadow-md min-h-[135px] ${
-                                          facing.statusTag === "new"
-                                            ? "border-emerald-500 bg-emerald-50/40"
-                                            : facing.statusTag === "shelf_change"
-                                            ? "border-sky-500 bg-sky-50/40"
-                                            : "border-slate-200"
-                                        }`}
-                                        onClick={() => handleOpenFacingEditor(facing, shelf.shelfNumber, shelf.title, "cabinet")}
-                                      >
-                                        {product ? (
-                                          <>
-                                            <div className="w-full h-14 rounded-lg bg-slate-50 p-0.5 flex items-center justify-center overflow-hidden mb-1">
-                                              <img
-                                                src={product.image}
-                                                alt={product.name}
-                                                className="w-full h-full object-contain"
-                                              />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                              <h6 className="font-bold text-[10px] text-slate-900 leading-tight line-clamp-2">
-                                                {product.name}
-                                              </h6>
-                                              <span className="text-[9px] text-slate-400 font-mono block">
-                                                {product.weight}
-                                              </span>
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <div className="w-full h-20 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-300 rounded-lg">
-                                            <Plus className="w-4 h-4 text-slate-400" />
-                                            <span className="text-[9px]">Libre</span>
-                                          </div>
-                                        )}
-
-                                        {/* Quick Stepper */}
-                                        <div 
-                                          className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <button
-                                            type="button"
-                                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, -1, "cabinet")}
-                                            className="w-3.5 h-3.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold hover:bg-slate-200 flex items-center justify-center cursor-pointer"
-                                          >
-                                            -
-                                          </button>
-                                          <span className={`text-[10px] font-mono font-bold ${
-                                            isCompliant ? "text-emerald-700" : "text-amber-700"
-                                          }`}>
-                                            {facing.facingsCurrent}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, 1, "cabinet")}
-                                            className="w-3.5 h-3.5 rounded bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-500 flex items-center justify-center cursor-pointer"
-                                          >
-                                            +
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* White wire shelf rail */}
-                                <div className="h-2 bg-slate-300 rounded-b-md shadow-2xs border-t border-slate-400" style={{ minWidth: "430px" }}></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                const renderShelfRow = (shelf, section, columns, tagLabel, total) => {
+                  const minWidth = `${columns * 86}px`;
+                  return (
+                    <div key={shelf.shelfNumber} className="relative">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 mb-1 px-1 font-mono">
+                        <span className="text-emerald-800 truncate">{shelf.title}</span>
+                        <span className="text-slate-400 bg-slate-50 px-1.5 py-0.2 rounded border border-slate-200 shrink-0">
+                          {tagLabel} {shelf.shelfNumber}/{total}
+                        </span>
                       </div>
-                    )}
-
-                    {/* 2. Door Shelves (5 o 6 repisas × 4 frentes) */}
-                    {(metalViewSection === "both" || metalViewSection === "door") && (
-                      <div className={`${metalViewSection === "both" ? "md:col-span-5" : "col-span-12"} bg-slate-50 rounded-2xl p-2.5 sm:p-4 shadow-md border-2 border-slate-300 relative`}>
-                        {/* Door Header */}
-                        <div className="bg-amber-100/70 p-2 rounded-xl mb-3 border border-amber-300 flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <DoorOpen className="w-3.5 h-3.5 text-amber-800" />
-                            <strong className="text-amber-950 font-mono text-[10px]">CONTRAPUERTA</strong>
-                          </div>
-                          <span className="text-amber-900 text-[9px] font-bold">
-                            {metalDoorShelvesCount} Repisas (4 ftes c/u)
-                          </span>
+                      <div className="overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-0.5 px-0.5">
+                        <div
+                          className="grid gap-2 bg-slate-50 p-2 rounded-t-xl border border-slate-200 items-end shadow-inner"
+                          style={{ gridTemplateColumns: `repeat(${columns}, minmax(82px, 1fr))`, minWidth }}
+                        >
+                          {shelf.facings.map((facing) => renderFacingCard(facing, shelf, section))}
                         </div>
-
-                        {/* Door Shelves List */}
-                        <div className="space-y-3">
-                          {metalPlanogram.doorShelves.map((shelf) => (
-                            <div key={shelf.shelfNumber} className="relative">
-                              <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 mb-1 px-1 font-mono">
-                                <span className="text-amber-900 truncate">{shelf.title}</span>
-                                <span className="text-slate-400 bg-white px-1 py-0.2 rounded border border-slate-200 shrink-0">
-                                  Rep {shelf.shelfNumber}
-                                </span>
-                              </div>
-
-                              {/* 4 Facings Molded Plastic Guard with horizontal scroll */}
-                              <div className="overflow-x-auto no-scrollbar scroll-smooth pb-1 -mx-0.5 px-0.5">
-                                <div 
-                                  className="grid gap-2 bg-white p-2 rounded-t-xl border border-slate-200 items-end shadow-inner"
-                                  style={{
-                                    gridTemplateColumns: "repeat(4, minmax(82px, 1fr))",
-                                    minWidth: "344px"
-                                  }}
-                                >
-                                  {shelf.facings.map((facing) => {
-                                    const product = getProductById(facing.skuId);
-                                    const isCompliant = facing.facingsCurrent >= facing.facingsExpected;
-
-                                    return (
-                                      <div
-                                        key={facing.facingIndex}
-                                        className="relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-slate-50 border border-slate-200 cursor-pointer hover:shadow-md min-h-[135px]"
-                                        onClick={() => handleOpenFacingEditor(facing, shelf.shelfNumber, shelf.title, "door")}
-                                      >
-                                        {product ? (
-                                          <>
-                                            <div className="w-full h-14 rounded-lg bg-white p-0.5 flex items-center justify-center overflow-hidden mb-1">
-                                              <img
-                                                src={product.image}
-                                                alt={product.name}
-                                                className="w-full h-full object-contain"
-                                              />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                              <h6 className="font-bold text-[10px] text-slate-900 leading-tight line-clamp-2">
-                                                {product.name}
-                                              </h6>
-                                              <span className="text-[9px] text-slate-400 font-mono block">
-                                                {product.weight}
-                                              </span>
-                                            </div>
-                                          </>
-                                        ) : (
-                                          <div className="w-full h-20 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-300 rounded-lg">
-                                            <Plus className="w-4 h-4 text-slate-400" />
-                                            <span className="text-[9px]">Libre</span>
-                                          </div>
-                                        )}
-
-                                        {/* Quick Stepper */}
-                                        <div 
-                                          className="mt-1 pt-1 border-t border-slate-200 flex items-center justify-between"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <button
-                                            type="button"
-                                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, -1, "door")}
-                                            className="w-3.5 h-3.5 rounded bg-white text-slate-700 text-[10px] font-bold hover:bg-slate-200 flex items-center justify-center cursor-pointer border border-slate-200"
-                                          >
-                                            -
-                                          </button>
-                                          <span className={`text-[10px] font-mono font-bold ${
-                                            isCompliant ? "text-emerald-700" : "text-amber-700"
-                                          }`}>
-                                            {facing.facingsCurrent}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, 1, "door")}
-                                            className="w-3.5 h-3.5 rounded bg-amber-600 text-white text-[10px] font-bold hover:bg-amber-500 flex items-center justify-center cursor-pointer"
-                                          >
-                                            +
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* Molded white plastic guard rail */}
-                                <div className="h-3 bg-white rounded-b-md shadow-2xs border-t-2 border-slate-300 border-x border-b" style={{ minWidth: "344px" }}></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <div className="h-2 bg-slate-300 rounded-b-md shadow-2xs border-t border-slate-400" style={{ minWidth }} />
                       </div>
-                    )}
+                    </div>
+                  );
+                };
+
+                const renderSectionCard = ({ key, title, subtitle, icon, extra, children, span }) => (
+                  <div key={key} className={`${span} bg-white rounded-2xl p-2.5 sm:p-4 shadow-md border-2 border-slate-300 relative`}>
+                    <div className="bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 p-2 rounded-xl mb-3 border border-amber-200 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {icon}
+                        <strong className="text-amber-950 font-mono text-[10px] truncate">{title}</strong>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-amber-800 text-[9px] font-bold">{subtitle}</span>
+                        {extra}
+                      </div>
+                    </div>
+                    <div className="space-y-3">{children}</div>
                   </div>
-                </div>
-              )}
+                );
+
+                const statusDot = <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm animate-pulse shrink-0" />;
+
+                if (activeModelType === FREEZER_MODEL_TYPES.GLASS_IMBERA) {
+                  return renderSectionCard({
+                    key: "imbera",
+                    span: "",
+                    title: "PUERTA DE VIDRIO • IMBERA VR",
+                    subtitle: `${imberaShelvesCount} Charolas (${imberaFacingsPerShelf} ftes c/u)`,
+                    icon: statusDot,
+                    extra: (
+                      <span className="flex items-center gap-1 bg-white border border-amber-200 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-slate-800">
+                        <QrCode className="w-3 h-3" />
+                        {freezer?.qrCode || "FRM-0089"}
+                      </span>
+                    ),
+                    children: imberaPlanogram.shelves.map((shelf) =>
+                      renderShelfRow(shelf, "imbera_shelf", imberaFacingsPerShelf, "Ch", imberaShelvesCount)
+                    ),
+                  });
+                }
+
+                if (activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR) {
+                  const both = metalViewSection === "both";
+                  return (
+                    <div className="space-y-3">
+                      <div className={`grid gap-3 ${both ? "grid-cols-1 md:grid-cols-12" : "grid-cols-1"}`}>
+                        {(both || metalViewSection === "cabinet") &&
+                          renderSectionCard({
+                            key: "cabinet",
+                            span: both ? "md:col-span-7" : "col-span-12",
+                            title: "PUERTA METÁLICA • GABINETE",
+                            subtitle: `${metalShelvesCount} Charolas (5 ftes c/u)`,
+                            icon: statusDot,
+                            children: metalPlanogram.cabinetShelves.map((shelf) =>
+                              renderShelfRow(shelf, "cabinet", 5, "Ch", metalShelvesCount)
+                            ),
+                          })}
+                        {(both || metalViewSection === "door") &&
+                          renderSectionCard({
+                            key: "door",
+                            span: both ? "md:col-span-5" : "col-span-12",
+                            title: "PUERTA METÁLICA • CONTRAPUERTA",
+                            subtitle: `${metalDoorShelvesCount} Repisas (4 ftes c/u)`,
+                            icon: <DoorOpen className="w-3.5 h-3.5 text-amber-800 shrink-0" />,
+                            children: metalPlanogram.doorShelves.map((shelf) =>
+                              renderShelfRow(shelf, "door", 4, "Rep", metalDoorShelvesCount)
+                            ),
+                          })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
           )}
 
