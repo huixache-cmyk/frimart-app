@@ -25,6 +25,7 @@ import {
   Users,
   PlusCircle
 } from "lucide-react";
+import { isAtLeast, LEVEL } from "../../../data/permissions";
 import NewStoreOnboardingModal from "../../supervisor/NewStoreOnboardingModal";
 
 export default function SellerProfileScreen({
@@ -38,7 +39,8 @@ export default function SellerProfileScreen({
   onAddNewStore,
   stores = []
 }) {
-  const isSupervisor = currentUser?.role === "supervisor";
+  // Supervisor en adelante usa su propio perfil (jerarquía: gerente y director heredan)
+  const isSupervisor = isAtLeast(currentUser?.role, LEVEL.SUPERVISOR);
 
   const [modalType, setModalType] = useState(null); // 'supervisor_contact' | 'cold_protocol' | 'account_settings'
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
@@ -125,7 +127,13 @@ export default function SellerProfileScreen({
   // Active display profile info
   const profileName = isSupervisor ? (currentUser?.name || "Ing. Roberto Almanza") : seller.name;
   const profileAvatar = isSupervisor ? (currentUser?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80") : seller.avatar;
-  const profileSubtitle = isSupervisor ? "Supervisor de Rutas y Operaciones Frimart" : seller.route;
+  const ROLE_SUBTITLE = {
+    supervisor: "Supervisor de Rutas y Operaciones Frimart",
+    gerente_cedis: "Gerente de CEDIS Frimart",
+    director_comercial: "Director Comercial Frimart",
+    propietario: "Propietario · Acceso total"
+  };
+  const profileSubtitle = isSupervisor ? (ROLE_SUBTITLE[currentUser?.role] || "Mando Operativo Frimart") : seller.route;
   const profileCedis = isSupervisor ? (currentUser?.cedisName || "CEDIS Aguascalientes (1205)") : seller.cedis;
 
   return (

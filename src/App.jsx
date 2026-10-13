@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
 import MobileDeviceFrame from "./components/mobile/MobileDeviceFrame";
 import SellerMobileHeader from "./components/mobile/seller/SellerMobileHeader";
 import SellerBottomNavigation from "./components/mobile/seller/SellerBottomNavigation";
@@ -8,6 +8,7 @@ import {
   createDefaultMetalDoorPlanogram,
   createDefaultImberaPlanogram
 } from "./data/planogramModels";
+import { canSeeTabForRole, canDo, HOME_TAB } from "./data/permissions";
 
 // Authentication & Roles
 import AuthLockScreen from "./components/auth/AuthLockScreen";
@@ -91,14 +92,7 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(() => !getStoredActiveUser());
 
   // Tab Navigation
-  const [activeTab, setActiveTab] = useState(() => {
-    const role = getStoredActiveUser()?.role || "vendedor";
-    if (role === "supervisor") return "supervision";
-    if (role === "gerente_cedis") return "cedis";
-    if (role === "director_comercial") return "direccion";
-    if (role === "propietario") return "propietario_hub";
-    return "ruta";
-  });
+  const [activeTab, setActiveTab] = useState(() => HOME_TAB[getStoredActiveUser()?.role] || "ruta");
 
   // OTA Updates & Governance
   const [otaConfig, setOtaConfig] = useState(() => getStoredOTAConfig());
@@ -115,7 +109,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.cedis?.includes("Cancún")) {
+        if (parsed.cedis?.includes("CancÃºn")) {
           localStorage.setItem("frimart_seller", JSON.stringify(INITIAL_SELLER));
           return INITIAL_SELLER;
         }
@@ -131,7 +125,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const hasAllStores = Array.isArray(parsed) && INITIAL_STORES.every(is => parsed.some(ps => ps.id === is.id));
-        const isCancunOrBroken = parsed.some(s => s.address?.includes("Cancún") || s.name?.includes("Nichupté") || !s.routeId);
+        const isCancunOrBroken = parsed.some(s => s.address?.includes("CancÃºn") || s.name?.includes("NichuptÃ©") || !s.routeId);
         if (!hasAllStores || isCancunOrBroken) {
           localStorage.setItem("frimart_stores", JSON.stringify(INITIAL_STORES));
           return INITIAL_STORES;
@@ -147,7 +141,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.some(f => f.storeName?.includes("Nichupté"))) {
+        if (parsed.some(f => f.storeName?.includes("NichuptÃ©"))) {
           localStorage.setItem("frimart_freezers", JSON.stringify(INITIAL_FREEZERS));
           return INITIAL_FREEZERS;
         }
@@ -173,9 +167,9 @@ export default function App() {
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
 
   // ==================================================
-  // ALCANCE DE DATOS POR ROL (fuente única de permisos)
-  // Regla: si no hay asignación válida, NO se muestra nada (falla cerrada).
-  //  - vendedor: solo él mismo y su ruta
+  // ALCANCE DE DATOS POR ROL (fuente Ãºnica de permisos)
+  // Regla: si no hay asignaciÃ³n vÃ¡lida, NO se muestra nada (falla cerrada).
+  //  - vendedor: solo Ã©l mismo y su ruta
   //  - supervisor: solo sus vendedores asignados (o su CEDIS si no tiene lista)
   //  - gerente_cedis: vendedores de su CEDIS
   //  - director_comercial / propietario: todo
@@ -222,19 +216,11 @@ export default function App() {
     return freezers.filter((f) => storeIds.has(f.storeId));
   }, [freezers, scopedStores, currentUser, hasGlobalScope]);
 
-  // Pestañas permitidas por rol (deben coincidir con SellerBottomNavigation)
-  const ROLE_TABS = {
-    vendedor: ["ruta", "pendientes", "escanear", "congeladores", "perfil"],
-    supervisor: ["supervision", "ruta", "escanear", "congeladores", "perfil"],
-    gerente_cedis: ["cedis", "ruta", "catalogo", "congeladores", "perfil", "escanear"],
-    director_comercial: ["direccion", "cedis", "catalogo", "congeladores", "perfil", "escanear"],
-    propietario: ["propietario_hub", "direccion", "ruta", "congeladores", "perfil", "cedis", "catalogo", "pendientes", "escanear"]
-  };
-  const canSeeTab = (tabId) => (ROLE_TABS[currentUser?.role] || []).includes(tabId);
-  // Supervisor o superior: puede cambiar el tipo de congelador asignado
-  const canChangeFreezerType = ["supervisor", "gerente_cedis", "director_comercial", "propietario"].includes(currentUser?.role);
+  // Permisos jerÃ¡rquicos (ver src/data/permissions.js): cada rol hereda los accesos del inferior
+  const canSeeTab = (tabId) => canSeeTabForRole(currentUser?.role, tabId);
+  const canChangeFreezerType = canDo(currentUser?.role, "changeFreezerType");
 
-  // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecían al usuario anterior
+  // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecÃ­an al usuario anterior
   useEffect(() => {
     if (!currentUser) return;
     setSelectedRouteFilter(currentUser.role === "vendedor" ? (currentUser.routeId || "all") : "all");
@@ -263,7 +249,7 @@ export default function App() {
         return updated;
       });
     }
-    showToast(`¡Punto de Venta "${newStoreData?.name}" registrado con éxito!`, "success", Store);
+    showToast(`Â¡Punto de Venta "${newStoreData?.name}" registrado con Ã©xito!`, "success", Store);
   };
 
   // Route Map Interactive In-App Modal & Persistent Target Store
@@ -359,11 +345,7 @@ export default function App() {
     setIsLocked(false);
     
     // Auto switch to home tab for that role
-    if (authenticatedUser.role === "vendedor") setActiveTab("ruta");
-    else if (authenticatedUser.role === "supervisor") setActiveTab("supervision");
-    else if (authenticatedUser.role === "gerente_cedis") setActiveTab("cedis");
-    else if (authenticatedUser.role === "director_comercial") setActiveTab("direccion");
-    else if (authenticatedUser.role === "propietario") setActiveTab("propietario_hub");
+    setActiveTab(HOME_TAB[authenticatedUser.role] || "ruta");
 
     showToast(`Bienvenido ${authenticatedUser.name} (${ROLES[authenticatedUser.role]?.shortName})`, "success");
   };
@@ -372,7 +354,7 @@ export default function App() {
     setIsLocked(true);
     setCurrentUser(null);
     localStorage.removeItem("frimart_active_session");
-    showToast("Sesión cerrada. Ingrese su clave PIN.", "info");
+    showToast("SesiÃ³n cerrada. Ingrese su clave PIN.", "info");
   };
 
   const handleSwitchSimulatedRole = (targetRoleKey) => {
@@ -380,11 +362,7 @@ export default function App() {
     if (targetUser) {
       setCurrentUser(targetUser);
       saveStoredActiveUser(targetUser);
-      if (targetRoleKey === "vendedor") setActiveTab("ruta");
-      else if (targetRoleKey === "supervisor") setActiveTab("supervision");
-      else if (targetRoleKey === "gerente_cedis") setActiveTab("cedis");
-      else if (targetRoleKey === "director_comercial") setActiveTab("direccion");
-      else if (targetRoleKey === "propietario") setActiveTab("propietario_hub");
+      setActiveTab(HOME_TAB[targetRoleKey] || "ruta");
 
       showToast(`Vista cambiada a: ${ROLES[targetRoleKey]?.shortName}`, "info");
     }
@@ -398,7 +376,7 @@ export default function App() {
     showToast("Pendiente actualizado", "success");
   };
 
-  // Tienda pendiente de enrolar congelador (viene del botón "Sin congelador")
+  // Tienda pendiente de enrolar congelador (viene del botÃ³n "Sin congelador")
   const [pendingEnrollStoreId, setPendingEnrollStoreId] = useState(null);
   const pendingEnrollStore = stores.find((s) => s.id === pendingEnrollStoreId) || null;
 
@@ -479,7 +457,7 @@ export default function App() {
     setPendingEnrollStoreId(null);
     setSelectedFreezerId(newFreezer.id);
     setActiveTab("congeladores");
-    showToast(`¡Congelador ${newFreezer.qrCode} enrolado con éxito!`, "success", CheckCircle2);
+    showToast(`Â¡Congelador ${newFreezer.qrCode} enrolado con Ã©xito!`, "success", CheckCircle2);
   };
 
   // Update Planogram Slot
@@ -751,7 +729,7 @@ export default function App() {
             />
           )}
 
-          {/* CATÁLOGO DE PRODUCTOS */}
+          {/* CATÃLOGO DE PRODUCTOS */}
           {activeTab === "catalogo" && canSeeTab("catalogo") && (
             <SellerCatalogScreen
               categories={CATEGORIES}
@@ -807,7 +785,7 @@ export default function App() {
             companyBrand: "Frimart S.A. de C.V. & La Huerta"
           }}
           onUpdateAppSettings={() => {
-            showToast("Ajustes guardados con éxito", "success");
+            showToast("Ajustes guardados con Ã©xito", "success");
           }}
         />
 
@@ -818,7 +796,7 @@ export default function App() {
           otaConfig={otaConfig}
           onDeployUpdate={(newOtaConfig) => {
             setOtaConfig(newOtaConfig);
-            showToast(`¡Actualización ${newOtaConfig.currentVersion} enviada a ${newOtaConfig.activeFleetDevices} dispositivos!`, "success", Sparkles);
+            showToast(`Â¡ActualizaciÃ³n ${newOtaConfig.currentVersion} enviada a ${newOtaConfig.activeFleetDevices} dispositivos!`, "success", Sparkles);
           }}
           onToggleSandboxPreview={() => {}}
         />
@@ -901,7 +879,7 @@ export default function App() {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAddToCart={(p, qty) => {
-            showToast(`+${qty} cajas de ${p.name} añadidas al pedido`, "success");
+            showToast(`+${qty} cajas de ${p.name} aÃ±adidas al pedido`, "success");
             setSelectedProduct(null);
           }}
           isFavorite={false}
@@ -967,8 +945,8 @@ export default function App() {
                     <BarChart3 className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-section-title text-[#0f172a]">Consola de Supervisión</h3>
-                    <p className="text-[11px] text-slate-500">Telemetría y rutas en Aguascalientes</p>
+                    <h3 className="font-section-title text-[#0f172a]">Consola de SupervisiÃ³n</h3>
+                    <p className="text-[11px] text-slate-500">TelemetrÃ­a y rutas en Aguascalientes</p>
                   </div>
                 </div>
                 <button 
@@ -1003,8 +981,8 @@ export default function App() {
                     <Database className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-section-title text-[#0f172a]">Catálogo Maestro</h3>
-                    <p className="text-[11px] text-slate-500">Costos, precios y configuración</p>
+                    <h3 className="font-section-title text-[#0f172a]">CatÃ¡logo Maestro</h3>
+                    <p className="text-[11px] text-slate-500">Costos, precios y configuraciÃ³n</p>
                   </div>
                 </div>
                 <button 
@@ -1049,11 +1027,11 @@ export default function App() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-rose-900">Alerta de Stock Crítico</span>
+                      <span className="font-bold text-xs text-rose-900">Alerta de Stock CrÃ­tico</span>
                       <span className="text-[10px] text-rose-600 font-bold">Hace 15 min</span>
                     </div>
                     <p className="text-xs text-rose-700 mt-1">
-                      El congelador <strong className="font-mono">FRM-0089</strong> en Cremería Nueva Benjamín de Alba tiene solo 2 piezas de Brócoli La Huerta. Se requiere resurtido prioritario hoy.
+                      El congelador <strong className="font-mono">FRM-0089</strong> en CremerÃ­a Nueva BenjamÃ­n de Alba tiene solo 2 piezas de BrÃ³coli La Huerta. Se requiere resurtido prioritario hoy.
                     </p>
                   </div>
                 </div>
@@ -1068,7 +1046,7 @@ export default function App() {
                       <span className="text-[10px] text-slate-400">Hoy 06:45 AM</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">
-                      Llegó embarque con 400 cajas de Franuí Pink y Mezcla California La Huerta disponibles para entrega inmediata.
+                      LlegÃ³ embarque con 400 cajas de FranuÃ­ Pink y Mezcla California La Huerta disponibles para entrega inmediata.
                     </p>
                   </div>
                 </div>
