@@ -35,24 +35,12 @@ export default function SupervisorHubScreen({
   onOpenNewStoreModal,
   onOpenMap
 }) {
-  // Dynamically resolve vendors assigned to this supervisor
+  // Vendedores autorizados: vienen calculados por rol desde App.jsx (sin fallback a "todos")
   const myVendors = useMemo(() => {
-    if (propAssignedVendors && propAssignedVendors.length > 0) {
-      return propAssignedVendors;
-    }
-    const allVendors = allUsers.filter((u) => u.role === "vendedor");
-    if (supervisorUser?.assignedVendors && Array.isArray(supervisorUser.assignedVendors) && supervisorUser.assignedVendors.length > 0) {
-      const matched = allVendors.filter((u) => supervisorUser.assignedVendors.includes(u.id));
-      if (matched.length > 0) return matched;
-    }
-    if (supervisorUser?.cedisId) {
-      const cedisVendors = allVendors.filter((u) => u.cedisId === supervisorUser.cedisId);
-      if (cedisVendors.length > 0) return cedisVendors;
-    }
-    return allVendors;
-  }, [propAssignedVendors, allUsers, supervisorUser]);
+    return Array.isArray(propAssignedVendors) ? propAssignedVendors : [];
+  }, [propAssignedVendors]);
 
-  const [selectedVendorId, setSelectedVendorId] = useState(() => myVendors[0]?.id || "USR-VEND-104");
+  const [selectedVendorId, setSelectedVendorId] = useState(() => myVendors[0]?.id || "");
   const [instructionText, setInstructionText] = useState("");
   const [sentAlert, setSentAlert] = useState(null);
 

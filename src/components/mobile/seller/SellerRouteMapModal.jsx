@@ -71,14 +71,8 @@ export default function SellerRouteMapModal({
     currentUser?.role === "propietario"
   );
 
-  // Interactive Map Role Override: allows toggling into Supervisor mode from any device / session
-  const [isSupervisorOverride, setIsSupervisorOverride] = useState(isSupervisorSession);
-
-  useEffect(() => {
-    setIsSupervisorOverride(isSupervisorSession);
-  }, [currentUser?.role, isSupervisorSession]);
-
-  const isSupervisor = isSupervisorOverride;
+  // El modo supervisión del mapa depende EXCLUSIVAMENTE del rol real del usuario (sin override manual)
+  const isSupervisor = isSupervisorSession;
 
   // Status Filter for Map Elements: 'all' | 'completed' | 'in_progress' | 'pending' | 'trucks'
   const [mapStoreStatusFilter, setMapStoreStatusFilter] = useState("all");
@@ -186,17 +180,8 @@ export default function SellerRouteMapModal({
       ];
     }
 
-    const defaultAgsVendors = [
-      { id: "USR-VEND-104", name: "Juan Pablo Morales", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" },
-      { id: "USR-VEND-106", name: "Carlos Estrada Rincón", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" },
-      { id: "USR-VEND-107", name: "María Elena Delgado", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial", avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80" },
-      { id: "USR-VEND-108", name: "Fernando Ruiz Esparza", routeId: "RUTA-04", routeName: "Ruta 04 - Ags Oriente & Morelos", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80" },
-      { id: "USR-VEND-109", name: "Brenda Morales Valdivia", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" }
-    ];
-
-    const vendors = (assignedVendors && assignedVendors.length > 0)
-      ? assignedVendors
-      : defaultAgsVendors;
+    // Solo los vendedores autorizados para el usuario actual (calculados en App.jsx por rol)
+    const vendors = Array.isArray(assignedVendors) ? assignedVendors : [];
 
     return vendors.map((vendor, index) => {
       // In supervisor mode, the physical device GPS belongs to the Supervisor SUV, not to any delivery truck
@@ -1427,40 +1412,7 @@ export default function SellerRouteMapModal({
               )}
             </div>
 
-            {/* Direct Map Vehicle Mode Switcher: NOT shown for supervisor */}
-            {!isSupervisor && (
-              <div className="self-center pointer-events-auto">
-                <div className="flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-md gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsSupervisorOverride(false)}
-                    className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                      !isSupervisor
-                        ? "bg-emerald-700 text-white shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                    title="Ver mapa en vista de Camión Repartidor"
-                  >
-                    <DeliveryVanIcon className="w-3.5 h-3" />
-                    <span>🚚 Modo Camión</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsSupervisorOverride(true)}
-                    className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                      isSupervisor
-                        ? "bg-amber-400 text-slate-950 border border-amber-500 shadow-xs"
-                        : "text-slate-700 hover:text-slate-900"
-                    }`}
-                    title="Ver mapa como Carrito de Supervisión con tu GPS en vivo"
-                  >
-                    <SupervisorCarIcon className="w-3.5 h-3" beaconColor="#f59e0b" />
-                    <span>🚗 Carrito Supervisor (GPS)</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* (Eliminado) Selector manual Camión/Supervisor: el modo lo define el rol del usuario */}
 
             {/* CEDIS Aguascalientes Banner Pill (Only for non-supervisor) */}
             {mapLocationMode === "ags_route" && !isSupervisor && (

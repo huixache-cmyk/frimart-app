@@ -166,34 +166,75 @@ export default function App() {
   const [selectedRouteFilter, setSelectedRouteFilter] = useState("all");
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
 
-  // Dynamic list of assigned vendors for the active user & CEDIS
+  // ==================================================
+  // ALCANCE DE DATOS POR ROL (fuente única de permisos)
+  // Regla: si no hay asignación válida, NO se muestra nada (falla cerrada).
+  //  - vendedor: solo él mismo y su ruta
+  //  - supervisor: solo sus vendedores asignados (o su CEDIS si no tiene lista)
+  //  - gerente_cedis: vendedores de su CEDIS
+  //  - director_comercial / propietario: todo
+  // ==================================================
+  const hasGlobalScope = currentUser?.role === "director_comercial" || currentUser?.role === "propietario";
+
   const assignedVendors = useMemo(() => {
+    if (!currentUser) return [];
     const allVendors = users.filter((u) => u.role === "vendedor");
-    if (!currentUser) return allVendors;
 
-    if (currentUser.role === "vendedor") {
-      const sameCedis = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
-      return sameCedis.length > 0 ? sameCedis : allVendors;
-    }
-
-    if (currentUser.role === "supervisor") {
-      if (currentUser.assignedVendors && Array.isArray(currentUser.assignedVendors) && currentUser.assignedVendors.length > 0) {
-        const filtered = allVendors.filter((u) => currentUser.assignedVendors.includes(u.id));
-        if (filtered.length > 0) return filtered;
+    switch (currentUser.role) {
+      case "vendedor": {
+        const self = allVendors.find((u) => u.id === currentUser.id);
+        return self ? [self] : [currentUser];
       }
-      if (currentUser.cedisId && currentUser.cedisId !== "ALL") {
-        const cedisVendors = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
-        if (cedisVendors.length > 0) return cedisVendors;
+      case "supervisor": {
+        if (Array.isArray(currentUser.assignedVendors) && currentUser.assignedVendors.length > 0) {
+          return allVendors.filter((u) => currentUser.assignedVendors.includes(u.id));
+        }
+        return currentUser.cedisId ? allVendors.filter((u) => u.cedisId === currentUser.cedisId) : [];
       }
-      return allVendors;
+      case "gerente_cedis":
+        return currentUser.cedisId ? allVendors.filter((u) => u.cedisId === currentUser.cedisId) : [];
+      case "director_comercial":
+      case "propietario":
+        return allVendors;
+      default:
+        return [];
     }
-
-    if (currentUser.cedisId && currentUser.cedisId !== "ALL") {
-      const cedisVendors = allVendors.filter((u) => u.cedisId === currentUser.cedisId);
-      if (cedisVendors.length > 0) return cedisVendors;
-    }
-    return allVendors;
   }, [users, currentUser]);
+
+  const scopedStores = useMemo(() => {
+    if (!currentUser) return [];
+    if (hasGlobalScope) return stores;
+    const vendorIds = new Set(assignedVendors.map((v) => v.id));
+    const routeIds = new Set(assignedVendors.map((v) => v.routeId).filter(Boolean));
+    return stores.filter((s) => routeIds.has(s.routeId) || (s.vendorId && vendorIds.has(s.vendorId)));
+  }, [stores, assignedVendors, currentUser, hasGlobalScope]);
+
+  const scopedFreezers = useMemo(() => {
+    if (!currentUser) return [];
+    if (hasGlobalScope) return freezers;
+    const storeIds = new Set(scopedStores.map((s) => s.id));
+    return freezers.filter((f) => storeIds.has(f.storeId));
+  }, [freezers, scopedStores, currentUser, hasGlobalScope]);
+
+  // Pestañas permitidas por rol (deben coincidir con SellerBottomNavigation)
+  const ROLE_TABS = {
+    vendedor: ["ruta", "pendientes", "escanear", "congeladores", "perfil"],
+    supervisor: ["supervision", "ruta", "escanear", "congeladores", "perfil"],
+    gerente_cedis: ["cedis", "ruta", "catalogo", "congeladores", "perfil"],
+    director_comercial: ["direccion", "cedis", "catalogo", "congeladores", "perfil"],
+    propietario: ["propietario_hub", "direccion", "ruta", "congeladores", "perfil", "cedis", "catalogo", "pendientes", "escanear"]
+  };
+  const canSeeTab = (tabId) => (ROLE_TABS[currentUser?.role] || []).includes(tabId);
+
+  // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecían al usuario anterior
+  useEffect(() => {
+    if (!currentUser) return;
+    setSelectedRouteFilter(currentUser.role === "vendedor" ? (currentUser.routeId || "all") : "all");
+    setSelectedStore(null);
+    setIsStoreDetailOpen(false);
+    setIsRouteMapOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   const handleAddNewStore = (newStoreData, newFreezerData) => {
     if (newStoreData) {
@@ -476,7 +517,7 @@ export default function App() {
   };
 
   // Pending stores count for badge
-  const pendingStoresCount = stores.filter((s) => s.status === "pending").length;
+  const pendingStoresCount = scopedStores.filter((s) => s.status === "pending").length;
 
   // If session is locked or user not logged in, display the PIN Auth screen
   if (isLocked || !currentUser) {
@@ -511,7 +552,7 @@ export default function App() {
         {/* Dynamic Screens Based on Active Tab and Role */}
         <main className="flex-1">
           {/* 1. MODO PROPIETARIO HUB */}
-          {activeTab === "propietario_hub" && (
+          {activeTab === "propietario_hub" && canSeeTab("propietario_hub") && (
             <OwnerMasterHubScreen
               ownerUser={currentUser}
               users={users}
@@ -523,13 +564,13 @@ export default function App() {
           )}
 
           {/* 2. SUPERVISOR HUB */}
-          {activeTab === "supervision" && (
+          {activeTab === "supervision" && canSeeTab("supervision") && (
             <SupervisorHubScreen
               supervisorUser={currentUser}
               allUsers={users}
               assignedVendors={assignedVendors}
-              stores={stores}
-              freezers={freezers}
+              stores={scopedStores}
+              freezers={scopedFreezers}
               onInspectFreezer={(fId) => {
                 setSelectedFreezerId(fId);
                 setActiveTab("congeladores");
@@ -544,16 +585,16 @@ export default function App() {
           )}
 
           {/* 3. GERENTE DE CEDIS */}
-          {activeTab === "cedis" && (
+          {activeTab === "cedis" && canSeeTab("cedis") && (
             <CedisManagerScreen
               managerUser={currentUser}
-              stores={stores}
-              freezers={freezers}
+              stores={scopedStores}
+              freezers={scopedFreezers}
             />
           )}
 
           {/* 4. DIRECTOR COMERCIAL */}
-          {activeTab === "direccion" && (
+          {activeTab === "direccion" && canSeeTab("direccion") && (
             <CommercialDirectorScreen
               directorUser={currentUser}
               onSelectCedis={() => setActiveTab("cedis")}
@@ -561,20 +602,20 @@ export default function App() {
           )}
 
           {/* 5. VENDEDOR: PENDIENTES & METAS */}
-          {activeTab === "pendientes" && (
+          {activeTab === "pendientes" && canSeeTab("pendientes") && (
             <SellerPendingSalesScreen
               seller={seller}
-              stores={stores}
-              freezers={freezers}
+              stores={scopedStores}
+              freezers={scopedFreezers}
               pendientes={pendientes}
-              salesLog={salesLog}
+              salesLog={currentUser.role === "vendedor" ? salesLog.filter((s) => s.vendorId === currentUser.id) : salesLog}
               onTogglePendiente={handleTogglePendiente}
               onOpenStoreDetail={(store) => {
                 setSelectedStore(store);
                 setIsStoreDetailOpen(true);
               }}
               onOpenQuickSale={() => {
-                setQuickSaleStore(stores[0]);
+                setQuickSaleStore(scopedStores[0] || null);
                 setIsQuickSaleOpen(true);
               }}
               onOpenMap={handleOpenRouteMap}
@@ -586,13 +627,13 @@ export default function App() {
           )}
 
           {/* VENDEDOR: RUTA */}
-          {activeTab === "ruta" && (
+          {activeTab === "ruta" && canSeeTab("ruta") && (
             <SellerRouteScreen
               seller={seller}
               currentUser={currentUser}
               assignedVendors={assignedVendors}
-              stores={stores}
-              freezers={freezers}
+              stores={scopedStores}
+              freezers={scopedFreezers}
               activeTargetStoreId={activeTargetStoreId}
               onSetActiveTargetStore={handleSetActiveTargetStore}
               onSelectStore={(store) => {
@@ -604,7 +645,7 @@ export default function App() {
                 setActiveTab("congeladores");
               }}
               onOpenQuickSale={() => {
-                setQuickSaleStore(stores[0]);
+                setQuickSaleStore(scopedStores[0] || null);
                 setIsQuickSaleOpen(true);
               }}
               onOpenScanner={() => setIsScannerOpen(true)}
@@ -615,10 +656,10 @@ export default function App() {
           )}
 
           {/* CONGELADORES & PLANOGRAMAS */}
-          {activeTab === "congeladores" && (
+          {activeTab === "congeladores" && canSeeTab("congeladores") && (
             <SellerFreezersScreen
-              freezers={freezers}
-              stores={stores}
+              freezers={scopedFreezers}
+              stores={scopedStores}
               selectedFreezerId={selectedFreezerId}
               onSelectFreezerId={setSelectedFreezerId}
               onUpdateSlot={handleUpdateStorePlanogram}
@@ -627,7 +668,7 @@ export default function App() {
           )}
 
           {/* ESCANEAR QR */}
-          {activeTab === "escanear" && (
+          {activeTab === "escanear" && canSeeTab("escanear") && (
             <SellerScannerScreen
               onCodeDetected={handleCodeDetected}
               onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
@@ -636,7 +677,7 @@ export default function App() {
           )}
 
           {/* CATÁLOGO DE PRODUCTOS */}
-          {activeTab === "catalogo" && (
+          {activeTab === "catalogo" && canSeeTab("catalogo") && (
             <SellerCatalogScreen
               categories={CATEGORIES}
               products={INITIAL_PRODUCTS}
@@ -648,17 +689,17 @@ export default function App() {
           )}
 
           {/* PERFIL (VENDEDOR & SUPERVISOR) */}
-          {activeTab === "perfil" && (
+          {activeTab === "perfil" && canSeeTab("perfil") && (
             <SellerProfileScreen
               currentUser={currentUser}
               seller={seller}
-              storesCount={stores.length}
-              freezersCount={freezers.length}
+              storesCount={scopedStores.length}
+              freezersCount={scopedFreezers.length}
               onUpdateSeller={setSeller}
               onLockSession={handleLockSession}
               onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
               onAddNewStore={handleAddNewStore}
-              stores={stores}
+              stores={scopedStores}
             />
           )}
         </main>
@@ -735,7 +776,7 @@ export default function App() {
           isOpen={isStoreDetailOpen}
           onClose={() => setIsStoreDetailOpen(false)}
           store={selectedStore}
-          freezers={freezers}
+          freezers={scopedFreezers}
           sellerLocation={seller.currentLocation}
           onStartAudit={(freezerId) => {
             setSelectedFreezerId(freezerId);
@@ -752,11 +793,11 @@ export default function App() {
         <SellerRouteMapModal
           isOpen={isRouteMapOpen}
           onClose={() => setIsRouteMapOpen(false)}
-          stores={stores}
+          stores={scopedStores}
           seller={seller}
           currentUser={currentUser}
           assignedVendors={assignedVendors}
-          freezers={freezers}
+          freezers={scopedFreezers}
           initialStoreId={routeMapTargetStoreId || activeTargetStoreId}
           activeTargetStoreId={activeTargetStoreId}
           onSetActiveTargetStore={(storeId) => handleSetActiveTargetStore(storeId, false)}
@@ -774,7 +815,7 @@ export default function App() {
         <QuickSaleSheet
           isOpen={isQuickSaleOpen}
           onClose={() => setIsQuickSaleOpen(false)}
-          stores={stores}
+          stores={scopedStores}
           initialStore={quickSaleStore}
           onSaveSale={handleSaveQuickSale}
         />
