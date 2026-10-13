@@ -19,6 +19,7 @@ import PlanogramViewer from "../../PlanogramViewer";
 import QRBatchGenerator from "../../QRBatchGenerator";
 import SupervisorConsole from "../../SupervisorConsole";
 import AdminCatalogManager from "../../AdminCatalogManager";
+import AppSelect from "../../ui/AppSelect";
 
 export default function OperationsHubScreen({
   seller,
@@ -144,7 +145,7 @@ export default function OperationsHubScreen({
                   {currentFreezer?.storeName || "Congelador La Huerta"} ({currentFreezer?.qrCode})
                 </span>
               </div>
-              <select
+              <AppSelect
                 value={selectedFreezerId}
                 onChange={(e) => onSelectFreezerId(e.target.value)}
                 className="text-xs bg-[#f8fafc] border border-slate-200 rounded-lg p-1 text-slate-700 outline-none"
@@ -154,7 +155,7 @@ export default function OperationsHubScreen({
                     {f.qrCode} - {f.storeName}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
 
             <PlanogramViewer 

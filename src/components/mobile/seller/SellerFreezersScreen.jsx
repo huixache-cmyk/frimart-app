@@ -28,7 +28,8 @@ export default function SellerFreezersScreen({
   selectedFreezerId,
   onSelectFreezerId,
   onUpdateSlot,
-  onSaveAudit
+  onSaveAudit,
+  onPlanogramChange
 }) {
   const currentFreezer = freezers.find((f) => f.id === selectedFreezerId) || freezers[0];
   const currentStore = stores.find((s) => s.id === currentFreezer?.storeId) || {
@@ -182,6 +183,7 @@ export default function SellerFreezersScreen({
             onSaveAudit={(fId, auditData) => {
               if (onSaveAudit) onSaveAudit(fId, auditData);
             }}
+            onPlanogramChange={onPlanogramChange}
           />
         </div>
       ) : (

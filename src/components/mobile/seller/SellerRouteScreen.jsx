@@ -18,6 +18,7 @@ import {
   Truck,
   Layers
 } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
 import DeliveryVanIcon from "../../icons/DeliveryVanIcon";
@@ -38,6 +39,7 @@ export default function SellerRouteScreen({
   onOpenQuickSale,
   onOpenScanner,
   onOpenMap,
+  onEnrollFreezer,
   selectedRouteFilter = "all",
   onSelectRouteFilter
 }) {
@@ -709,6 +711,16 @@ export default function SellerRouteScreen({
                     <Snowflake className="w-3 h-3 text-blue-600" />
                     <span>-18.4°C</span>
                   </div>
+                ) : onEnrollFreezer ? (
+                  <button
+                    type="button"
+                    onClick={() => onEnrollFreezer(store)}
+                    className="tap-effect flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-semibold shadow-2xs cursor-pointer hover:bg-amber-100"
+                    title="Registrar congelador en Auditar QR"
+                  >
+                    <QrCode className="w-3 h-3" />
+                    <span>Sin congelador · Registrar</span>
+                  </button>
                 ) : (
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-slate-500 border border-slate-200/90 text-[11px] shadow-2xs">
                     <span>Sin congelador</span>

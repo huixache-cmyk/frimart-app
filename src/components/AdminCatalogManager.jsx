@@ -20,6 +20,7 @@ import {
   Calendar
 } from "lucide-react";
 import { LA_HUERTA_SKUS } from "../data/mockData";
+import AppSelect from "./ui/AppSelect";
 
 const DEFAULT_SELLERS = [
   {
@@ -949,23 +950,23 @@ export default function AdminCatalogManager({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">CEDIS Asignado:</label>
-                      <select
+                      <AppSelect
                         value={formData.cedis || ""}
                         onChange={(e) => setFormData({ ...formData, cedis: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:border-sky-500"
                       >
                         {cedisList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                      </select>
+                      </AppSelect>
                     </div>
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">Ruta Asignada:</label>
-                      <select
+                      <AppSelect
                         value={formData.routeName || ""}
                         onChange={(e) => setFormData({ ...formData, routeName: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:border-sky-500"
                       >
                         {routesList.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                      </select>
+                      </AppSelect>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
@@ -1020,7 +1021,7 @@ export default function AdminCatalogManager({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">Cadena Comercial:</label>
-                      <select
+                      <AppSelect
                         value={formData.chain || "OXXO"}
                         onChange={(e) => setFormData({ ...formData, chain: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:border-sky-500"
@@ -1030,7 +1031,7 @@ export default function AdminCatalogManager({
                         <option value="Walmart">Walmart / Bodega Aurrerá</option>
                         <option value="Willys">Super Willys</option>
                         <option value="Independiente">Abarrotes Independiente</option>
-                      </select>
+                      </AppSelect>
                     </div>
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">Código de Tienda (CR/POS):</label>
@@ -1105,13 +1106,13 @@ export default function AdminCatalogManager({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">CEDIS:</label>
-                      <select
+                      <AppSelect
                         value={formData.cedis || ""}
                         onChange={(e) => setFormData({ ...formData, cedis: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:bg-white focus:outline-none focus:border-sky-500"
                       >
                         {cedisList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                      </select>
+                      </AppSelect>
                     </div>
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">Vendedor Asignado:</label>
@@ -1279,7 +1280,7 @@ export default function AdminCatalogManager({
                     </div>
                     <div>
                       <label className="block text-slate-700 font-semibold mb-1">Número de Charolas:</label>
-                      <select
+                      <AppSelect
                         value={formData.shelvesCount || 5}
                         onChange={(e) => setFormData({ ...formData, shelvesCount: Number(e.target.value) })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold focus:bg-white focus:outline-none focus:border-sky-500"
@@ -1288,7 +1289,7 @@ export default function AdminCatalogManager({
                         <option value={4}>4 Charolas</option>
                         <option value={5}>5 Charolas (Estándar OXXO)</option>
                         <option value={6}>6 Charolas</option>
-                      </select>
+                      </AppSelect>
                     </div>
                   </div>
                 </>

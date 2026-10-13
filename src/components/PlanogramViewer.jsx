@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   Layers, 
   Search, 
@@ -45,7 +45,8 @@ export default function PlanogramViewer({
   freezer, 
   store, 
   onBackToRoute, 
-  onSaveAudit 
+  onSaveAudit,
+  onPlanogramChange
 }) {
   // Detect or determine initial model type
   // Automatically identify fixed model type from freezer record
@@ -111,6 +112,20 @@ export default function PlanogramViewer({
     }
   }, [freezer]);
 
+  // Persistencia inmediata: cada edición del usuario se envía al estado global
+  const dirtyRef = useRef(false);
+  const updateMetal = (fn) => { dirtyRef.current = true; setMetalPlanogram(fn); };
+  const updateImbera = (fn) => { dirtyRef.current = true; setImberaPlanogram(fn); };
+
+  useEffect(() => {
+    if (!dirtyRef.current || !freezer?.id) return;
+    dirtyRef.current = false;
+    onPlanogramChange?.(freezer.id, {
+      metalPlanogram: activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR ? metalPlanogram : null,
+      imberaPlanogram: activeModelType === FREEZER_MODEL_TYPES.GLASS_IMBERA ? imberaPlanogram : null
+    });
+  }, [metalPlanogram, imberaPlanogram]);
+
   // Facing Edit Modal state
   const [editingFacingModal, setEditingFacingModal] = useState({
     isOpen: false,
@@ -142,7 +157,7 @@ export default function PlanogramViewer({
     const { shelfNumber, shelfType } = editingFacingModal;
 
     if (activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR) {
-      setMetalPlanogram(prev => {
+      updateMetal(prev => {
         if (shelfType === "door") {
           return {
             ...prev,
@@ -169,7 +184,7 @@ export default function PlanogramViewer({
       });
     } else {
       // Imbera Glass model
-      setImberaPlanogram(prev => ({
+      updateImbera(prev => ({
         shelves: prev.shelves.map(shelf => {
           if (shelf.shelfNumber !== shelfNumber) return shelf;
           return {
@@ -186,7 +201,7 @@ export default function PlanogramViewer({
     const { shelfNumber, shelfType } = editingFacingModal;
 
     if (activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR) {
-      setMetalPlanogram(prev => {
+      updateMetal(prev => {
         if (shelfType === "door") {
           return {
             ...prev,
@@ -212,7 +227,7 @@ export default function PlanogramViewer({
         }
       });
     } else {
-      setImberaPlanogram(prev => ({
+      updateImbera(prev => ({
         shelves: prev.shelves.map(shelf => {
           if (shelf.shelfNumber !== shelfNumber) return shelf;
           return {
@@ -227,7 +242,7 @@ export default function PlanogramViewer({
   // Direct Stepper increment/decrement on facing
   const handleQuickFacingChange = (shelfNumber, facingIndex, delta, shelfType) => {
     if (activeModelType === FREEZER_MODEL_TYPES.METAL_DOOR) {
-      setMetalPlanogram(prev => {
+      updateMetal(prev => {
         const targetListKey = shelfType === "door" ? "doorShelves" : "cabinetShelves";
         return {
           ...prev,
@@ -249,7 +264,7 @@ export default function PlanogramViewer({
         };
       });
     } else {
-      setImberaPlanogram(prev => ({
+      updateImbera(prev => ({
         shelves: prev.shelves.map(shelf => {
           if (shelf.shelfNumber !== shelfNumber) return shelf;
           return {

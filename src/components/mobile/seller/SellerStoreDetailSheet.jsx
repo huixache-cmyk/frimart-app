@@ -12,7 +12,8 @@ import {
   Layers,
   ChevronRight,
   PlusCircle,
-  Compass
+  Compass,
+  QrCode
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 
@@ -24,7 +25,8 @@ export default function SellerStoreDetailSheet({
   sellerLocation,
   onStartAudit,
   onOpenQuickSale,
-  onOpenMap
+  onOpenMap,
+  onEnrollFreezer
 }) {
   if (!isOpen || !store) return null;
 
@@ -115,8 +117,18 @@ export default function SellerStoreDetailSheet({
             </div>
           </div>
         ) : (
-          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-            ⚠️ Esta tienda no tiene congelador enrolado aún.
+          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-2.5">
+            <p>⚠️ Esta tienda no tiene congelador enrolado aún.</p>
+            {onEnrollFreezer && (
+              <button
+                type="button"
+                onClick={() => onEnrollFreezer(store)}
+                className="tap-effect w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Registrar congelador en Auditar QR</span>
+              </button>
+            )}
           </div>
         )}
 

@@ -22,6 +22,7 @@ import {
   Truck
 } from "lucide-react";
 import { ROLES, MASTER_CEDIS } from "../../data/authRolesData";
+import AppSelect from "../ui/AppSelect";
 
 export default function OwnerAccessAdminModal({
   isOpen,
@@ -344,7 +345,7 @@ export default function OwnerAccessAdminModal({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 block mb-1">Rol en la Empresa</label>
-                  <select
+                  <AppSelect
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
@@ -354,7 +355,7 @@ export default function OwnerAccessAdminModal({
                     <option value="gerente_cedis">3. Gerente de CEDIS</option>
                     <option value="director_comercial">4. Director Comercial (Todos los CEDIS)</option>
                     <option value="propietario">5. Modo Propietario (Owner / Master)</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>
@@ -372,7 +373,7 @@ export default function OwnerAccessAdminModal({
 
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 block mb-1">CEDIS Asignado</label>
-                  <select
+                  <AppSelect
                     value={newUser.cedisId}
                     onChange={(e) => setNewUser({ ...newUser, cedisId: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
@@ -380,7 +381,7 @@ export default function OwnerAccessAdminModal({
                     {MASTER_CEDIS.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 

@@ -22,6 +22,7 @@ import {
   Radio
 } from "lucide-react";
 import QRScannerModal from "../QRScannerModal";
+import AppSelect from "../ui/AppSelect";
 
 export default function NewStoreOnboardingModal({
   isOpen,
@@ -395,7 +396,7 @@ export default function NewStoreOnboardingModal({
                 <label className="text-[11px] font-bold text-slate-600 block mb-1">
                   CEDIS (Detectado x GPS) *
                 </label>
-                <select
+                <AppSelect
                   value={cedis}
                   onChange={(e) => setCedis(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
@@ -404,7 +405,7 @@ export default function NewStoreOnboardingModal({
                   <option value="CEDIS Cancún (01)">CEDIS Cancún (01)</option>
                   <option value="CEDIS Mérida Periférico">CEDIS Mérida Periférico</option>
                   <option value="CEDIS Playa del Carmen">CEDIS Playa del Carmen</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Asignar Número de Ruta */}
@@ -412,7 +413,7 @@ export default function NewStoreOnboardingModal({
                 <label className="text-[11px] font-bold text-slate-600 block mb-1">
                   Número de Ruta *
                 </label>
-                <select
+                <AppSelect
                   value={routeNumber}
                   onChange={(e) => setRouteNumber(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
@@ -421,7 +422,7 @@ export default function NewStoreOnboardingModal({
                   <option value="Ruta 02 - Ags Centro & San Marcos">Ruta 02 - Ags Centro & San Marcos</option>
                   <option value="Ruta 03 - Ags Sur & Cd. Industrial">Ruta 03 - Ags Sur & Cd. Industrial</option>
                   <option value="Ruta 04 - Especial Foránea">Ruta 04 - Especial Foránea</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Vendedor Asignado */}
@@ -429,7 +430,7 @@ export default function NewStoreOnboardingModal({
                 <label className="text-[11px] font-bold text-slate-600 block mb-1">
                   Vendedor Asignado *
                 </label>
-                <select
+                <AppSelect
                   value={assignedSeller}
                   onChange={(e) => setAssignedSeller(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
@@ -437,7 +438,7 @@ export default function NewStoreOnboardingModal({
                   <option value="Juan Pablo Morales (Ruta 01)">Juan Pablo Morales (R01)</option>
                   <option value="Carlos Estrada Rincón (Ruta 02)">Carlos Estrada Rincón (R02)</option>
                   <option value="María Elena Delgado (Ruta 03)">María Elena Delgado (R03)</option>
-                </select>
+                </AppSelect>
               </div>
             </div>
           </div>
@@ -454,7 +455,7 @@ export default function NewStoreOnboardingModal({
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Clase / Modelo de Congelador Asignado
               </label>
-              <select
+              <AppSelect
                 value={freezerClass}
                 onChange={(e) => setFreezerClass(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
@@ -465,7 +466,7 @@ export default function NewStoreOnboardingModal({
                 <option value="Horizontal Tapa Vidrio Curvo Deslizable (Frimart HD-200)">Horizontal Tapa Vidrio Curvo Deslizable (Frimart HD-200)</option>
                 <option value="Isla Panorámica Autoservicio 2.5m (La Huerta Master)">Isla Panorámica Autoservicio 2.5m (La Huerta Master)</option>
                 <option value="Sin Congelador">Sin Congelador (Solo Producto)</option>
-              </select>
+              </AppSelect>
             </div>
 
             {freezerClass !== "Sin Congelador" && (
@@ -513,7 +514,7 @@ export default function NewStoreOnboardingModal({
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
                       Temperatura Objetivo: {targetTemp}°C
                     </label>
-                    <select
+                    <AppSelect
                       value={targetTemp}
                       onChange={(e) => setTargetTemp(Number(e.target.value))}
                       className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
@@ -522,7 +523,7 @@ export default function NewStoreOnboardingModal({
                       <option value={-19.5}>-19.5°C (Recomendado Frimart)</option>
                       <option value={-22.0}>-22.0°C (Pulpa & Frutas)</option>
                       <option value={-25.0}>-25.0°C (IQF La Huerta)</option>
-                    </select>
+                    </AppSelect>
                   </div>
 
                   {/* Capacidad en Cajas */}
@@ -530,7 +531,7 @@ export default function NewStoreOnboardingModal({
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
                       Capacidad Asignada (Cajas)
                     </label>
-                    <select
+                    <AppSelect
                       value={boxCapacity}
                       onChange={(e) => setBoxCapacity(Number(e.target.value))}
                       className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
@@ -539,7 +540,7 @@ export default function NewStoreOnboardingModal({
                       <option value={24}>24 Cajas (~240 piezas)</option>
                       <option value={36}>36 Cajas (~360 piezas)</option>
                       <option value={48}>48 Cajas (~480 piezas)</option>
-                    </select>
+                    </AppSelect>
                   </div>
 
                   {/* Planograma Asignado */}
@@ -547,7 +548,7 @@ export default function NewStoreOnboardingModal({
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
                       Planograma Maestro La Huerta Asignado
                     </label>
-                    <select
+                    <AppSelect
                       value={planogramModel}
                       onChange={(e) => setPlanogramModel(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
@@ -555,7 +556,7 @@ export default function NewStoreOnboardingModal({
                       <option value="Planograma A1 - Verduras & Frutas IQF La Huerta">Planograma A1 - Verduras & Frutas IQF La Huerta</option>
                       <option value="Planograma B2 - 50% La Huerta / 50% Helados & Paletas">Planograma B2 - 50% La Huerta / 50% Helados & Paletas</option>
                       <option value="Planograma C3 - Mixto Carnicerías & Tiendas Detalle">Planograma C3 - Mixto Carnicerías & Tiendas Detalle</option>
-                    </select>
+                    </AppSelect>
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   QrCode, 
   MapPin, 
@@ -26,6 +26,7 @@ import {
   createDefaultMetalDoorPlanogram, 
   createDefaultImberaPlanogram 
 } from "../data/planogramModels";
+import AppSelect from "./ui/AppSelect";
 
 export default function FreezerOnboardingModal({ 
   isOpen, 
@@ -35,15 +36,15 @@ export default function FreezerOnboardingModal({
   currentGps = { lat: 21.1482, lng: -86.8398, accuracy: 8 }, 
   stores = [], 
   onSaveNewFreezer,
-  onSave
+  onSave,
+  initialStoreId
 }) {
-  if (!isOpen) return null;
-
   const activeCode = scannedCode || qrCode || "FRM-0520";
   const saveCallback = onSave || onSaveNewFreezer;
+  const storeHasNoFreezer = (s) => !(s.freezerCount || s.freezersCount);
 
   // Form states
-  const [selectedStoreId, setSelectedStoreId] = useState(stores.find(s => s.freezersCount === 0)?.id || stores[0]?.id || "custom");
+  const [selectedStoreId, setSelectedStoreId] = useState(initialStoreId || stores.find(storeHasNoFreezer)?.id || stores[0]?.id || "custom");
   const [customStoreName, setCustomStoreName] = useState("");
   const [customStoreAddress, setCustomStoreAddress] = useState("");
   
@@ -61,6 +62,13 @@ export default function FreezerOnboardingModal({
     cleanliness: "excelente" // 'excelente' | 'bueno' | 'regular'
   });
   const [photoEvidence, setPhotoEvidence] = useState("https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80");
+
+  // Al abrir con otra tienda preseleccionada, sincronizarla
+  useEffect(() => {
+    if (isOpen && initialStoreId) setSelectedStoreId(initialStoreId);
+  }, [isOpen, initialStoreId]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -167,7 +175,7 @@ export default function FreezerOnboardingModal({
           <div className="flex items-center gap-2">
             <span className="text-slate-400 text-[11px] font-mono">Precisión: ±{currentGps.accuracy}m</span>
             <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold font-mono border border-emerald-200">
-              FOLIO: {scannedCode}
+              FOLIO: {activeCode}
             </span>
           </div>
         </div>
@@ -178,18 +186,18 @@ export default function FreezerOnboardingModal({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
               1. Tienda / Punto de Venta Asignado
             </label>
-            <select
+            <AppSelect
               value={selectedStoreId}
               onChange={(e) => setSelectedStoreId(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-sky-500 transition cursor-pointer font-medium"
             >
               {stores.map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.address}) - {s.freezersCount > 0 ? `${s.freezersCount} congelador` : "Sin congelador"}
+                  {s.name} ({s.address}) - {storeHasNoFreezer(s) ? "Sin congelador" : `${s.freezerCount || s.freezersCount} congelador`}
                 </option>
               ))}
               <option value="custom">+ Registrar Tienda Nueva en esta ubicación GPS</option>
-            </select>
+            </AppSelect>
 
             {selectedStoreId === "custom" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

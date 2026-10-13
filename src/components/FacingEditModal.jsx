@@ -17,7 +17,14 @@ import {
 } from "lucide-react";
 import { PLANOGRAM_PRODUCTS, getProductById } from "../data/planogramModels";
 
-export default function FacingEditModal({
+export default function FacingEditModal(props) {
+  const { isOpen, facingData, shelfTitle } = props;
+  if (!isOpen || !facingData) return null;
+  // Remontar por frente para que el estado local arranque con los datos correctos
+  return <FacingEditModalContent key={`${shelfTitle}-${facingData.facingIndex}-${facingData.skuId}`} {...props} />;
+}
+
+function FacingEditModalContent({
   isOpen,
   onClose,
   facingData,
@@ -26,8 +33,6 @@ export default function FacingEditModal({
   onSaveFacing,
   onReplicateToShelf
 }) {
-  if (!isOpen || !facingData) return null;
-
   const currentSku = getProductById(facingData.skuId);
 
   // Local state for editing

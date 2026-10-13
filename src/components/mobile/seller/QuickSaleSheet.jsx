@@ -9,6 +9,7 @@ import {
   TrendingUp 
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import AppSelect from "../../ui/AppSelect";
 
 export default function QuickSaleSheet({
   isOpen,
@@ -79,7 +80,7 @@ export default function QuickSaleSheet({
             <label className="text-[11px] font-bold text-slate-700 block mb-1">
               Tienda / Punto de Venta
             </label>
-            <select
+            <AppSelect
               value={selectedStoreId}
               onChange={(e) => setSelectedStoreId(e.target.value)}
               className="w-full p-2.5 rounded-xl bg-[#f8fafc] border border-slate-200 text-xs font-semibold text-slate-800 outline-none focus:border-[#059669]"
@@ -89,7 +90,7 @@ export default function QuickSaleSheet({
                   {s.name} ({s.zone || "Cancún"})
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </div>
 
           {/* Amount & Boxes */}

@@ -10,14 +10,177 @@ import {
   Layers, 
   RefreshCw, 
   AlertCircle,
-  Snowflake
+  Snowflake,
+  DoorOpen,
+  X
 } from "lucide-react";
 import jsQR from "jsqr";
+import AppSelect from "../../ui/AppSelect";
+import { FREEZER_MODEL_TYPES } from "../../../data/planogramModels";
+
+function detectModelType(f) {
+  if (!f) return FREEZER_MODEL_TYPES.GLASS_IMBERA;
+  if (f.modelType) return f.modelType;
+  const m = (f.model || "").toLowerCase();
+  return m.includes("metal") || m.includes("cofre") || m.includes("solida")
+    ? FREEZER_MODEL_TYPES.METAL_DOOR
+    : FREEZER_MODEL_TYPES.GLASS_IMBERA;
+}
+
+function FreezerTypeChanger({ freezers, onChangeFreezerType }) {
+  const [freezerId, setFreezerId] = useState(freezers[0]?.id || "");
+  const freezer = freezers.find((f) => f.id === freezerId);
+  const currentType = detectModelType(freezer);
+  const [modelType, setModelType] = useState(currentType);
+  const [shelves, setShelves] = useState(5);
+  const [doorShelves, setDoorShelves] = useState(5);
+  const [facings, setFacings] = useState(5);
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    setModelType(currentType);
+    setShelves(freezer?.shelvesCount || 5);
+    setDoorShelves(freezer?.doorShelvesCount || 5);
+    setFacings(freezer?.facingsPerShelf || 5);
+  }, [freezerId]);
+
+  if (!freezers.length) return null;
+  const isMetal = modelType === FREEZER_MODEL_TYPES.METAL_DOOR;
+  const shelfOptions = isMetal ? [5, 6] : [4, 5];
+
+  const pill = (active) =>
+    `flex-1 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+      active ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-700 border-slate-200"
+    }`;
+
+  const apply = () => {
+    if (!freezer) return;
+    onChangeFreezerType(freezer.id, { modelType, shelvesCount: shelves, doorShelvesCount: doorShelves, facingsPerShelf: facings });
+    setConfirming(false);
+  };
+
+  return (
+    <div className="mx-4 p-4 rounded-[22px] bg-white border border-slate-200 shadow-sm space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center">
+          <RefreshCw className="w-4 h-4" />
+        </div>
+        <div>
+          <h2 className="font-section-title text-[#0f172a]">Cambiar tipo de congelador</h2>
+          <p className="text-[11px] text-slate-500">Solo supervisor o superior</p>
+        </div>
+      </div>
+
+      <AppSelect
+        value={freezerId}
+        onChange={(e) => setFreezerId(e.target.value)}
+        title="Congelador"
+        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white"
+      >
+        {freezers.map((f) => (
+          <option key={f.id} value={f.id}>{`${f.qrCode} · ${f.storeName || "Sin tienda"}`}</option>
+        ))}
+      </AppSelect>
+
+      {freezer && (
+        <p className="text-[11px] text-slate-500">
+          Tipo actual:{" "}
+          <strong className="text-slate-800">
+            {currentType === FREEZER_MODEL_TYPES.METAL_DOOR ? "Puerta Metálica" : "Puerta de Vidrio (Imbera)"}
+          </strong>
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => { setModelType(FREEZER_MODEL_TYPES.GLASS_IMBERA); setShelves(5); setFacings(5); }}
+          className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition ${
+            !isMetal ? "bg-sky-50 border-sky-500 ring-2 ring-sky-500/20" : "bg-white border-slate-200"
+          }`}
+        >
+          <Snowflake className="w-4 h-4 text-sky-600 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-900 leading-tight">Puerta de Vidrio (Imbera)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => { setModelType(FREEZER_MODEL_TYPES.METAL_DOOR); setShelves(5); setDoorShelves(5); }}
+          className={`p-2.5 rounded-xl border text-left flex items-center gap-2 cursor-pointer transition ${
+            isMetal ? "bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20" : "bg-white border-slate-200"
+          }`}
+        >
+          <DoorOpen className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="text-[11px] font-bold text-slate-900 leading-tight">Puerta Metálica</span>
+        </button>
+      </div>
+
+      <div className="space-y-2 text-[11px]">
+        <div>
+          <span className="font-bold text-slate-600 block mb-1">{isMetal ? "Charolas del gabinete" : "Charolas"}</span>
+          <div className="flex gap-2">
+            {shelfOptions.map((n) => (
+              <button key={n} type="button" onClick={() => setShelves(n)} className={pill(shelves === n)}>{n} charolas</button>
+            ))}
+          </div>
+        </div>
+        {isMetal ? (
+          <div>
+            <span className="font-bold text-slate-600 block mb-1">Repisas de contrapuerta</span>
+            <div className="flex gap-2">
+              {[5, 6].map((n) => (
+                <button key={n} type="button" onClick={() => setDoorShelves(n)} className={pill(doorShelves === n)}>{n} repisas</button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <span className="font-bold text-slate-600 block mb-1">Frentes por charola</span>
+            <div className="flex gap-2">
+              {[4, 5].map((n) => (
+                <button key={n} type="button" onClick={() => setFacings(n)} className={pill(facings === n)}>{n} frentes</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {confirming ? (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+          <p className="text-[11px] text-amber-900">
+            El planograma de <strong>{freezer?.qrCode}</strong> se reiniciará con el formato de{" "}
+            <strong>{isMetal ? "Puerta Metálica" : "Puerta de Vidrio (Imbera)"}</strong>. ¿Continuar?
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setConfirming(false)} className="flex-1 py-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer">
+              Cancelar
+            </button>
+            <button type="button" onClick={apply} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer">
+              Sí, cambiar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="tap-effect w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer"
+        >
+          Guardar tipo de congelador
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function SellerScannerScreen({
   onCodeDetected,
   onOpenBatchGenerator,
-  existingCodes = ["FRM-0089", "FRM-0142", "FRM-0034"]
+  existingCodes = ["FRM-0089", "FRM-0142", "FRM-0034"],
+  pendingEnrollStore = null,
+  onCancelEnroll,
+  freezers = [],
+  canChangeFreezerType = false,
+  onChangeFreezerType
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -166,6 +329,25 @@ export default function SellerScannerScreen({
         </p>
       </div>
 
+      {pendingEnrollStore && (
+        <div className="mx-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5">
+          <QrCode className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 text-xs text-emerald-900">
+            <strong className="block">Registrando congelador para:</strong>
+            <span className="block truncate">{pendingEnrollStore.name}</span>
+            <span className="text-[10px] text-emerald-700">Escanea el sticker para capturar ubicación GPS y tipo de congelador.</span>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelEnroll}
+            className="w-7 h-7 rounded-full bg-white border border-emerald-200 flex items-center justify-center text-emerald-700 cursor-pointer shrink-0"
+            aria-label="Cancelar registro"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Camera Live Viewfinder Box */}
       <div className="px-4">
         <div className="relative aspect-square max-h-[300px] w-full rounded-[28px] bg-slate-950 overflow-hidden flex flex-col items-center justify-center border-4 border-slate-900 shadow-xl">
@@ -281,6 +463,10 @@ export default function SellerScannerScreen({
           </button>
         </div>
       </div>
+
+      {canChangeFreezerType && (
+        <FreezerTypeChanger freezers={freezers} onChangeFreezerType={onChangeFreezerType} />
+      )}
     </div>
   );
 }

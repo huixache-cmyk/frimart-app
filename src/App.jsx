@@ -2,6 +2,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import MobileDeviceFrame from "./components/mobile/MobileDeviceFrame";
 import SellerMobileHeader from "./components/mobile/seller/SellerMobileHeader";
 import SellerBottomNavigation from "./components/mobile/seller/SellerBottomNavigation";
+import {
+  FREEZER_MODEL_TYPES,
+  FREEZER_MODEL_CONFIGS,
+  createDefaultMetalDoorPlanogram,
+  createDefaultImberaPlanogram
+} from "./data/planogramModels";
 
 // Authentication & Roles
 import AuthLockScreen from "./components/auth/AuthLockScreen";
@@ -220,11 +226,13 @@ export default function App() {
   const ROLE_TABS = {
     vendedor: ["ruta", "pendientes", "escanear", "congeladores", "perfil"],
     supervisor: ["supervision", "ruta", "escanear", "congeladores", "perfil"],
-    gerente_cedis: ["cedis", "ruta", "catalogo", "congeladores", "perfil"],
-    director_comercial: ["direccion", "cedis", "catalogo", "congeladores", "perfil"],
+    gerente_cedis: ["cedis", "ruta", "catalogo", "congeladores", "perfil", "escanear"],
+    director_comercial: ["direccion", "cedis", "catalogo", "congeladores", "perfil", "escanear"],
     propietario: ["propietario_hub", "direccion", "ruta", "congeladores", "perfil", "cedis", "catalogo", "pendientes", "escanear"]
   };
   const canSeeTab = (tabId) => (ROLE_TABS[currentUser?.role] || []).includes(tabId);
+  // Supervisor o superior: puede cambiar el tipo de congelador asignado
+  const canChangeFreezerType = ["supervisor", "gerente_cedis", "director_comercial", "propietario"].includes(currentUser?.role);
 
   // Al cambiar de usuario: reiniciar filtros y selecciones que pertenecían al usuario anterior
   useEffect(() => {
@@ -390,6 +398,19 @@ export default function App() {
     showToast("Pendiente actualizado", "success");
   };
 
+  // Tienda pendiente de enrolar congelador (viene del botón "Sin congelador")
+  const [pendingEnrollStoreId, setPendingEnrollStoreId] = useState(null);
+  const pendingEnrollStore = stores.find((s) => s.id === pendingEnrollStoreId) || null;
+
+  const handleEnrollFreezerForStore = (store) => {
+    if (!store) return;
+    setPendingEnrollStoreId(store.id);
+    setIsStoreDetailOpen(false);
+    setActiveTab("escanear");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showToast(`Escanea el sticker QR del congelador de ${store.name}`, "info", QrCode);
+  };
+
   // QR Detection Handler
   const handleCodeDetected = (code) => {
     setIsScannerOpen(false);
@@ -404,6 +425,37 @@ export default function App() {
       setIsOnboardingOpen(true);
       showToast(`Sticker nuevo ${code} detectado. Iniciando alta GPS...`, "info", QrCode);
     }
+  };
+
+  // Cambiar tipo de congelador (supervisor o superior). Reinicia el planograma al nuevo formato.
+  const handleChangeFreezerType = (freezerId, config) => {
+    if (!canChangeFreezerType) {
+      showToast("Solo supervisores o superiores pueden cambiar el tipo de congelador", "info");
+      return;
+    }
+    const isMetal = config.modelType === FREEZER_MODEL_TYPES.METAL_DOOR;
+    const shelves = Number(config.shelvesCount) || 5;
+    const doorShelves = Number(config.doorShelvesCount) || 5;
+    const facings = Number(config.facingsPerShelf) || 5;
+    setFreezers((prev) =>
+      prev.map((f) =>
+        f.id !== freezerId
+          ? f
+          : {
+              ...f,
+              modelType: config.modelType,
+              model: FREEZER_MODEL_CONFIGS[config.modelType]?.name || f.model,
+              shelvesCount: shelves,
+              doorShelvesCount: isMetal ? doorShelves : 0,
+              facingsPerShelf: isMetal ? 5 : facings,
+              metalPlanogram: isMetal ? createDefaultMetalDoorPlanogram(shelves, doorShelves) : null,
+              imberaPlanogram: !isMetal ? createDefaultImberaPlanogram(shelves, facings) : null,
+              typeChangedBy: currentUser?.name,
+              typeChangedAt: new Date().toISOString()
+            }
+      )
+    );
+    showToast(`Tipo de congelador ${freezerId} actualizado`, "success", Snowflake);
   };
 
   // Freezer Onboarding Handler
@@ -424,6 +476,7 @@ export default function App() {
     );
 
     setIsOnboardingOpen(false);
+    setPendingEnrollStoreId(null);
     setSelectedFreezerId(newFreezer.id);
     setActiveTab("congeladores");
     showToast(`¡Congelador ${newFreezer.qrCode} enrolado con éxito!`, "success", CheckCircle2);
@@ -446,6 +499,21 @@ export default function App() {
       })
     );
     showToast("Planograma actualizado en tiempo real", "success");
+  };
+
+  // Guardado inmediato de ediciones del planograma (sin toast para no saturar)
+  const handlePlanogramChange = (freezerId, { metalPlanogram, imberaPlanogram }) => {
+    setFreezers((prev) =>
+      prev.map((f) =>
+        f.id === freezerId
+          ? {
+              ...f,
+              metalPlanogram: metalPlanogram || f.metalPlanogram,
+              imberaPlanogram: imberaPlanogram || f.imberaPlanogram
+            }
+          : f
+      )
+    );
   };
 
   // Save Planogram Audit
@@ -650,6 +718,7 @@ export default function App() {
               }}
               onOpenScanner={() => setIsScannerOpen(true)}
               onOpenMap={handleOpenRouteMap}
+              onEnrollFreezer={canSeeTab("escanear") ? handleEnrollFreezerForStore : undefined}
               selectedRouteFilter={selectedRouteFilter}
               onSelectRouteFilter={setSelectedRouteFilter}
             />
@@ -664,6 +733,7 @@ export default function App() {
               onSelectFreezerId={setSelectedFreezerId}
               onUpdateSlot={handleUpdateStorePlanogram}
               onSaveAudit={handleSavePlanogramAudit}
+              onPlanogramChange={handlePlanogramChange}
             />
           )}
 
@@ -673,6 +743,11 @@ export default function App() {
               onCodeDetected={handleCodeDetected}
               onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
               existingCodes={freezers.map((f) => f.qrCode)}
+              pendingEnrollStore={pendingEnrollStore}
+              onCancelEnroll={() => setPendingEnrollStoreId(null)}
+              freezers={scopedFreezers}
+              canChangeFreezerType={canChangeFreezerType}
+              onChangeFreezerType={handleChangeFreezerType}
             />
           )}
 
@@ -787,6 +862,7 @@ export default function App() {
             setIsQuickSaleOpen(true);
           }}
           onOpenMap={handleOpenRouteMap}
+          onEnrollFreezer={canSeeTab("escanear") ? handleEnrollFreezerForStore : undefined}
         />
 
         {/* In-App Interactive Route Map Modal */}
@@ -849,6 +925,7 @@ export default function App() {
           onClose={() => setIsOnboardingOpen(false)}
           qrCode={pendingScannedCode}
           stores={stores}
+          initialStoreId={pendingEnrollStoreId}
           onSave={handleSaveNewFreezer}
         />
 

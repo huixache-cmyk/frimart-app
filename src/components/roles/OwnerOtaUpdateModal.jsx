@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Cpu
 } from "lucide-react";
+import AppSelect from "../ui/AppSelect";
 
 export default function OwnerOtaUpdateModal({
   isOpen,
@@ -176,7 +177,7 @@ export default function OwnerOtaUpdateModal({
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Destinatarios</label>
-                <select
+                <AppSelect
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white"
@@ -185,7 +186,7 @@ export default function OwnerOtaUpdateModal({
                   <option value="vendedores">Solo Vendedores de Ruta</option>
                   <option value="supervisores">Solo Supervisores de Zona</option>
                   <option value="cedis">Solo Gerentes de CEDIS</option>
-                </select>
+                </AppSelect>
               </div>
 
               <div className="sm:col-span-2">
