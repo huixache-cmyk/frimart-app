@@ -14,6 +14,10 @@ import SupervisorVisitsPanel from "./components/roles/SupervisorVisitsPanel";
 import VisitReviewQueue from "./components/roles/VisitReviewQueue";
 import SellerReviewNotices from "./components/mobile/seller/SellerReviewNotices";
 import { submitVisit, startVisitQueueWorker } from "./lib/visitsSync";
+import { loadWorkday, openWorkday, closeWorkday, addVisitToWorkday, enforceAutoClose } from "./lib/workday";
+import WorkdayCard from "./components/mobile/seller/WorkdayCard";
+import WorkdayHistory from "./components/roles/WorkdayHistory";
+import { isAtLeast, LEVEL } from "./data/permissions";
 
 // Authentication & Roles
 import AuthLockScreen from "./components/auth/AuthLockScreen";
@@ -349,6 +353,31 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Jornada laboral (obligatoria para vendedores): abrir en CEDIS, cierre automático a la hora límite
+  const needsWorkday = !!currentUser && !isAtLeast(currentUser.role, LEVEL.SUPERVISOR);
+  const [workday, setWorkday] = useState(null);
+  useEffect(() => {
+    if (!currentUser?.id) { setWorkday(null); return; }
+    setWorkday(loadWorkday(currentUser.id));
+    const check = async () => {
+      const closed = await enforceAutoClose(currentUser.id);
+      if (closed) { setWorkday(null); showToast("Jornada cerrada automáticamente (hora límite)", "info"); }
+    };
+    check();
+    const t = setInterval(check, 60000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
+  const handleOpenWorkday = async () => {
+    const w = await openWorkday(currentUser, scopedStores.length);
+    setWorkday(w);
+    showToast("Jornada abierta. ¡Buen día!", "success");
+  };
+  const handleCloseWorkday = async (notVisited) => {
+    await closeWorkday(currentUser.id, { notVisited });
+    setWorkday(null);
+    showToast("Jornada cerrada y enviada", "success");
+  };
   // Authentication Handlers
   const handleLoginSuccess = (authenticatedUser) => {
     setCurrentUser(authenticatedUser);
@@ -394,6 +423,12 @@ export default function App() {
   const [visitFreezerId, setVisitFreezerId] = useState(null);
   const visitFreezer = freezers.find((f) => f.id === visitFreezerId) || null;
   const handleStartVisit = (freezerId) => {
+    if (needsWorkday && !workday) {
+      setIsStoreDetailOpen(false);
+      setActiveTab("ruta");
+      showToast("Primero abre tu jornada en el CEDIS", "info");
+      return;
+    }
     setIsStoreDetailOpen(false);
     setVisitFreezerId(freezerId);
   };
@@ -406,6 +441,8 @@ export default function App() {
       routeId: currentUser?.routeId || stores.find((s) => s.id === visitRaw.storeId)?.routeId
     };
     // Envío en línea (foto a Storage + visita + alertas). Si no hay señal queda en cola.
+    const updatedWorkday = addVisitToWorkday(currentUser?.id, visit);
+    if (updatedWorkday) setWorkday(updatedWorkday);
     submitVisit(visit).then(({ synced, photoUrl }) => {
       if (photoUrl) {
         setFreezers((prev) => prev.map((f) => (f.id === visit.freezerId ? { ...f, photoUrl } : f)));
@@ -706,6 +743,9 @@ export default function App() {
             />
           )}
           {activeTab === "supervision" && canSeeTab("supervision") && (
+            <WorkdayHistory vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)} title="Jornadas del equipo" />
+          )}
+          {activeTab === "supervision" && canSeeTab("supervision") && (
             <SupervisorVisitsPanel
               reviewer={currentUser}
               vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)}
@@ -775,6 +815,9 @@ export default function App() {
           )}
 
           {/* VENDEDOR: RUTA */}
+          {activeTab === "ruta" && needsWorkday && (
+            <WorkdayCard user={currentUser} workday={workday} stores={scopedStores} onOpen={handleOpenWorkday} onClose={handleCloseWorkday} />
+          )}
           {activeTab === "ruta" && currentUser?.id && <SellerReviewNotices vendorId={currentUser.id} />}
           {activeTab === "ruta" && canSeeTab("ruta") && (
             <SellerRouteScreen

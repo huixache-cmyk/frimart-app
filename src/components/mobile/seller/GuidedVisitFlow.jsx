@@ -27,6 +27,7 @@ function alternativesFor(skuId, priorSubId) {
   return prior && prior.id !== orig.id ? [prior, ...list.filter((p) => p.id !== prior.id)].slice(0, 3) : list;
 }
 import { calculateDistanceMeters } from "../../../data/mockData";
+import { getStoreRadius } from "../../../data/workdayConfig";
 
 /**
  * VISITA GUIADA — flujo de trabajo del vendedor en un punto de venta con congelador
@@ -167,14 +168,18 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
   const [subLeft, setSubLeft] = useState({});   // bolsas del sustituto que deja
   const [pickerKey, setPickerKey] = useState(null);
 
+  const [gpsError, setGpsError] = useState(null);
+  const [gpsTick, setGpsTick] = useState(0);
   useEffect(() => {
-    if (!isOpen || !navigator.geolocation) return;
+    if (!isOpen) return;
+    if (!navigator.geolocation) { setGpsError("Este dispositivo no tiene GPS."); return; }
+    setGps(null); setGpsError(null);
     navigator.geolocation.getCurrentPosition(
       (p) => setGps({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) }),
-      () => setGps(null),
-      { enableHighAccuracy: true, timeout: 8000 }
+      () => setGpsError("No se pudo obtener tu ubicación. Activa el GPS y reintenta."),
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
-  }, [isOpen]);
+  }, [isOpen, gpsTick]);
 
   // Al entrar a resurtido, propone llenar cada frente a lo que pide el planograma
   useEffect(() => {
@@ -234,14 +239,16 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
   const tempAlert = Number(temperature) > TEMP_MAX_OK;
 
   const distanceM = gps && store?.lat ? Math.round(calculateDistanceMeters(gps.lat, gps.lng, store.lat, store.lng)) : null;
-  const insideGeofence = distanceM !== null && distanceM <= (store?.geofenceRadius || 200);
+  const storeRadius = getStoreRadius(store);
+  const storeHasCoords = !!(store?.lat && store?.lng);
+  const insideGeofence = distanceM !== null && distanceM <= storeRadius;
 
   const equipmentScore = (Object.values(checks).filter(Boolean).length / 4) * 0.8 + (tempAlert ? 0 : 0.2);
   const minutes = (Date.now() - new Date(startedAt).getTime()) / 60000;
   const score = Math.round(totals.compliance * 0.4 + equipmentScore * 30 + (photo ? 20 : 0) + (minutes >= 3 ? 10 : 5));
 
   const canNext =
-    (STEPS[step].id === "arrival") ||
+    (STEPS[step].id === "arrival" && (insideGeofence || (!storeHasCoords && !!gps))) ||
     (STEPS[step].id === "count" && allCounted) ||
     (STEPS[step].id === "restock") ||
     (STEPS[step].id === "equipment" && equipmentDone) ||
@@ -361,9 +368,22 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
               <div className="p-4 rounded-[22px] bg-white border border-slate-200 space-y-2 text-xs">
                 <div className="flex items-start gap-2 text-slate-700"><MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" /><span>{store?.address || "Dirección no registrada"}</span></div>
                 <div className="flex items-center gap-2 text-slate-700"><QrCode className="w-4 h-4 text-emerald-600" /><span>Congelador <strong className="font-mono">{freezer.qrCode}</strong> · {detectModelType(freezer) === FREEZER_MODEL_TYPES.METAL_DOOR ? "Puerta metálica" : "Puerta de vidrio (Imbera)"}</span></div>
-                <div className={`mt-1 p-2.5 rounded-xl text-[11px] font-semibold ${distanceM === null ? "bg-slate-50 text-slate-500" : insideGeofence ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
-                  {distanceM === null ? "Obteniendo ubicación GPS…" : insideGeofence ? `✓ Estás en la tienda (${distanceM} m)` : `Estás a ${distanceM} m de la tienda. Puedes continuar; quedará registrado.`}
+                <div className={`mt-1 p-2.5 rounded-xl text-[12px] font-semibold ${gpsError ? "bg-rose-50 text-rose-700" : !gps ? "bg-slate-50 text-slate-500" : insideGeofence || !storeHasCoords ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-700"}`}>
+                  {gpsError
+                    ? gpsError
+                    : !gps
+                      ? "Obteniendo ubicación GPS…"
+                      : !storeHasCoords
+                        ? "Esta tienda aún no tiene ubicación registrada; se guardará tu posición actual."
+                        : insideGeofence
+                          ? `✓ Estás en la tienda (${distanceM} m)`
+                          : `Estás a ${distanceM >= 1000 ? (distanceM / 1000).toFixed(1) + " km" : distanceM + " m"} de la tienda. Acércate (máx. ${storeRadius} m) para iniciar la visita.`}
                 </div>
+                {(gpsError || (gps && storeHasCoords && !insideGeofence)) && (
+                  <button type="button" onClick={() => setGpsTick((t) => t + 1)} className="tap-effect w-full mt-1 py-2.5 rounded-xl border border-emerald-200 bg-white text-emerald-700 text-[12px] font-bold cursor-pointer">
+                    Volver a verificar ubicación
+                  </button>
+                )}
               </div>
               <div className="p-4 rounded-[22px] bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 space-y-1.5">
                 <strong className="block">Lo que harás en esta visita:</strong>
@@ -586,7 +606,8 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
           </div>
           {!canNext && (
             <p className="text-[11px] text-center text-slate-400">
-              {STEPS[step].id === "count" ? "Cuenta todas las charolas para continuar" :
+              {STEPS[step].id === "arrival" ? "Debes estar dentro del radio de la tienda para iniciar" :
+               STEPS[step].id === "count" ? "Cuenta todas las charolas para continuar" :
                STEPS[step].id === "equipment" ? "Responde todas las preguntas del equipo" :
                STEPS[step].id === "evidence" ? "Toma la foto final para cerrar la visita" : ""}
             </p>
