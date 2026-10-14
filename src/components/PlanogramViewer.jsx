@@ -517,10 +517,9 @@ export default function PlanogramViewer({
                   return (
                     <div
                       key={facing.facingIndex}
-                      className={`group relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-white border cursor-pointer hover:shadow-md min-h-[150px] ${
+                      className={`group relative rounded-xl p-1.5 transition-all flex flex-col justify-between bg-white border min-h-[150px] ${
                         badge ? badge.card : "border-slate-200"
                       }`}
-                      onClick={() => handleOpenFacingEditor(facing, shelf.shelfNumber, shelf.title, section)}
                     >
                       {badge && (
                         <span className={`absolute -top-1.5 left-1.5 ${badge.cls} text-white text-[7px] font-black px-1.5 py-0.2 rounded shadow-2xs z-10`}>
@@ -549,37 +548,17 @@ export default function PlanogramViewer({
                         </>
                       ) : (
                         <div className="w-full h-20 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-300 rounded-lg">
-                          <Plus className="w-4 h-4 text-slate-400 mb-0.5" />
-                          <span className="text-[9px] font-bold">Asignar</span>
+                          <span className="text-[9px] font-bold">Sin producto</span>
                         </div>
                       )}
 
                       <div
                         className="mt-1 pt-1 border-t border-slate-100 flex items-center justify-between gap-1"
-                        onClick={(e) => e.stopPropagation()}
                       >
-                        <span className="text-[9px] font-mono text-slate-400">
-                          R:<strong className="text-slate-700">{facing.facingsExpected}</strong>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">Pide</span>
+                        <span className={`text-[12px] font-mono font-black ${isCompliant ? "text-emerald-700" : "text-amber-700"}`}>
+                          {facing.facingsExpected} pzs
                         </span>
-                        <div className="flex items-center gap-0.5 bg-slate-50 rounded-lg border border-slate-200 p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, -1, section)}
-                            className="w-4 h-4 rounded bg-white text-slate-700 text-[10px] font-bold hover:bg-slate-100 flex items-center justify-center cursor-pointer shadow-2xs"
-                          >
-                            -
-                          </button>
-                          <span className={`text-[10px] font-mono font-black px-1 ${isCompliant ? "text-emerald-700" : "text-amber-700"}`}>
-                            {facing.facingsCurrent}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickFacingChange(shelf.shelfNumber, facing.facingIndex, 1, section)}
-                            className="w-4 h-4 rounded bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-500 flex items-center justify-center cursor-pointer shadow-2xs"
-                          >
-                            +
-                          </button>
-                        </div>
                       </div>
                     </div>
                   );

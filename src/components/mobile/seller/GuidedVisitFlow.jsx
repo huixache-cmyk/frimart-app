@@ -366,9 +366,14 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
                     subtitle={`Había ${fo} · Objetivo ${targetOf(f)}`}
                     state={le >= targetOf(f) ? "full" : le === 0 ? "empty" : "low"}
                     extra={
-                      <span className={`text-[11px] font-bold ${surt > 0 ? "text-emerald-700" : "text-slate-400"}`}>
-                        {surt > 0 ? `Surtir ${surt} · $${(surt * (product?.price || 0)).toFixed(0)}` : "Sin surtir"}
-                      </span>
+                      surt > 0 ? (
+                        <span className="inline-flex items-center gap-2 mt-1 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200">
+                          <span className="text-[17px] font-black text-emerald-700 leading-none">Surtir {surt}</span>
+                          <span className="text-[15px] font-extrabold text-slate-700 leading-none">${(surt * (product?.price || 0)).toFixed(0)}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[13px] font-bold text-slate-400">Sin surtir</span>
+                      )
                     }
                   >
                     <div className="flex items-center gap-2">
