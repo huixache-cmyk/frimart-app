@@ -55,7 +55,7 @@ function toRow(visit, photoUrl) {
     frentes_vacios: visit.emptyFacingsFound,
     temperatura: visit.temperature,
     alerta_temp: !!visit.tempAlert,
-    checklist: visit.checks || {},
+    checklist: { ...(visit.checks || {}), sustitutos: visit.substitutions || [], quiebres: visit.stockouts || [] },
     lineas: visit.lines || [],
     foto_url: photoUrl,
     calificacion: visit.score
@@ -85,6 +85,14 @@ function buildAlerts(visit) {
   ].filter(Boolean);
   if (fails.length) {
     alerts.push({ ...base, id: `ALR-E-${visit.id}`, tipo: "equipo", severidad: "media", mensaje: `Falla de ${fails.join(", ")} en ${visit.storeName}` });
+  }
+  const stockouts = visit.stockouts || [];
+  if (stockouts.length) {
+    alerts.push({ ...base, id: `ALR-Q-${visit.id}`, tipo: "quiebre", severidad: "media", mensaje: `Quiebre de inventario en ${visit.storeName}: ${stockouts.map((s) => s.name).join(", ")}` });
+  }
+  const repeated = (visit.substitutions || []).filter((s) => s.visitsInRow >= 2);
+  if (repeated.length) {
+    alerts.push({ ...base, id: `ALR-S-${visit.id}`, tipo: "sustituto", severidad: "baja", mensaje: `Sustituto ${repeated.length > 1 ? "repetido" : "por " + repeated[0].visitsInRow + "ª visita"} en ${visit.storeName}: ${repeated.map((s) => `${s.originalName} → ${s.substituteName}`).join("; ")}` });
   }
   return alerts;
 }

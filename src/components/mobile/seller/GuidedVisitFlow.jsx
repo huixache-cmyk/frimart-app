@@ -2,15 +2,29 @@ import React, { useMemo, useState, useEffect } from "react";
 import {
   X, MapPin, QrCode, ChevronLeft, ChevronRight, Check, Camera, Thermometer,
   Lightbulb, DoorClosed, Sparkles, Snowflake, AlertTriangle, ClipboardCheck,
-  PackageCheck, Award, Minus, Plus
+  PackageCheck, Award, Minus, Plus, Shuffle, ArrowLeftRight, Ban, Undo2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import {
   FREEZER_MODEL_TYPES,
+  PLANOGRAM_PRODUCTS,
   createDefaultMetalDoorPlanogram,
   createDefaultImberaPlanogram,
   getProductById
 } from "../../../data/planogramModels";
+
+// Sustitutos sugeridos: misma categoría de la charola, precio más parecido.
+// (Después se podrán definir sustitutos manuales desde el admin web.)
+function alternativesFor(skuId, priorSubId) {
+  const orig = getProductById(skuId);
+  if (!orig) return [];
+  const list = PLANOGRAM_PRODUCTS
+    .filter((p) => p.id !== orig.id && p.category === orig.category)
+    .sort((a, b) => Math.abs(a.price - orig.price) - Math.abs(b.price - orig.price))
+    .slice(0, 3);
+  const prior = priorSubId && getProductById(priorSubId);
+  return prior && prior.id !== orig.id ? [prior, ...list.filter((p) => p.id !== prior.id)].slice(0, 3) : list;
+}
 import { calculateDistanceMeters } from "../../../data/mockData";
 
 /**
@@ -147,6 +161,10 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
   const [frost, setFrost] = useState("bajo");
   const [photo, setPhoto] = useState(null);
   const [gps, setGps] = useState(null);
+  const [foundSub, setFoundSub] = useState({}); // bolsas del sustituto de la visita anterior
+  const [mode, setMode] = useState({});         // { [frente]: {type:"sub",skuId} | {type:"neighbor"} | {type:"empty"} }
+  const [subLeft, setSubLeft] = useState({});   // bolsas del sustituto que deja
+  const [pickerKey, setPickerKey] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !navigator.geolocation) return;
@@ -164,7 +182,8 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
       const next = { ...prev };
       shelves.forEach((s) => s.facings.forEach((f) => {
         const k = keyOf(s, f);
-        if (next[k] === undefined) next[k] = Math.max(found[k] ?? 0, targetOf(f));
+        // Si quedan bolsas del sustituto anterior, el original solo llena el resto
+        if (next[k] === undefined) next[k] = Math.max(found[k] ?? 0, targetOf(f) - (foundSub[k] ?? 0));
       }));
       return next;
     });
@@ -175,21 +194,35 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
     [shelves]
   );
 
-  const totals = useMemo(() => {
+  // Cálculo por frente: original + sustituto (frente compartido)
+  const calc = (k, f) => {
+    const t = targetOf(f);
+    const fo = found[k] ?? 0;
+    const fs = foundSub[k] ?? 0;
+    const m = mode[k];
+    const isSub = m?.type === "sub";
+    const origLeft = m ? fo : (left[k] ?? fo);
+    const subSku = isSub ? m.skuId : f.substitute?.skuId;
+    const subUnits = isSub ? (subLeft[k] ?? Math.max(fs, t - fo)) : fs;
+    const surtOrig = Math.max(0, origLeft - fo);
+    const surtSub = isSub ? Math.max(0, subUnits - fs) : 0;
+    const subProduct = subSku ? getProductById(subSku) : null;
+    return { t, fo, fs, m, isSub, origLeft, subSku, subUnits, surtOrig, surtSub, subProduct };
+  };
+
+  const totals = (() => {
     let bags = 0, amount = 0, target = 0, filled = 0, foundTotal = 0, empty = 0;
-    allFacings.forEach(({ key, product, target: t }) => {
-      const fo = found[key] ?? 0;
-      const le = left[key] ?? fo;
-      const surt = Math.max(0, le - fo);
-      bags += surt;
-      amount += surt * (product?.price || 0);
+    allFacings.forEach(({ key, facing, product, target: t }) => {
+      const c = calc(key, facing);
+      bags += c.surtOrig + c.surtSub;
+      amount += c.surtOrig * (product?.price || 0) + c.surtSub * (c.subProduct?.price || 0);
       target += t;
-      filled += Math.min(le, t);
-      foundTotal += fo;
-      if (fo === 0) empty += 1;
+      filled += Math.min(c.origLeft + c.subUnits, t);
+      foundTotal += c.fo + c.fs;
+      if (c.fo + c.fs === 0) empty += 1;
     });
     return { bags, amount, compliance: target ? Math.round((filled / target) * 100) : 100, foundTotal, empty };
-  }, [allFacings, found, left]);
+  })();
 
   if (!isOpen || !freezer) return null;
 
@@ -220,8 +253,13 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
     const applyLeft = (list, section) => list.map((s) => ({
       ...s,
       facings: s.facings.map((f) => {
-        const le = left[`${section}-${s.shelfNumber}-${f.facingIndex}`] ?? f.currentStockUnits;
-        return { ...f, currentStockUnits: le, facingsCurrent: le > 0 ? f.facingsExpected || 1 : 0 };
+        const c = calc(`${section}-${s.shelfNumber}-${f.facingIndex}`, f);
+        const units = c.origLeft + c.subUnits;
+        // El planograma oficial no cambia: el sustituto queda como dato temporal del frente
+        const substitute = c.subUnits > 0 && c.subSku
+          ? { skuId: c.subSku, units: c.subUnits, visitsInRow: c.isSub ? (f.substitute?.skuId === c.subSku ? (f.substitute.visitsInRow || 1) + 1 : 1) : (f.substitute?.visitsInRow || 1) }
+          : null;
+        return { ...f, currentStockUnits: units, facingsCurrent: units > 0 ? f.facingsExpected || 1 : 0, substitute };
       })
     }));
     const type = detectModelType(freezer);
@@ -234,16 +272,23 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
       imberaPlanogram = { ...base, shelves: applyLeft(base.shelves, "imbera_shelf") };
     }
 
-    const lines = allFacings
-      .map(({ key, product, facing }) => ({
-        skuId: facing.skuId,
-        name: product?.name,
-        found: found[key] ?? 0,
-        left: left[key] ?? found[key] ?? 0,
-        restocked: Math.max(0, (left[key] ?? 0) - (found[key] ?? 0)),
-        price: product?.price || 0
-      }))
-      .filter((l) => l.restocked > 0);
+    const lines = [];
+    const substitutions = [];
+    const stockouts = [];
+    allFacings.forEach(({ key, product, facing }) => {
+      const c = calc(key, facing);
+      if (c.surtOrig > 0) lines.push({ skuId: facing.skuId, name: product?.name, found: c.fo, left: c.origLeft, restocked: c.surtOrig, price: product?.price || 0 });
+      if (c.surtSub > 0) lines.push({ skuId: c.subSku, name: c.subProduct?.name, found: c.fs, left: c.subUnits, restocked: c.surtSub, price: c.subProduct?.price || 0, substituteFor: facing.skuId });
+      if (c.isSub) {
+        substitutions.push({
+          facing: key, originalSku: facing.skuId, originalName: product?.name, originalLeft: c.fo,
+          substituteSku: c.subSku, substituteName: c.subProduct?.name, substituteUnits: c.subUnits, restocked: c.surtSub,
+          visitsInRow: facing.substitute?.skuId === c.subSku ? (facing.substitute.visitsInRow || 1) + 1 : 1
+        });
+      }
+      if (c.m?.type === "neighbor") substitutions.push({ facing: key, originalSku: facing.skuId, originalName: product?.name, originalLeft: c.fo, substituteName: "Frente vecino ampliado", visitsInRow: 1 });
+      if (c.m?.type === "empty") stockouts.push({ facing: key, skuId: facing.skuId, name: product?.name, left: c.fo });
+    });
 
     confetti({ particleCount: 110, spread: 85, origin: { y: 0.6 } });
     onComplete?.({
@@ -260,6 +305,8 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
       compliance: totals.compliance,
       emptyFacingsFound: totals.empty,
       lines,
+      substitutions,
+      stockouts,
       temperature: Number(temperature),
       tempAlert,
       checks: { ...checks, frost },
@@ -336,7 +383,18 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
                 const product = getProductById(f.skuId);
                 const v = found[k];
                 return (
-                  <FacingRow key={k} product={product} facing={f} subtitle={`Objetivo: ${targetOf(f)} bolsas`} state={v === undefined ? "pending" : v === 0 ? "empty" : v < targetOf(f) ? "low" : "full"}>
+                  <FacingRow
+                    key={k} product={product} facing={f} subtitle={`Objetivo: ${targetOf(f)} bolsas`}
+                    state={v === undefined ? "pending" : v === 0 ? "empty" : v < targetOf(f) ? "low" : "full"}
+                    footer={f.substitute?.skuId && (
+                      <FacingFooter tone="amber">
+                        <span className="text-[12px] font-bold text-amber-900 leading-tight">
+                          + Sustituto en este frente: {getProductById(f.substitute.skuId)?.name || f.substitute.skuId}
+                        </span>
+                        <Stepper value={foundSub[k] ?? 0} onChange={(n) => setFoundSub((p) => ({ ...p, [k]: n }))} max={targetOf(f) * 3} accent="sky" />
+                      </FacingFooter>
+                    )}
+                  >
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={() => setFound((p) => ({ ...p, [k]: 0 }))} className={`tap-effect px-2.5 py-2 rounded-xl text-[11px] font-bold border cursor-pointer ${v === 0 ? "bg-rose-600 text-white border-rose-600" : "bg-white text-rose-700 border-rose-200"}`}>Vacío</button>
                       <Stepper value={v} onChange={(n) => setFound((p) => ({ ...p, [k]: n }))} max={targetOf(f) * 3} accent="sky" />
@@ -355,31 +413,75 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
               {currentShelf.facings.map((f) => {
                 const k = keyOf(currentShelf, f);
                 const product = getProductById(f.skuId);
-                const fo = found[k] ?? 0;
-                const le = left[k] ?? fo;
-                const surt = Math.max(0, le - fo);
+                const c = calc(k, f);
+                const total = c.origLeft + c.subUnits;
+                const subName = c.subProduct?.name;
+                const sale = c.surtOrig * (product?.price || 0) + c.surtSub * (c.subProduct?.price || 0);
+                const surtTotal = c.surtOrig + c.surtSub;
+                // Instrucción clara de acomodo
+                let instruction = null;
+                if (c.isSub) {
+                  instruction = c.fo > 0
+                    ? `Compacta ${c.fo} de ${product?.name} AL FRENTE · Surte ${c.surtSub} de ${subName} ATRÁS`
+                    : `Llena el carril con ${c.surtSub} de ${subName} (sustituto temporal)`;
+                } else if (c.m?.type === "neighbor") {
+                  instruction = `Deja ${c.fo} de ${product?.name} al frente y amplía el frente vecino: súbele bolsas en su contador.`;
+                } else if (c.m?.type === "empty") {
+                  instruction = `Sin producto para surtir. Se avisará al supervisor (quiebre de inventario).`;
+                } else if (c.fs > 0) {
+                  instruction = `Deja las ${c.fs} de ${subName} AL FRENTE para que salgan primero · Surte ${c.surtOrig} de ${product?.name} ATRÁS`;
+                }
                 return (
                   <FacingRow
                     key={k}
                     product={product}
                     facing={f}
-                    subtitle={`Había ${fo} · Objetivo ${targetOf(f)}`}
-                    state={le >= targetOf(f) ? "full" : le === 0 ? "empty" : "low"}
+                    subtitle={`Había ${c.fo + c.fs} · Objetivo ${c.t}`}
+                    state={c.m?.type === "empty" ? "empty" : total >= c.t ? "full" : total === 0 ? "empty" : "low"}
                     extra={
-                      surt > 0 ? (
+                      surtTotal > 0 ? (
                         <span className="inline-flex items-center gap-2 mt-1 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200">
-                          <span className="text-[17px] font-black text-emerald-700 leading-none">Surtir {surt}</span>
-                          <span className="text-[15px] font-extrabold text-slate-700 leading-none">${(surt * (product?.price || 0)).toFixed(0)}</span>
+                          <span className="text-[17px] font-black text-emerald-700 leading-none">Surtir {surtTotal}</span>
+                          <span className="text-[15px] font-extrabold text-slate-700 leading-none">${sale.toFixed(0)}</span>
                         </span>
                       ) : (
                         <span className="text-[13px] font-bold text-slate-400">Sin surtir</span>
                       )
                     }
+                    footer={
+                      <>
+                        {c.isSub && (
+                          <FacingFooter tone="amber">
+                            <span className="flex items-center gap-2 min-w-0">
+                              {c.subProduct?.image && <img src={c.subProduct.image} alt="" className="w-9 h-9 rounded-lg object-contain bg-white shrink-0" />}
+                              <span className="text-[12px] font-bold text-amber-900 leading-tight">Sustituto: {subName}<span className="block text-[11px] font-semibold text-amber-700">{c.subProduct?.weight} · ${Number(c.subProduct?.price || 0).toFixed(0)}</span></span>
+                            </span>
+                            <Stepper value={c.subUnits} onChange={(n) => setSubLeft((p) => ({ ...p, [k]: Math.max(c.fs, n) }))} max={c.t * 3} />
+                          </FacingFooter>
+                        )}
+                        {instruction && (
+                          <p className={`text-[12px] font-semibold leading-snug p-2.5 rounded-xl ${c.m?.type === "empty" ? "bg-rose-50 text-rose-800" : "bg-sky-50 text-sky-900"}`}>{instruction}</p>
+                        )}
+                        <div className="flex justify-end">
+                          {c.m ? (
+                            <button type="button" onClick={() => { setMode((p) => { const n = { ...p }; delete n[k]; return n; }); setSubLeft((p) => { const n = { ...p }; delete n[k]; return n; }); }} className="tap-effect inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white cursor-pointer">
+                              <Undo2 className="w-3.5 h-3.5" />Sí traigo el original
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => setPickerKey(k)} className="tap-effect inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 px-2.5 py-1.5 rounded-xl border border-amber-200 bg-amber-50 cursor-pointer">
+                              <Shuffle className="w-3.5 h-3.5" />No lo traigo
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    }
                   >
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setLeft((p) => ({ ...p, [k]: Math.max(fo, targetOf(f)) }))} className={`tap-effect px-2.5 py-2 rounded-xl text-[11px] font-bold border cursor-pointer ${le >= targetOf(f) ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-emerald-700 border-emerald-200"}`}>Lleno</button>
-                      <Stepper value={le} onChange={(n) => setLeft((p) => ({ ...p, [k]: Math.max(fo, n) }))} max={targetOf(f) * 3} />
-                    </div>
+                    {!c.m && (
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setLeft((p) => ({ ...p, [k]: Math.max(c.fo, c.t - c.fs) }))} className={`tap-effect px-2.5 py-2 rounded-xl text-[11px] font-bold border cursor-pointer ${total >= c.t ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-emerald-700 border-emerald-200"}`}>Lleno</button>
+                        <Stepper value={c.origLeft} onChange={(n) => setLeft((p) => ({ ...p, [k]: Math.max(c.fo, n) }))} max={c.t * 3} />
+                      </div>
+                    )}
                   </FacingRow>
                 );
               })}
@@ -490,6 +592,17 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
           )}
         </div>
       </div>
+      {pickerKey && (() => {
+        const entry = allFacings.find((a) => a.key === pickerKey);
+        if (!entry) return null;
+        return (
+          <SubstitutePicker
+            facing={entry.facing}
+            onClose={() => setPickerKey(null)}
+            onPick={(m) => { setMode((p) => ({ ...p, [pickerKey]: m })); setPickerKey(null); }}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -535,7 +648,7 @@ function ShelfFooter({ shelves, shelfIdx, setShelfIdx, ready, hint }) {
   );
 }
 
-function FacingRow({ product, facing, subtitle, state, extra, children }) {
+function FacingRow({ product, facing, subtitle, state, extra, footer, children }) {
   const stateCls = {
     pending: "border-slate-200",
     empty: "border-rose-300 bg-rose-50/40",
@@ -561,6 +674,48 @@ function FacingRow({ product, facing, subtitle, state, extra, children }) {
       <div className="flex items-center justify-between gap-2">
         {extra || <span />}
         {children}
+      </div>
+      {footer}
+    </div>
+  );
+}
+
+function FacingFooter({ tone = "amber", children }) {
+  const cls = tone === "amber" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200";
+  return <div className={`flex items-center justify-between gap-2 p-2 rounded-xl border ${cls}`}>{children}</div>;
+}
+
+// Selector de sustituto: alternativas de la misma charola/categoría
+function SubstitutePicker({ facing, onPick, onClose }) {
+  const original = getProductById(facing.skuId);
+  const options = alternativesFor(facing.skuId, facing.substitute?.skuId);
+  return (
+    <div className="fixed inset-0 z-[60] bg-slate-900/50 flex items-end justify-center animate-fade-in" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-t-[26px] p-4 pb-8 space-y-3 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="w-10 h-1.5 bg-slate-200 rounded-full mx-auto" />
+        <div>
+          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">No traigo este producto</span>
+          <h3 className="font-['Outfit'] text-base font-black text-slate-900 leading-tight">{original?.name}</h3>
+          <p className="text-[12px] text-slate-500">Elige un sustituto de {original?.categoryLabel || "la misma categoría"}. Ocupará el mismo carril, detrás de lo que quede del original.</p>
+        </div>
+        {options.map((p, i) => (
+          <button key={p.id} type="button" onClick={() => onPick({ type: "sub", skuId: p.id })} className="tap-effect w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-slate-200 bg-white text-left cursor-pointer hover:border-emerald-400">
+            <img src={p.image} alt="" className="w-12 h-12 rounded-xl object-contain bg-slate-50 shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-bold text-slate-900 leading-tight">{p.name}</span>
+              <span className="block text-[11px] text-slate-500">{p.weight} · ${Number(p.price).toFixed(0)}{i === 0 && facing.substitute?.skuId === p.id ? " · usado la visita pasada" : ""}</span>
+            </span>
+            <ArrowLeftRight className="w-4 h-4 text-emerald-600 shrink-0" />
+          </button>
+        ))}
+        {options.length === 0 && <p className="text-[12px] text-slate-500 text-center">No hay sustitutos de esta categoría.</p>}
+        <button type="button" onClick={() => onPick({ type: "neighbor" })} className="tap-effect w-full flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-slate-50 text-[13px] font-bold text-slate-700 cursor-pointer">
+          <ArrowLeftRight className="w-4 h-4" />Ampliar el frente vecino
+        </button>
+        <button type="button" onClick={() => onPick({ type: "empty" })} className="tap-effect w-full flex items-center gap-2 p-3 rounded-2xl border border-rose-200 bg-rose-50 text-[13px] font-bold text-rose-700 cursor-pointer">
+          <Ban className="w-4 h-4" />No tengo sustituto (avisar quiebre)
+        </button>
+        <button type="button" onClick={onClose} className="w-full py-2.5 text-[13px] font-bold text-slate-500 cursor-pointer">Cancelar</button>
       </div>
     </div>
   );
