@@ -10,7 +10,8 @@ import {
   PLANOGRAM_PRODUCTS,
   createDefaultMetalDoorPlanogram,
   createDefaultImberaPlanogram,
-  getProductById
+  getProductById,
+  getPiecesPerFacing
 } from "../../../data/planogramModels";
 
 // Sustitutos sugeridos: misma categoría de la charola, precio más parecido.
@@ -58,16 +59,16 @@ function getShelves(freezer) {
   if (type === FREEZER_MODEL_TYPES.METAL_DOOR) {
     const p = freezer?.metalPlanogram || createDefaultMetalDoorPlanogram(freezer?.shelvesCount === 6 ? 6 : 5, freezer?.doorShelvesCount === 6 ? 6 : 5);
     return [
-      ...p.cabinetShelves.map((s) => ({ ...s, section: "cabinet", sectionLabel: "Gabinete", label: `Charola ${s.shelfNumber}` })),
-      ...p.doorShelves.map((s) => ({ ...s, section: "door", sectionLabel: "Contrapuerta", label: `Repisa ${s.shelfNumber}` }))
+      ...p.cabinetShelves.map((s) => ({ ...s, facings: s.facings.map((f) => ({ ...f, _section: "cabinet" })), section: "cabinet", sectionLabel: "Gabinete", label: `Charola ${s.shelfNumber}` })),
+      ...p.doorShelves.map((s) => ({ ...s, facings: s.facings.map((f) => ({ ...f, _section: "door" })), section: "door", sectionLabel: "Contrapuerta", label: `Repisa ${s.shelfNumber}` }))
     ];
   }
   const p = freezer?.imberaPlanogram || createDefaultImberaPlanogram(freezer?.shelvesCount === 4 ? 4 : 5, freezer?.facingsPerShelf === 4 ? 4 : 5);
-  return p.shelves.map((s) => ({ ...s, section: "imbera_shelf", sectionLabel: "Puerta de vidrio", label: `Charola ${s.shelfNumber}` }));
+  return p.shelves.map((s) => ({ ...s, facings: s.facings.map((f) => ({ ...f, _section: "imbera_shelf" })), section: "imbera_shelf", sectionLabel: "Puerta de vidrio", label: `Charola ${s.shelfNumber}` }));
 }
 
 const keyOf = (shelf, facing) => `${shelf.section}-${shelf.shelfNumber}-${facing.facingIndex}`;
-const targetOf = (facing) => Math.max(1, (facing.facingsExpected || 1) * (facing.capacityUnits || 8));
+const targetOf = (facing) => Math.max(1, (facing.facingsExpected || 1) * getPiecesPerFacing(facing._section, facing));
 
 // Reduce la foto para no saturar el almacenamiento del celular
 function compressImage(file) {
@@ -253,7 +254,7 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
     const applyLeft = (list, section) => list.map((s) => ({
       ...s,
       facings: s.facings.map((f) => {
-        const c = calc(`${section}-${s.shelfNumber}-${f.facingIndex}`, f);
+        const c = calc(`${section}-${s.shelfNumber}-${f.facingIndex}`, { ...f, _section: section });
         const units = c.origLeft + c.subUnits;
         // El planograma oficial no cambia: el sustituto queda como dato temporal del frente
         const substitute = c.subUnits > 0 && c.subSku

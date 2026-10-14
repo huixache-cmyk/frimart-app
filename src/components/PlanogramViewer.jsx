@@ -38,7 +38,8 @@ import {
   FREEZER_MODEL_CONFIGS, 
   getProductById, 
   createDefaultMetalDoorPlanogram, 
-  createDefaultImberaPlanogram 
+  createDefaultImberaPlanogram,
+  getPiecesPerFacing
 } from "../data/planogramModels";
 
 export default function PlanogramViewer({ 
@@ -488,7 +489,7 @@ export default function PlanogramViewer({
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span className="text-[11px] leading-tight truncate">
-                    <strong>Toca cualquier frente</strong> para cambiar producto o cantidades.
+                    <strong>Planograma oficial:</strong> piezas que pide cada frente.
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 text-[9px] font-bold">
@@ -557,7 +558,7 @@ export default function PlanogramViewer({
                       >
                         <span className="text-[9px] font-bold text-slate-400 uppercase">Pide</span>
                         <span className={`text-[12px] font-mono font-black ${isCompliant ? "text-emerald-700" : "text-amber-700"}`}>
-                          {facing.facingsExpected} pzs
+                          {(facing.facingsExpected || 1) * getPiecesPerFacing(section, facing)} pzs
                         </span>
                       </div>
                     </div>

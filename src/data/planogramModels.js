@@ -479,8 +479,8 @@ export function createDefaultMetalDoorPlanogram(shelvesCount = 5, doorShelvesCou
         skuId,
         facingsExpected: 1,
         facingsCurrent: 1,
-        capacityUnits: 8,
-        currentStockUnits: 8,
+        capacityUnits: 10,
+        currentStockUnits: 10,
         statusTag: s === 1 && f === 5 ? "new" : (s === 3 && f === 3 ? "shelf_change" : "normal")
       });
     }
@@ -530,8 +530,8 @@ export function createDefaultMetalDoorPlanogram(shelvesCount = 5, doorShelvesCou
         skuId,
         facingsExpected: 1,
         facingsCurrent: 1,
-        capacityUnits: 6,
-        currentStockUnits: 6,
+        capacityUnits: 3,
+        currentStockUnits: 3,
         statusTag: d === 1 && f === 3 ? "new" : "normal"
       });
     }
@@ -548,6 +548,19 @@ export function createDefaultMetalDoorPlanogram(shelvesCount = 5, doorShelvesCou
     cabinetShelves,
     doorShelves
   };
+}
+
+// Piezas (bolsas) que pide el planograma por frente, según la sección.
+// Fuente única de verdad mientras se configura desde el admin web
+// (un frente puede traer `piecesPerFacing` propio para sobreescribirlo).
+export const PIECES_PER_FACING = {
+  cabinet: 10,       // Gabinete puerta metálica
+  imbera_shelf: 10,  // Charolas puerta de vidrio
+  door: 3            // Contrapuerta
+};
+
+export function getPiecesPerFacing(section, facing) {
+  return Number(facing?.piecesPerFacing) || PIECES_PER_FACING[section] || 10;
 }
 
 // Generador de planograma por defecto para Congelador Puerta de Vidrio (Imbera)
