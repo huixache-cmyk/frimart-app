@@ -98,7 +98,7 @@ export default function OperationsHubScreen({
                 onClick={() => setOpTab(tab.id)}
                 className={`tap-effect shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
                   isActive
-                    ? "bg-slate-900 text-white shadow-xs"
+                    ? "bg-emerald-600 text-white shadow-xs"
                     : "bg-[#f1f5f9] text-slate-600 hover:bg-slate-200"
                 }`}
               >

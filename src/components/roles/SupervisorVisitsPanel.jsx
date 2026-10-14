@@ -156,7 +156,7 @@ export default function SupervisorVisitsPanel({ reviewer, vendorIds = null, onTo
       {/* Filtros */}
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
         {[["pendiente", "Por revisar"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"], ["todas", "Todas"]].map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setFilter(id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-pointer ${filter === id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"}`}>
+          <button key={id} type="button" onClick={() => setFilter(id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-pointer ${filter === id ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200"}`}>
             {label} <span className="opacity-70">{counts[id]}</span>
           </button>
         ))}
@@ -318,7 +318,7 @@ function VisitDetail({ visit, onClose, onReview }) {
 
 function Mini({ icon: Icon, label, value, strong }) {
   return (
-    <div className={`p-2 rounded-xl border ${strong ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-900"}`}>
+    <div className={`p-2 rounded-xl border ${strong ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-200 text-slate-900"}`}>
       <Icon className={`w-3.5 h-3.5 mx-auto ${strong ? "text-amber-400" : "text-slate-400"}`} />
       <span className="block font-['Outfit'] text-base font-black leading-tight mt-0.5">{value}</span>
       <span className={`block text-[9px] font-semibold ${strong ? "text-white/70" : "text-slate-500"}`}>{label}</span>

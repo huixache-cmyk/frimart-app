@@ -297,7 +297,7 @@ export default function SellerProfileScreen({
             onClick={handleToggleShift}
             className={`tap-effect w-full py-3 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${
               isShiftActive
-                ? "bg-slate-900 hover:bg-slate-800 text-white"
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white"
                 : "bg-emerald-600 hover:bg-emerald-500 text-white"
             }`}
           >
@@ -685,7 +685,7 @@ export default function SellerProfileScreen({
 
             <button
               onClick={() => setModalType(null)}
-              className="tap-effect w-full py-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer shadow-sm"
+              className="tap-effect w-full py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition cursor-pointer shadow-sm"
             >
               Comprendido y Aceptado
             </button>
@@ -779,7 +779,7 @@ export default function SellerProfileScreen({
 
             <button
               onClick={() => setModalType(null)}
-              className="tap-effect w-full py-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+              className="tap-effect w-full py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition cursor-pointer"
             >
               Listo
             </button>

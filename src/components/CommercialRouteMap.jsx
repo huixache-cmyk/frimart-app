@@ -228,7 +228,7 @@ export default function CommercialRouteMap({
               }`}>
                 {/* Store Pin Marker */}
                 <div className="relative flex flex-col items-center z-10">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center shadow-md shadow-red-500/20 border border-white">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-red-500/20 border border-white">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-bold text-slate-800 bg-white px-2 py-0.5 rounded-lg mt-1.5 border border-slate-200 whitespace-nowrap shadow-sm">

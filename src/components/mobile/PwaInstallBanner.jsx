@@ -171,7 +171,7 @@ export default function PwaInstallBanner() {
             <button
               type="button"
               onClick={() => setShowIosGuide(false)}
-              className="w-full h-10 rounded-xl bg-slate-900 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-slate-800 transition"
+              className="w-full h-10 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer hover:bg-slate-800 transition"
             >
               Entendido
             </button>

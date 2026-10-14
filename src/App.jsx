@@ -807,6 +807,7 @@ export default function App() {
               onPlanogramChange={handlePlanogramChange}
               onStartVisit={handleStartVisit}
               canAudit={canDo(currentUser?.role, "auditFreezer")}
+              reviewer={currentUser}
             />
           )}
 
@@ -1163,7 +1164,7 @@ export default function App() {
 
               <button
                 onClick={() => setActiveOperationalModal(null)}
-                className="tap-effect w-full py-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+                className="tap-effect w-full py-3 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition cursor-pointer"
               >
                 Entendido
               </button>

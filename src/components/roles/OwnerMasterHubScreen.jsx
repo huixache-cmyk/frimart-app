@@ -192,9 +192,9 @@ export default function OwnerMasterHubScreen({
         </div>
 
         {/* ESTADO DE CONECTIVIDAD DE LA FLOTA */}
-        <div className="bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 space-y-3">
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-600 text-white p-4 rounded-3xl border border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-50/80 flex items-center gap-1.5">
               <Smartphone className="w-4 h-4 text-emerald-400" />
               Monitoreo de la Flota en Tiempo Real
             </span>
@@ -204,17 +204,17 @@ export default function OwnerMasterHubScreen({
           </div>
 
           <div className="space-y-1.5 text-xs">
-            <div className="flex justify-between text-slate-400">
+            <div className="flex justify-between text-emerald-50/80">
               <span>Dispositivos con versión {otaConfig.currentVersion || "v2.4.2"}:</span>
               <span className="font-bold text-white font-mono">{synchronized} de {totalFleet}</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-white/20 overflow-hidden">
               <div 
                 className="h-full bg-emerald-400 rounded-full"
                 style={{ width: `${Math.round((synchronized / totalFleet) * 100)}%` }}
               />
             </div>
-            <span className="text-[10px] text-slate-500 block">
+            <span className="text-[10px] text-emerald-50/80 block">
               3 dispositivos en ruta sin cobertura móvil pendiente de auto-sincronizar
             </span>
           </div>

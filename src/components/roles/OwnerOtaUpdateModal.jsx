@@ -137,7 +137,7 @@ export default function OwnerOtaUpdateModal({
         {/* Modal Body */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
           {/* Active Fleet Status */}
-          <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between">
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-600 text-white p-4 rounded-2xl flex items-center justify-between">
             <div>
               <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold block">
                 Flota Móvil Conectada
@@ -145,7 +145,7 @@ export default function OwnerOtaUpdateModal({
               <span className="text-xl font-bold font-['Outfit']">
                 {otaConfig?.activeFleetDevices || 52} Dispositivos Activos
               </span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">
+              <span className="text-[11px] text-emerald-50/80 block mt-0.5">
                 Versión actual instalada: <strong className="text-white font-mono">{otaConfig?.currentVersion || "v2.4.2"}</strong>
               </span>
             </div>
@@ -280,7 +280,7 @@ export default function OwnerOtaUpdateModal({
 
           {/* Deployment Animation / Progress */}
           {isDeploying && (
-            <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-3 animate-fade-in">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white space-y-3 animate-fade-in">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-emerald-400 flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
@@ -291,7 +291,7 @@ export default function OwnerOtaUpdateModal({
                 </span>
                 <span className="font-mono font-bold text-emerald-300">{deployProgress}%</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-white/20 overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
                   style={{ width: `${deployProgress}%` }}

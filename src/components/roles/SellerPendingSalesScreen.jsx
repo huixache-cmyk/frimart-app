@@ -406,7 +406,7 @@ export default function SellerPendingSalesScreen({
               </div>
               <button
                 onClick={() => onOpenMap && onOpenMap()}
-                className="tap-effect flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold cursor-pointer"
+                className="tap-effect flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold cursor-pointer"
               >
                 <MapPin className="w-3.5 h-3.5" />
                 Ver Mapa GPS

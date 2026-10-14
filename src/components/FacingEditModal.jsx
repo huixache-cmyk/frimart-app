@@ -354,7 +354,7 @@ function FacingEditModalContent({
                   onClick={() => setActiveCategory(cat.id)}
                   className={`px-3 py-1 rounded-xl text-xs font-medium whitespace-nowrap transition cursor-pointer ${
                     activeCategory === cat.id
-                      ? "bg-slate-900 text-white font-bold"
+                      ? "bg-emerald-600 text-white font-bold"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >

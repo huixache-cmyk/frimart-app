@@ -515,7 +515,7 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
                 </div>
                 <div className="flex gap-1.5">
                   {["bajo", "medio", "alto"].map((lvl) => (
-                    <button key={lvl} type="button" onClick={() => setFrost(lvl)} className={`flex-1 py-2 rounded-xl text-xs font-bold border capitalize cursor-pointer ${frost === lvl ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200"}`}>{lvl}</button>
+                    <button key={lvl} type="button" onClick={() => setFrost(lvl)} className={`flex-1 py-2 rounded-xl text-xs font-bold border capitalize cursor-pointer ${frost === lvl ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200"}`}>{lvl}</button>
                   ))}
                 </div>
               </div>
@@ -541,7 +541,7 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
                 )}
               </label>
 
-              <div className="p-4 rounded-[22px] bg-slate-900 text-white space-y-3">
+              <div className="p-4 rounded-[22px] bg-gradient-to-br from-emerald-600 to-teal-600 text-white space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Resumen de la visita</span>
                   <span className="flex items-center gap-1 text-xs font-bold"><Award className="w-4 h-4 text-amber-400" />{score}/100</span>
@@ -563,7 +563,7 @@ export default function GuidedVisitFlow({ isOpen, freezer, store, sellerLocation
         <div className="max-w-md mx-auto space-y-2">
           {(STEPS[step].id === "restock" || STEPS[step].id === "evidence") && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500">{totals.bags} bolsas surtidas</span>
+              <span className="text-emerald-50/80">{totals.bags} bolsas surtidas</span>
               <strong className="font-['Outfit'] text-base text-emerald-700">${totals.amount.toLocaleString("es-MX", { maximumFractionDigits: 0 })} por cobrar</strong>
             </div>
           )}
@@ -617,7 +617,7 @@ function ShelfNav({ shelves, shelfIdx, setShelfIdx, isDone }) {
           type="button"
           onClick={() => setShelfIdx(i)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border cursor-pointer flex items-center gap-1 ${
-            i === shelfIdx ? "bg-slate-900 text-white border-slate-900" : isDone(s) ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-white text-slate-600 border-slate-200"
+            i === shelfIdx ? "bg-emerald-600 text-white border-emerald-600" : isDone(s) ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-white text-slate-600 border-slate-200"
           }`}
         >
           {isDone(s) && i !== shelfIdx && <Check className="w-3 h-3" />}
@@ -724,7 +724,7 @@ function SubstitutePicker({ facing, onPick, onClose }) {
 
 function SummaryCell({ label, value, highlight, alert }) {
   return (
-    <div className={`p-2.5 rounded-xl ${highlight ? "bg-emerald-600" : "bg-white/10"}`}>
+    <div className={`p-2.5 rounded-xl ${highlight ? "bg-white/25" : "bg-white/10"}`}>
       <span className="block text-[10px] text-white/70 font-semibold">{label}</span>
       <span className={`block font-['Outfit'] text-lg font-black ${alert ? "text-rose-300" : ""}`}>{value}</span>
     </div>

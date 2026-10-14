@@ -1375,7 +1375,7 @@ export default function SellerRouteMapModal({
                     onClick={() => handleSwitchMode("real_phone_gps")}
                     className={`tap-effect px-2 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
                       mapLocationMode === "real_phone_gps"
-                        ? "bg-slate-900 text-white shadow-xs"
+                        ? "bg-emerald-600 text-white shadow-xs"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                     title="Usar la ubicación en tiempo real de tu celular"
@@ -1400,7 +1400,7 @@ export default function SellerRouteMapModal({
                     onClick={() => handleSwitchMode("cancun_demo")}
                     className={`tap-effect px-1.5 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
                       mapLocationMode === "cancun_demo"
-                        ? "bg-slate-900 text-white shadow-xs"
+                        ? "bg-emerald-600 text-white shadow-xs"
                         : "text-slate-500 hover:text-slate-900"
                     }`}
                     title="Ver la ruta de demostración de Cancún"
@@ -1461,7 +1461,7 @@ export default function SellerRouteMapModal({
                   onClick={() => setMapStoreStatusFilter("all")}
                   className={`tap-effect px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition flex items-center gap-1 shrink-0 cursor-pointer ${
                     mapStoreStatusFilter === "all"
-                      ? "bg-slate-900 text-white shadow-xs"
+                      ? "bg-emerald-600 text-white shadow-xs"
                       : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >

@@ -31,7 +31,8 @@ export default function SellerFreezersScreen({
   onSaveAudit,
   onPlanogramChange,
   onStartVisit,
-  canAudit = false
+  canAudit = false,
+  reviewer = null
 }) {
   const currentFreezer = freezers.find((f) => f.id === selectedFreezerId) || freezers[0];
   const currentStore = stores.find((s) => s.id === currentFreezer?.storeId) || {
@@ -174,6 +175,7 @@ export default function SellerFreezersScreen({
             freezer={currentFreezer}
             store={currentStore}
             canAudit={canAudit}
+            reviewer={reviewer}
             onSaveAudit={(fId, auditData) => {
               if (onSaveAudit) onSaveAudit(fId, auditData);
             }}
@@ -184,7 +186,7 @@ export default function SellerFreezersScreen({
         <>
           {/* 3. Freezer Health & Temperature Banner */}
           <div className="px-4">
-            <div className="p-4 rounded-[22px] bg-slate-900 text-white shadow-sm space-y-3">
+            <div className="p-4 rounded-[22px] bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-sm space-y-3">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
