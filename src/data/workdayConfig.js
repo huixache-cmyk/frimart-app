@@ -9,12 +9,10 @@ export const WORKDAY_CONFIG = {
   maxGpsAccuracyM: 120   // lecturas GPS menos precisas se rechazan y se pide reintentar
 };
 
-// Coordenadas de cada CEDIS (aproximadas por dirección; confirmar en admin web)
+// Coordenadas de cada CEDIS. Piloto: solo Aguascalientes (ubicación real confirmada).
+// Las demás plazas se agregarán con datos reales al expandir el piloto.
 export const CEDIS_LOCATIONS = {
-  "CEDIS-AGS": { lat: 21.7795, lng: -102.2975, name: "CEDIS Aguascalientes" },
-  "CEDIS-01": { lat: 21.1619, lng: -86.8515, name: "CEDIS Cancún Principal" },
-  "CEDIS-02": { lat: 20.9990, lng: -89.6820, name: "CEDIS Mérida Periférico" },
-  "CEDIS-03": { lat: 20.6280, lng: -87.0890, name: "CEDIS Playa del Carmen" }
+  "CEDIS-AGS": { lat: 21.984525, lng: -102.268591, name: "CEDIS Aguascalientes (HS Distribución)" }
 };
 
 export const getCedisLocation = (cedisId) => CEDIS_LOCATIONS[cedisId] || null;

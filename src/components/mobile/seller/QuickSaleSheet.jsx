@@ -87,7 +87,7 @@ export default function QuickSaleSheet({
             >
               {stores.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.zone || "Cancún"})
+                  {s.name} ({s.zone || "Aguascalientes"})
                 </option>
               ))}
             </AppSelect>

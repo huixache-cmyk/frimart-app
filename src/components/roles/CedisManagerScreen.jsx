@@ -28,7 +28,7 @@ export default function CedisManagerScreen({
   const [activeTab, setActiveTab] = useState("rutas"); // 'rutas' | 'metas' | 'clientes' | 'ventas'
   const [clientSearch, setClientSearch] = useState("");
 
-  // Determine current CEDIS (Default: CEDIS Cancún)
+  // Determine current CEDIS (Default: CEDIS Aguascalientes)
   const cedisData = MASTER_CEDIS.find((c) => c.id === managerUser?.cedisId) || MASTER_CEDIS[0];
 
   // Rutas de este CEDIS
@@ -88,7 +88,7 @@ export default function CedisManagerScreen({
   ] : [
     {
       id: "RUTA-04",
-      name: "Ruta 04 - Oxxo & Autoservicios Cancún",
+      name: "Ruta 04 - Ags Oriente & Morelos",
       vendor: "Juan Pablo Morales",
       truck: "Hino 300 (Placas SZ-4912-B)",
       status: "en_ruta",

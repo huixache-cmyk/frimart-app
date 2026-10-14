@@ -22,148 +22,34 @@ import {
 import { LA_HUERTA_SKUS } from "../data/mockData";
 import AppSelect from "./ui/AppSelect";
 
+// Piloto Aguascalientes: catálogos por defecto solo con CEDIS AGS
 const DEFAULT_SELLERS = [
-  {
-    id: "VEND-104",
-    name: "Juan Pablo Morales",
-    email: "j.morales@frimart.com.mx",
-    phone: "998-123-4567",
-    cedis: "CEDIS Cancún (01)",
-    routeId: "RUTA-04",
-    routeName: "Ruta 04 - Oxxo & Autoservicios Cancún",
-    dailyQuota: 35000,
-    dailyBoxes: 140,
-    commissionRate: 4.0,
-    status: "active"
-  },
-  {
-    id: "VEND-105",
-    name: "María Eugenia Torres",
-    email: "m.torres@frimart.com.mx",
-    phone: "998-987-6543",
-    cedis: "CEDIS Cancún (01)",
-    routeId: "RUTA-02",
-    routeName: "Ruta 02 - Riviera Maya Hoteles",
-    dailyQuota: 48000,
-    dailyBoxes: 190,
-    commissionRate: 4.5,
-    status: "active"
-  },
-  {
-    id: "VEND-108",
-    name: "Carlos Alberto Reyes",
-    email: "c.reyes@frimart.com.mx",
-    phone: "999-456-7890",
-    cedis: "CEDIS Mérida (02)",
-    routeId: "RUTA-11",
-    routeName: "Ruta 11 - Mérida Tradicional",
-    dailyQuota: 28000,
-    dailyBoxes: 110,
-    commissionRate: 3.8,
-    status: "active"
-  }
+  { id: "VEND-104", name: "Juan Pablo Morales", email: "j.morales@frimart.com.mx", phone: "449-123-4567", cedis: "CEDIS Aguascalientes (1205)", routeId: "RUTA-01", routeName: "Ruta 01 - Ags Norte & Pocitos", dailyQuota: 38000, dailyBoxes: 150, commissionRate: 4.0, status: "active" },
+  { id: "VEND-106", name: "Carlos Estrada Rincón", email: "c.estrada@frimart.com.mx", phone: "449-234-5678", cedis: "CEDIS Aguascalientes (1205)", routeId: "RUTA-02", routeName: "Ruta 02 - Ags Centro & San Marcos", dailyQuota: 42000, dailyBoxes: 165, commissionRate: 4.0, status: "active" },
+  { id: "VEND-107", name: "María Elena Delgado", email: "m.delgado@frimart.com.mx", phone: "449-345-6789", cedis: "CEDIS Aguascalientes (1205)", routeId: "RUTA-03", routeName: "Ruta 03 - Ags Sur & Cd. Industrial", dailyQuota: 36000, dailyBoxes: 140, commissionRate: 4.0, status: "active" },
+  { id: "VEND-108", name: "Fernando Ruiz Esparza", email: "f.ruiz@frimart.com.mx", phone: "449-456-7890", cedis: "CEDIS Aguascalientes (1205)", routeId: "RUTA-04", routeName: "Ruta 04 - Ags Oriente & Morelos", dailyQuota: 40000, dailyBoxes: 155, commissionRate: 4.0, status: "active" },
+  { id: "VEND-109", name: "Brenda Morales Valdivia", email: "b.morales@frimart.com.mx", phone: "449-567-8901", cedis: "CEDIS Aguascalientes (1205)", routeId: "RUTA-05", routeName: "Ruta 05 - Ags Poniente & Calvillo", dailyQuota: 39000, dailyBoxes: 148, commissionRate: 4.0, status: "active" }
 ];
 
 const DEFAULT_ROUTES = [
-  {
-    id: "RUTA-04",
-    name: "Ruta 04 - Oxxo & Autoservicios Cancún",
-    cedis: "CEDIS Cancún (01)",
-    vendorName: "Juan Pablo Morales",
-    days: "Lun - Sáb",
-    storesCount: 8,
-    status: "active"
-  },
-  {
-    id: "RUTA-02",
-    name: "Ruta 02 - Riviera Maya Hoteles & Clubes",
-    cedis: "CEDIS Cancún (01)",
-    vendorName: "María Eugenia Torres",
-    days: "Lun - Vie",
-    storesCount: 12,
-    status: "active"
-  },
-  {
-    id: "RUTA-11",
-    name: "Ruta 11 - Mérida Tradicional Abarrotes",
-    cedis: "CEDIS Mérida (02)",
-    vendorName: "Carlos Alberto Reyes",
-    days: "Lun - Sáb",
-    storesCount: 15,
-    status: "active"
-  }
+  { id: "RUTA-01", name: "Ruta 01 - Ags Norte & Pocitos", cedis: "CEDIS Aguascalientes (1205)", vendorName: "Juan Pablo Morales", days: "Lun - Sáb", storesCount: 8, status: "active" },
+  { id: "RUTA-02", name: "Ruta 02 - Ags Centro & San Marcos", cedis: "CEDIS Aguascalientes (1205)", vendorName: "Carlos Estrada Rincón", days: "Lun - Sáb", storesCount: 8, status: "active" },
+  { id: "RUTA-03", name: "Ruta 03 - Ags Sur & Cd. Industrial", cedis: "CEDIS Aguascalientes (1205)", vendorName: "María Elena Delgado", days: "Lun - Sáb", storesCount: 8, status: "active" },
+  { id: "RUTA-04", name: "Ruta 04 - Ags Oriente & Morelos", cedis: "CEDIS Aguascalientes (1205)", vendorName: "Fernando Ruiz Esparza", days: "Lun - Sáb", storesCount: 8, status: "active" },
+  { id: "RUTA-05", name: "Ruta 05 - Ags Poniente & Calvillo", cedis: "CEDIS Aguascalientes (1205)", vendorName: "Brenda Morales Valdivia", days: "Lun - Sáb", storesCount: 8, status: "active" }
 ];
 
 const DEFAULT_CEDIS = [
-  {
-    id: "CEDIS-01",
-    code: "CUN",
-    name: "CEDIS Cancún Principal",
-    state: "Quintana Roo",
-    address: "Av. López Portillo Km 7.5, Bodega 14",
-    manager: "Ing. Guillermo Salcedo",
-    monthlyTarget: 3800000,
-    activeRoutes: 6,
-    status: "active"
-  },
-  {
-    id: "CEDIS-02",
-    code: "MID",
-    name: "CEDIS Mérida Periférico",
-    state: "Yucatán",
-    address: "Anillo Periférico Poniente #1200",
-    manager: "Lic. Patricia Ceballos",
-    monthlyTarget: 4200000,
-    activeRoutes: 8,
-    status: "active"
-  },
-  {
-    id: "CEDIS-03",
-    code: "PDC",
-    name: "CEDIS Playa del Carmen Express",
-    state: "Quintana Roo",
-    address: "Carretera Federal Cancún-Tulum Sm 54",
-    manager: "Raúl Castañeda",
-    monthlyTarget: 2100000,
-    activeRoutes: 3,
-    status: "active"
-  }
+  { id: "CEDIS-AGS", code: "AGS", name: "CEDIS Aguascalientes (1205)", state: "Aguascalientes", address: "HS Distribución, C. Uno, 20350 San Francisco de los Romo, Ags.", manager: "Ing. Guillermo Salcedo", monthlyTarget: 4500000, activeRoutes: 5, status: "active" }
 ];
 
 const DEFAULT_GOALS = [
-  {
-    id: "GOAL-2026-09",
-    targetType: "Diaria por Vendedor",
-    subject: "Juan Pablo Morales (Ruta 04)",
-    amountTarget: 35000,
-    boxesTarget: 140,
-    effectiveVisitsTarget: 8,
-    bonusPercent: 4.0,
-    period: "Septiembre 2026",
-    status: "active"
-  },
-  {
-    id: "GOAL-2026-09B",
-    targetType: "Diaria por Vendedor",
-    subject: "María Eugenia Torres (Ruta 02)",
-    amountTarget: 48000,
-    boxesTarget: 190,
-    effectiveVisitsTarget: 12,
-    bonusPercent: 4.5,
-    period: "Septiembre 2026",
-    status: "active"
-  },
-  {
-    id: "GOAL-CEDIS-CUN",
-    targetType: "Mensual CEDIS",
-    subject: "CEDIS Cancún (Total Plaza)",
-    amountTarget: 3800000,
-    boxesTarget: 15200,
-    effectiveVisitsTarget: 480,
-    bonusPercent: 2.5,
-    period: "Septiembre 2026",
-    status: "active"
-  }
+  { id: "GOAL-VEND-104", targetType: "Diaria por Vendedor", subject: "Juan Pablo Morales (Ruta 01)", amountTarget: 38000, boxesTarget: 150, effectiveVisitsTarget: 8, bonusPercent: 4.0, period: "Piloto Ags", status: "active" },
+  { id: "GOAL-VEND-106", targetType: "Diaria por Vendedor", subject: "Carlos Estrada Rincón (Ruta 02)", amountTarget: 42000, boxesTarget: 165, effectiveVisitsTarget: 8, bonusPercent: 4.0, period: "Piloto Ags", status: "active" },
+  { id: "GOAL-VEND-107", targetType: "Diaria por Vendedor", subject: "María Elena Delgado (Ruta 03)", amountTarget: 36000, boxesTarget: 140, effectiveVisitsTarget: 8, bonusPercent: 4.0, period: "Piloto Ags", status: "active" },
+  { id: "GOAL-VEND-108", targetType: "Diaria por Vendedor", subject: "Fernando Ruiz Esparza (Ruta 04)", amountTarget: 40000, boxesTarget: 155, effectiveVisitsTarget: 8, bonusPercent: 4.0, period: "Piloto Ags", status: "active" },
+  { id: "GOAL-VEND-109", targetType: "Diaria por Vendedor", subject: "Brenda Morales Valdivia (Ruta 05)", amountTarget: 39000, boxesTarget: 148, effectiveVisitsTarget: 8, bonusPercent: 4.0, period: "Piloto Ags", status: "active" },
+  { id: "GOAL-CEDIS-AGS", targetType: "Mensual CEDIS", subject: "CEDIS Aguascalientes (1205) (Total Plaza)", amountTarget: 4500000, boxesTarget: 18000, effectiveVisitsTarget: 520, bonusPercent: 2.5, period: "Piloto Ags", status: "active" }
 ];
 
 const DEFAULT_PLANOGRAMS = [
@@ -275,8 +161,8 @@ export default function AdminCatalogManager({
         name: "",
         email: "",
         phone: "",
-        cedis: "CEDIS Cancún (01)",
-        routeName: "Ruta 04 - Oxxo & Autoservicios Cancún",
+        cedis: "CEDIS Aguascalientes (1205)",
+        routeName: "Ruta 01 - Ags Norte & Pocitos",
         dailyQuota: 35000,
         dailyBoxes: 140,
         commissionRate: 4.0,
@@ -286,7 +172,7 @@ export default function AdminCatalogManager({
       setFormData({
         id: `RUTA-0${routesList.length + 1}`,
         name: "",
-        cedis: "CEDIS Cancún (01)",
+        cedis: "CEDIS Aguascalientes (1205)",
         vendorName: "Juan Pablo Morales",
         days: "Lun - Sáb",
         storesCount: 6,
@@ -300,8 +186,8 @@ export default function AdminCatalogManager({
         chain: "OXXO",
         type: "Conveniencia",
         address: "",
-        lat: 21.1500,
-        lng: -86.8400,
+        lat: 21.8818,
+        lng: -102.2916,
         geofenceRadius: 60,
         managerName: "",
         status: "pending"
@@ -311,7 +197,7 @@ export default function AdminCatalogManager({
         id: `CEDIS-0${cedisList.length + 1}`,
         code: "PLZ",
         name: "",
-        state: "Quintana Roo",
+        state: "Aguascalientes",
         address: "",
         manager: "",
         monthlyTarget: 3000000,
@@ -1160,7 +1046,7 @@ export default function AdminCatalogManager({
                       <input
                         type="text"
                         required
-                        placeholder="Ej. Quintana Roo, Yucatán..."
+                        placeholder="Ej. Aguascalientes, Jalisco..."
                         value={formData.state || ""}
                         onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-medium focus:bg-white focus:outline-none focus:border-sky-500"

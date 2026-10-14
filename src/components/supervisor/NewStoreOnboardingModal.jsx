@@ -72,9 +72,9 @@ export default function NewStoreOnboardingModal({
       if (lat >= 21.6 && lat <= 22.3) {
         setCedis("CEDIS Aguascalientes (1205)");
       } else if (lat >= 20.8 && lat <= 21.5) {
-        setCedis("CEDIS Cancún (01)");
+        setCedis("CEDIS Aguascalientes (1205)");
       } else if (lat >= 20.5 && lat <= 21.1) {
-        setCedis("CEDIS Mérida Periférico");
+        setCedis("CEDIS Aguascalientes (1205)");
       }
     }
   }, [coordinates?.lat]);
@@ -402,9 +402,6 @@ export default function NewStoreOnboardingModal({
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
                 >
                   <option value="CEDIS Aguascalientes (1205)">CEDIS Aguascalientes (1205)</option>
-                  <option value="CEDIS Cancún (01)">CEDIS Cancún (01)</option>
-                  <option value="CEDIS Mérida Periférico">CEDIS Mérida Periférico</option>
-                  <option value="CEDIS Playa del Carmen">CEDIS Playa del Carmen</option>
                 </AppSelect>
               </div>
 

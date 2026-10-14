@@ -71,7 +71,7 @@ export default function SellerPendingSalesScreen({
           {seller.name}
         </h1>
         <p className="text-xs text-emerald-100/80 mt-0.5">
-          {seller.cedis || "CEDIS Cancún (01)"} • Resumen Operativo Diario
+          {seller.cedis || "CEDIS Aguascalientes (1205)"} • Resumen Operativo Diario
         </p>
 
         {/* Daily Summary Quick Pill Metrics */}

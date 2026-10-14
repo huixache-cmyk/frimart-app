@@ -1260,7 +1260,7 @@ export const INITIAL_ORDERS = [
     statusLabel: "En camino (-18°C)",
     currentTemp: "-18.4°C",
     estimatedArrival: "20 - 25 min",
-    deliveryAddress: "Av. Nichupté Sm 15 Mz 3, Cancún, Q.R.",
+    deliveryAddress: "Av. Universidad 1001, Aguascalientes, Ags.",
     driverName: "Carlos Méndez (Unidad Frimart 04)",
     total: 310.00,
     items: [
@@ -1291,7 +1291,7 @@ export const INITIAL_ORDERS = [
     date: "18 Sep 2026",
     status: "delivered",
     statusLabel: "Entregado a -18°C",
-    deliveryAddress: "Av. Nichupté Sm 15 Mz 3, Cancún, Q.R.",
+    deliveryAddress: "Av. Universidad 1001, Aguascalientes, Ags.",
     total: 428.50,
     items: [
       {
@@ -1319,19 +1319,19 @@ export const INITIAL_USER_PROFILE = {
   tier: "Cliente Frimart Oro",
   loyaltyPoints: 1250,
   avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
-  currentAddress: "Av. Nichupté Sm 15 Mz 3, Cancún",
+  currentAddress: "Av. Universidad 1001, Aguascalientes",
   savedAddresses: [
     {
       id: "addr-1",
       alias: "Casa",
-      address: "Av. Nichupté Sm 15 Mz 3, Cancún, Q.R.",
+      address: "Av. Universidad 1001, Aguascalientes, Ags.",
       reference: "Portón blanco frente al parque",
       isDefault: true
     },
     {
       id: "addr-2",
       alias: "Oficina",
-      address: "Plaza Las Américas Local 42, Cancún, Q.R.",
+      address: "Plaza Altaria Local 42, Aguascalientes, Ags.",
       reference: "Recepción corporativa piso 2",
       isDefault: false
     }

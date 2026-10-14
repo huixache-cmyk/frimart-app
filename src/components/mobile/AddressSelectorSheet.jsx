@@ -74,7 +74,7 @@ export default function AddressSelectorSheet({
 
         <button
           onClick={() => {
-            const newAddr = prompt("Ingresa nueva dirección de entrega en Cancún o Riviera Maya:");
+            const newAddr = prompt("Ingresa nueva dirección de entrega en Aguascalientes:");
             if (newAddr) {
               onSelectAddress(newAddr);
               onClose();

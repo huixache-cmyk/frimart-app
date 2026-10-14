@@ -447,48 +447,6 @@ export const AGUASCALIENTES_STORES = [
   }
 ];
 
-export const CANCUN_STORES = [
-  {
-    id: "STORE-CUN-01",
-    code: "50XLG",
-    name: "Cadena Comercial OXXO - Constitución II CUN",
-    chain: "OXXO",
-    type: "Conveniencia",
-    address: "Av. Constitución #42, Sm 27, Cancún, Q.R.",
-    lat: 21.1619,
-    lng: -86.8515,
-    geofenceRadius: 60,
-    status: "completed",
-    checkInTime: "08:45 AM",
-    checkOutTime: "09:30 AM",
-    salesToday: 8450,
-    boxesToday: 34,
-    freezersCount: 1,
-    freezerIds: ["FRM-0042"],
-    managerName: "Roberto Gómez (Líder de Tienda)",
-    compliancePercent: 96
-  },
-  {
-    id: "STORE-CUN-02",
-    code: "50NCP",
-    name: "Cadena Comercial OXXO - Nichupté Mz 12",
-    chain: "OXXO",
-    type: "Conveniencia",
-    address: "Av. Nichupté esq. Av. La Luna, Cancún, Q.R.",
-    lat: 21.1482,
-    lng: -86.8398,
-    geofenceRadius: 60,
-    status: "in_progress",
-    checkInTime: "11:15 AM",
-    checkOutTime: null,
-    salesToday: 0,
-    boxesToday: 0,
-    freezersCount: 1,
-    freezerIds: ["FRM-0089"],
-    managerName: "Karla Varela",
-    compliancePercent: 88
-  }
-];
 
 export const INITIAL_STORES = AGUASCALIENTES_STORES;
 

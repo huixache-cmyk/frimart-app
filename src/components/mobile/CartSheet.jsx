@@ -20,7 +20,7 @@ export default function CartSheet({
   onUpdateQuantity, 
   onRemoveItem, 
   onCheckoutSuccess,
-  currentAddress = "Av. Nichupté Sm 15 Mz 3, Cancún"
+  currentAddress = "Av. Universidad 1001, Aguascalientes"
 }) {
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);

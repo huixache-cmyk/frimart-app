@@ -159,7 +159,7 @@ export default function OwnerMasterHubScreen({
             >
               <Truck className="w-4 h-4 text-emerald-600 mb-1" />
               <span className="text-xs font-bold text-slate-900 block">Vendedor</span>
-              <span className="text-[10px] text-slate-500 block">Ruta 04 Cancún</span>
+              <span className="text-[10px] text-slate-500 block">Ruta 04 Ags Oriente</span>
             </button>
 
             <button
@@ -168,7 +168,7 @@ export default function OwnerMasterHubScreen({
             >
               <ShieldCheck className="w-4 h-4 text-sky-600 mb-1" />
               <span className="text-xs font-bold text-slate-900 block">Supervisor</span>
-              <span className="text-[10px] text-slate-500 block">Zona Cancún</span>
+              <span className="text-[10px] text-slate-500 block">Zona Ags Centro</span>
             </button>
 
             <button
@@ -177,7 +177,7 @@ export default function OwnerMasterHubScreen({
             >
               <Building2 className="w-4 h-4 text-amber-600 mb-1" />
               <span className="text-xs font-bold text-slate-900 block">Gerente CEDIS</span>
-              <span className="text-[10px] text-slate-500 block">Cancún CUN</span>
+              <span className="text-[10px] text-slate-500 block">Aguascalientes AGS</span>
             </button>
 
             <button

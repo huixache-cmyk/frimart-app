@@ -45,7 +45,7 @@ export default function OwnerAccessAdminModal({
     role: "vendedor",
     accessKey: "",
     phone: "",
-    cedisId: "CEDIS-01",
+    cedisId: "CEDIS-AGS",
     routeId: "RUTA-04"
   });
 
@@ -98,7 +98,7 @@ export default function OwnerAccessAdminModal({
       accessKey: newUser.accessKey,
       phone: newUser.phone || "998-000-0000",
       cedisId: newUser.cedisId,
-      cedisName: MASTER_CEDIS.find((c) => c.id === newUser.cedisId)?.name || "CEDIS Cancún",
+      cedisName: MASTER_CEDIS.find((c) => c.id === newUser.cedisId)?.name || "CEDIS Aguascalientes (1205)",
       routeId: newUser.routeId,
       routeName: `Ruta ${newUser.routeId}`,
       status: "active",
@@ -113,7 +113,7 @@ export default function OwnerAccessAdminModal({
       role: "vendedor",
       accessKey: "",
       phone: "",
-      cedisId: "CEDIS-01",
+      cedisId: "CEDIS-AGS",
       routeId: "RUTA-04"
     });
     setActiveTab("keys");

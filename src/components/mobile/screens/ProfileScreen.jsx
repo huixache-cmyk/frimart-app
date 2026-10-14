@@ -100,7 +100,7 @@ export default function ProfileScreen({
       id: "legal",
       label: "Legal y términos de servicio",
       icon: BookOpen,
-      action: () => alert("Términos y condiciones del servicio Frimart Distribuciones S.A. de C.V. - Cancún, Q.R.")
+      action: () => alert("Términos y condiciones del servicio Frimart Distribuciones S.A. de C.V. - Aguascalientes, Ags.")
     }
   ];
 
@@ -342,7 +342,7 @@ export default function ProfileScreen({
               </button>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
-              ¿Tienes alguna duda sobre tu entrega o la calidad de tus congelados? Nuestro equipo de soporte en Cancún y Riviera Maya está disponible 24/7.
+              ¿Tienes alguna duda sobre tu entrega o la calidad de tus congelados? Nuestro equipo de soporte en Aguascalientes y Riviera Maya está disponible 24/7.
             </p>
             <div className="space-y-2">
               <a
@@ -355,7 +355,7 @@ export default function ProfileScreen({
                 <span>Iniciar Chat de WhatsApp (+52 998 234 8901)</span>
               </a>
               <button
-                onClick={() => alert("Llamando a conmutador Frimart CEDI Cancún...")}
+                onClick={() => alert("Llamando a conmutador Frimart CEDIS Aguascalientes...")}
                 className="tap-effect w-full py-3 px-4 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] text-slate-700 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-100 transition cursor-pointer"
               >
                 <Phone className="w-4 h-4" />

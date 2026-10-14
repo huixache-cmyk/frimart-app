@@ -21,7 +21,7 @@ export default function CommercialDirectorScreen({
   directorUser,
   onSelectCedis
 }) {
-  const [selectedCedisFilter, setSelectedCedisFilter] = useState("ALL"); // 'ALL' | 'CEDIS-01' | 'CEDIS-02' | 'CEDIS-03'
+  const [selectedCedisFilter, setSelectedCedisFilter] = useState("ALL"); // 'ALL' | 'CEDIS-AGS' | 'CEDIS-03'
 
   // National Aggregations
   const totalMonthlySales = MASTER_CEDIS.reduce((acc, c) => acc + c.currentMonthSales, 0);
@@ -35,10 +35,10 @@ export default function CommercialDirectorScreen({
 
   // Top National Sellers ranking
   const topSellers = [
-    { rank: 1, name: "María Eugenia Torres", cedis: "CEDIS Cancún (01)", route: "Ruta 02 Riviera Maya", sales: 842000, compliance: 114 },
-    { rank: 2, name: "Carlos Alberto Reyes", cedis: "CEDIS Mérida (02)", route: "Ruta 11 Mérida Centro", sales: 789000, compliance: 108 },
-    { rank: 3, name: "Juan Pablo Morales", cedis: "CEDIS Cancún (01)", route: "Ruta 04 Oxxo Cancún", sales: 712000, compliance: 102 },
-    { rank: 4, name: "Esteban Camal", cedis: "CEDIS Playa del Carmen", route: "Ruta 05 Playa Quinta Av.", sales: 654000, compliance: 98 }
+    { rank: 1, name: "María Eugenia Torres", cedis: "CEDIS Aguascalientes (1205)", route: "Ruta 02 Ags Centro", sales: 842000, compliance: 114 },
+    { rank: 2, name: "Carlos Alberto Reyes", cedis: "CEDIS Aguascalientes (1205)", route: "Ruta 03 Ags Sur", sales: 789000, compliance: 108 },
+    { rank: 3, name: "Juan Pablo Morales", cedis: "CEDIS Aguascalientes (1205)", route: "Ruta 01 Ags Norte", sales: 712000, compliance: 102 },
+    { rank: 4, name: "Esteban Camal", cedis: "CEDIS Aguascalientes (1205)", route: "Ruta 05 Ags Poniente", sales: 654000, compliance: 98 }
   ];
 
   const displayedCedisList = selectedCedisFilter === "ALL" 

@@ -1396,17 +1396,7 @@ export default function SellerRouteMapModal({
                     <span>🏢 Aguascalientes</span>
                   </button>
 
-                  <button
-                    onClick={() => handleSwitchMode("cancun_demo")}
-                    className={`tap-effect px-1.5 py-1 rounded-xl text-[10.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
-                      mapLocationMode === "cancun_demo"
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900"
-                    }`}
-                    title="Ver la ruta de demostración de Cancún"
-                  >
-                    <span>🏝️ Cancún</span>
-                  </button>
+                  {/* Piloto Aguascalientes: modo demo de otras plazas retirado */}
                 </div>
               )}
             </div>
