@@ -57,6 +57,9 @@ const toRow = (w) => ({
   calificacion_prom: w.scores?.length ? Math.round((w.scores.reduce((a, b) => a + b, 0) / w.scores.length) * 10) / 10 : null,
   cumplimiento_prom: w.compliances?.length ? Math.round((w.compliances.reduce((a, b) => a + b, 0) / w.compliances.length) * 10) / 10 : null,
   no_visitadas: w.notVisited || [],
+  autorizacion_id: w.authorization?.id || null,
+  autorizado_por: w.authorization?.supervisorId || null,
+  autorizado_nombre: w.authorization?.supervisorName || null,
   estado: w.endedAt ? "cerrada" : "abierta"
 });
 
@@ -95,7 +98,7 @@ export async function openWorkday(user, scheduled, authorizedBy = null) {
     startGps: pos,
     startDistanceM: distanceM,
     scheduled,
-    authorizedBy: authorizedBy ? { id: authorizedBy.id, name: authorizedBy.name } : null,
+    authorization: authorizedBy ? { id: authorizedBy.id, supervisorId: authorizedBy.supervisor_id, supervisorName: authorizedBy.supervisor_nombre } : null,
     visitedStoreIds: [],
     sales: 0,
     bags: 0,

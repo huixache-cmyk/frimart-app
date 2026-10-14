@@ -76,12 +76,12 @@ export default function WorkdayCard({ user, workday, stores = [], onOpen, onClos
             <Play className="w-4 h-4" />{busy ? "Verificando ubicación…" : "Abrir jornada"}
           </button>
           {error && !showAuth && (
-            <button type="button" onClick={() => setShowAuth(true)} className="w-full text-[12px] font-bold text-slate-500 underline cursor-pointer">Abrir con autorización del supervisor</button>
+            <button type="button" onClick={() => setShowAuth(true)} className="w-full text-[12px] font-bold text-slate-500 underline cursor-pointer">Abrir con código de mi supervisor</button>
           )}
           {showAuth && (
             <div className="flex gap-2">
-              <input type="password" inputMode="numeric" maxLength={6} value={authCode} onChange={(e) => setAuthCode(e.target.value.replace(/\D/g, ""))} placeholder="Clave de autorización" className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 text-[14px] font-bold tracking-widest focus:outline-none focus:border-emerald-500" />
-              <button type="button" disabled={busy || authCode.length < 4} onClick={() => handleOpen({ authCode })} className="tap-effect px-4 rounded-xl bg-emerald-600 text-white text-[13px] font-bold cursor-pointer disabled:opacity-50">Abrir</button>
+              <input type="text" inputMode="numeric" maxLength={6} value={authCode} onChange={(e) => setAuthCode(e.target.value.replace(/\D/g, ""))} placeholder="Código de 6 dígitos" className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 text-[14px] font-bold tracking-widest focus:outline-none focus:border-emerald-500" />
+              <button type="button" disabled={busy || authCode.length !== 6} onClick={() => handleOpen({ authCode })} className="tap-effect px-4 rounded-xl bg-emerald-600 text-white text-[13px] font-bold cursor-pointer disabled:opacity-50">Abrir</button>
             </div>
           )}
           {historyBlock}

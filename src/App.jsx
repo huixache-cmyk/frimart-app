@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import MobileDeviceFrame from "./components/mobile/MobileDeviceFrame";
 import SellerMobileHeader from "./components/mobile/seller/SellerMobileHeader";
 import SellerBottomNavigation from "./components/mobile/seller/SellerBottomNavigation";
@@ -17,6 +17,8 @@ import { submitVisit, startVisitQueueWorker } from "./lib/visitsSync";
 import { loadWorkday, openWorkday, closeWorkday, addVisitToWorkday, enforceAutoClose } from "./lib/workday";
 import WorkdayCard from "./components/mobile/seller/WorkdayCard";
 import WorkdayHistory from "./components/roles/WorkdayHistory";
+import AuthCodeCard from "./components/roles/AuthCodeCard";
+import { fetchCatalog, mergeCatalog, pushCatalogChanges, subscribeCatalog, logAction, flushLogQueue, redeemAuthCode } from "./lib/catalogSync";
 import { isAtLeast, LEVEL } from "./data/permissions";
 
 // Authentication & Roles
@@ -347,6 +349,37 @@ export default function App() {
     localStorage.setItem("frimart_freezers", JSON.stringify(freezers));
   }, [freezers]);
 
+  // ===== Catálogo compartido en Supabase (tiendas y congeladores) =====
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const catalogRef = useRef({ stores, freezers });
+  catalogRef.current = { stores, freezers };
+  const [catalogReady, setCatalogReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const pull = async () => {
+      const remote = await fetchCatalog();
+      if (!alive || !remote) return;
+      setStores((prev) => mergeCatalog("tiendas", prev, remote.stores));
+      setFreezers((prev) => mergeCatalog("congeladores", prev, remote.freezers));
+    };
+    pull().finally(() => alive && setCatalogReady(true));
+    let timer = null;
+    const unsub = subscribeCatalog(() => { clearTimeout(timer); timer = setTimeout(pull, 800); });
+    const push = () => { flushLogQueue(); pushCatalogChanges(catalogRef.current, currentUserRef.current); };
+    window.addEventListener("online", push);
+    const t = setInterval(push, 60000);
+    return () => { alive = false; unsub(); clearTimeout(timer); clearInterval(t); window.removeEventListener("online", push); };
+  }, []);
+
+  // Cualquier alta o cambio local se sube (con 1.5 s de espera para agrupar ediciones)
+  useEffect(() => {
+    if (!catalogReady) return;
+    const t = setTimeout(() => pushCatalogChanges({ stores, freezers }, currentUserRef.current), 1500);
+    return () => clearTimeout(t);
+  }, [stores, freezers, catalogReady]);
+
   // Helper to trigger mobile haptic toast
   const showToast = (message, type = "success", icon = null) => {
     setToast({ message, type, icon });
@@ -382,23 +415,25 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
   const handleOpenWorkday = async (opts = {}) => {
-    let authorizedBy = null;
+    let authorization = null;
     if (opts.authCode) {
-      // Autorización excepcional: clave personal de un supervisor (o superior) activo
-      authorizedBy = users.find((u) => u.status === "active" && u.accessKey === opts.authCode && isAtLeast(u.role, LEVEL.SUPERVISOR));
-      if (!authorizedBy) throw new Error("Clave de autorización inválida.");
+      // Código de un solo uso generado por el supervisor (se marca como usado al validarlo)
+      authorization = await redeemAuthCode(opts.authCode, currentUser);
     }
-    const w = await openWorkday(currentUser, scopedStores.length, authorizedBy);
+    const w = await openWorkday(currentUser, scopedStores.length, authorization);
     setWorkday(w);
-    showToast(authorizedBy ? `Jornada abierta con autorización de ${authorizedBy.name}` : "Jornada abierta. ¡Buen día!", "success");
+    logAction(currentUser, "abre_jornada", { tabla: "frimart_jornadas", registroId: w.id, detalle: { fuera_cedis: !!authorization, autorizacion: authorization?.id || null, distancia_m: w.startDistanceM } });
+    showToast(authorization ? `Jornada abierta con autorización de ${authorization.supervisor_nombre}` : "Jornada abierta. ¡Buen día!", "success");
   };
   const handleCloseWorkday = async (notVisited) => {
     await closeWorkday(currentUser.id, { notVisited });
+    logAction(currentUser, "cierra_jornada", { tabla: "frimart_jornadas", detalle: { no_visitadas: notVisited } });
     setWorkday(null);
     showToast("Jornada cerrada y enviada", "success");
   };
   // Authentication Handlers
   const handleLoginSuccess = (authenticatedUser) => {
+    logAction(authenticatedUser, "inicio_sesion");
     setCurrentUser(authenticatedUser);
     saveStoredActiveUser(authenticatedUser);
     setIsLocked(false);
@@ -410,6 +445,7 @@ export default function App() {
   };
 
   const handleLockSession = () => {
+    logAction(currentUser, "cierre_sesion");
     setIsLocked(true);
     setCurrentUser(null);
     localStorage.removeItem("frimart_active_session");
@@ -760,6 +796,9 @@ export default function App() {
               vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)}
               onToast={(m) => showToast(m, "info")}
             />
+          )}
+          {activeTab === "supervision" && canSeeTab("supervision") && (
+            <AuthCodeCard supervisor={currentUser} vendors={assignedVendors} />
           )}
           {activeTab === "supervision" && canSeeTab("supervision") && (
             <WorkdayHistory vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)} title="Jornadas del equipo" />
