@@ -30,14 +30,16 @@ export default function SellerFreezersScreen({
   onUpdateSlot,
   onSaveAudit,
   onPlanogramChange,
-  onStartVisit
+  onStartVisit,
+  canAudit = false
 }) {
   const currentFreezer = freezers.find((f) => f.id === selectedFreezerId) || freezers[0];
   const currentStore = stores.find((s) => s.id === currentFreezer?.storeId) || {
     name: currentFreezer?.storeName || "Cadena Comercial OXXO",
     code: "50NCP"
   };
-  const [activeScreenMode, setActiveScreenMode] = useState("visual"); // 'visual' | 'list'
+  // La "Lista de Resurtido" quedó reemplazada por la visita guiada; se conserva el código por referencia
+  const [activeScreenMode] = useState("visual"); // 'visual' | 'list'
   const [auditSaved, setAuditSaved] = useState(false);
   const [stepperOverrides, setStepperOverrides] = useState({});
 
@@ -166,39 +168,12 @@ export default function SellerFreezersScreen({
         </div>
       )}
 
-      {/* 2. Mode Selector: Planograma Visual vs Lista de Resurtido */}
-      <div className="px-4">
-        <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
-          <button
-            onClick={() => setActiveScreenMode("visual")}
-            className={`tap-effect flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeScreenMode === "visual"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Snowflake className="w-3.5 h-3.5" />
-            <span>Planograma Visual (Fotos)</span>
-          </button>
-          <button
-            onClick={() => setActiveScreenMode("list")}
-            className={`tap-effect flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeScreenMode === "list"
-                ? "bg-slate-900 text-white shadow-xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Lista de Resurtido</span>
-          </button>
-        </div>
-      </div>
-
       {activeScreenMode === "visual" ? (
         <div className="px-3 sm:px-4">
           <PlanogramViewer
             freezer={currentFreezer}
             store={currentStore}
+            canAudit={canAudit}
             onSaveAudit={(fId, auditData) => {
               if (onSaveAudit) onSaveAudit(fId, auditData);
             }}

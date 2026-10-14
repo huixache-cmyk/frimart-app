@@ -43,6 +43,7 @@ export const CAPABILITY_MIN_LEVEL = {
   editPlanogram: LEVEL.VENDEDOR,
   viewTeamRoutes: LEVEL.SUPERVISOR,
   changeFreezerType: LEVEL.SUPERVISOR,
+  auditFreezer: LEVEL.SUPERVISOR,
   createStore: LEVEL.SUPERVISOR,
   printQrBatch: LEVEL.SUPERVISOR,
   viewCedisData: LEVEL.GERENTE,

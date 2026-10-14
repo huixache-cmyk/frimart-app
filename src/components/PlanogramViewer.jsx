@@ -47,7 +47,8 @@ export default function PlanogramViewer({
   store, 
   onBackToRoute, 
   onSaveAudit,
-  onPlanogramChange
+  onPlanogramChange,
+  canAudit = false
 }) {
   // Detect or determine initial model type
   // Automatically identify fixed model type from freezer record
@@ -334,40 +335,41 @@ export default function PlanogramViewer({
 
   return (
     <div className="w-full space-y-4 pb-20 animate-fade-in text-slate-900">
-      {/* 1. Header Bar: Compact & Mobile-First */}
-      <div className="bg-gradient-to-r from-red-600 via-red-700 to-amber-700 rounded-2xl p-2.5 sm:p-3.5 shadow-md text-white flex items-center justify-between gap-2 border border-red-500/40">
-        <div className="flex items-center gap-2 min-w-0">
+      {/* 1. Encabezado: tarjeta clara con datos de la tienda */}
+      <div className="bg-white rounded-2xl p-3 shadow-2xs border border-slate-200 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
           {onBackToRoute && (
             <button
               onClick={onBackToRoute}
-              className="tactile-btn bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-lg text-xs font-bold transition cursor-pointer border border-white/30 shrink-0"
+              className="tactile-btn bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl transition cursor-pointer shrink-0"
               title="Regresar a ruta"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <Snowflake className="w-5 h-5" />
+          </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 truncate">
-              <span className="bg-white text-red-700 text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs font-mono shrink-0">
-                {store?.code || "50NCP"}
-              </span>
-              <h2 className="font-extrabold text-xs sm:text-sm tracking-tight text-white font-['Outfit'] truncate">
-                {store?.name || "OXXO Nichupté"}
-              </h2>
-            </div>
-            <p className="text-[10px] text-red-100 font-mono flex items-center gap-1.5 truncate mt-0.5">
-              <span>QR: <strong className="text-white">{freezer?.qrCode || "FRM-0089"}</strong></span>
-              <span>•</span>
+            <h2 className="font-['Outfit'] font-black text-[15px] text-slate-900 leading-tight truncate">
+              {store?.name || freezer?.storeName || "Tienda"}
+            </h2>
+            <p className="text-[11px] text-slate-500 flex items-center gap-1.5 truncate mt-0.5">
+              {store?.code && <span className="font-mono font-bold text-slate-700">{store.code}</span>}
+              {store?.code && <span>·</span>}
+              <span>QR <strong className="font-mono text-slate-700">{freezer?.qrCode || "—"}</strong></span>
+              <span>·</span>
               <span className="truncate">{FREEZER_MODEL_CONFIGS[activeModelType].shortName}</span>
             </p>
           </div>
         </div>
 
-        {/* Telemetry Pill */}
-        <div className="flex items-center gap-1 bg-black/40 border border-white/20 px-2 py-1 rounded-xl text-emerald-300 font-mono text-[11px] font-bold shrink-0">
-          <Thermometer className="w-3 h-3 text-emerald-400 animate-pulse" />
-          <span>{freezer?.temperature || -22.0}°C</span>
+        {/* Temperatura */}
+        <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[12px] font-bold shrink-0 border ${
+          Number(freezer?.temperature) > -15 ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-sky-50 text-sky-700 border-sky-200"
+        }`}>
+          <Thermometer className="w-3.5 h-3.5" />
+          <span>{freezer?.temperature ?? "—"}°C</span>
         </div>
       </div>
 
@@ -441,7 +443,7 @@ export default function PlanogramViewer({
               onClick={() => setActiveViewMode("planogram")}
               className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer transition ${
                 activeViewMode === "planogram"
-                  ? "bg-slate-900 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -451,7 +453,7 @@ export default function PlanogramViewer({
               onClick={() => setActiveViewMode("changes")}
               className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer transition flex items-center gap-1 ${
                 activeViewMode === "changes"
-                  ? "bg-slate-900 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -464,7 +466,7 @@ export default function PlanogramViewer({
               onClick={() => setActiveViewMode("descriptive")}
               className={`px-2.5 py-1 rounded-lg font-bold text-[11px] cursor-pointer transition ${
                 activeViewMode === "descriptive"
-                  ? "bg-slate-900 text-white"
+                  ? "bg-emerald-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
@@ -786,47 +788,56 @@ export default function PlanogramViewer({
 
         {/* Right Column: Audit Compliance & Actions (4 Cols) */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Compliance Card */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Cumplimiento de Vistas
-              </span>
-              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                {totalCurrentFacings} / {totalExpectedFacings} ftes
-              </span>
-            </div>
-
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono font-black text-4xl text-slate-900">
-                {complianceScore}%
-              </span>
-              <span className={`text-xs font-bold ${
-                complianceScore >= 90 ? "text-emerald-700" : "text-amber-700"
-              }`}>
-                {complianceScore >= 90 ? "Acomodo Óptimo" : "Faltan frentes"}
-              </span>
-            </div>
-
-            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-sky-500 h-full rounded-full transition-all duration-500"
-                style={{ width: `${complianceScore}%` }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-center text-xs font-mono">
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] text-slate-400 block font-sans">Stock Físico</span>
-                <strong className="text-slate-800 text-sm">{totalStockUnits} pzas</strong>
+          {/* Última visita: datos reales de la visita guiada */}
+          {(() => {
+            const last = freezer?.visits?.[0];
+            if (!last) {
+              return (
+                <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-2xs text-center space-y-1">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Última visita</span>
+                  <p className="text-[13px] text-slate-500">Aún no hay visitas guiadas registradas en este congelador.</p>
+                </div>
+              );
+            }
+            const c = Number(last.compliance || 0);
+            const when = last.endedAt ? new Date(last.endedAt) : null;
+            return (
+              <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Última visita</span>
+                  <span className="text-[11px] text-slate-500">
+                    {when ? when.toLocaleDateString([], { day: "2-digit", month: "short" }) + " · " + when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-['Outfit'] font-black text-4xl text-slate-900">{c}%</span>
+                  <span className={`text-xs font-bold ${c >= 90 ? "text-emerald-700" : "text-amber-700"}`}>
+                    {c >= 90 ? "Planograma completo" : "Quedaron frentes incompletos"}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${c >= 90 ? "bg-emerald-500" : "bg-amber-500"}`} style={{ width: `${c}%` }} />
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
+                  <div className="p-2 rounded-xl bg-slate-50">
+                    <span className="text-[10px] text-slate-400 block">Surtido</span>
+                    <strong className="text-slate-800 text-sm">{last.bagsRestocked ?? 0} pzs</strong>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-50">
+                    <span className="text-[10px] text-slate-400 block">Venta</span>
+                    <strong className="text-slate-800 text-sm">${Number(last.amount || 0).toFixed(0)}</strong>
+                  </div>
+                  <div className="p-2 rounded-xl bg-slate-50">
+                    <span className="text-[10px] text-slate-400 block">Calificación</span>
+                    <strong className="text-slate-800 text-sm">{last.score ?? "—"}</strong>
+                  </div>
+                </div>
+                {last.vendorName && <p className="text-[11px] text-slate-400">Atendió: {last.vendorName}</p>}
               </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] text-slate-400 block font-sans">Capacidad Máx</span>
-                <strong className="text-slate-800 text-sm">{totalCapacityUnits} pzas</strong>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
+          {canAudit && (<>
           {/* Resurtido & Foto de Auditoría */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
@@ -918,6 +929,7 @@ export default function PlanogramViewer({
               </button>
             </div>
           </div>
+          </>)}
         </div>
       </div>
 

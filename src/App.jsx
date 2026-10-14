@@ -806,6 +806,7 @@ export default function App() {
               onSaveAudit={handleSavePlanogramAudit}
               onPlanogramChange={handlePlanogramChange}
               onStartVisit={handleStartVisit}
+              canAudit={canDo(currentUser?.role, "auditFreezer")}
             />
           )}
 
