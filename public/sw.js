@@ -1,5 +1,5 @@
 // Frimart OS • Service Worker (PWA Offline & Instant OTA Cache Purge)
-const CACHE_NAME = 'frimart-cache-v9-qr-printer';
+const CACHE_NAME = 'frimart-cache-v10-ags-piloto';
 
 const PRECACHE_ASSETS = [
   '/',

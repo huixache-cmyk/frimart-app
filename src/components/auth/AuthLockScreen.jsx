@@ -1,20 +1,8 @@
 import React, { useState } from "react";
-import { 
-  ShieldCheck, 
-  Lock, 
-  KeyRound, 
-  Delete, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertCircle,
-  Truck,
-  Building2,
-  BarChart3,
-  Crown,
-  ChevronRight,
-  Info
-} from "lucide-react";
-import { ROLES } from "../../data/authRolesData";
+import { ShieldCheck, Delete, AlertCircle } from "lucide-react";
+
+// Sello de compilación (inyectado por Vite) para confirmar qué versión publica Vercel
+const BUILD_STAMP = typeof __BUILD_STAMP__ !== "undefined" ? __BUILD_STAMP__ : "dev";
 
 export default function AuthLockScreen({ 
   users = [], 
@@ -24,7 +12,6 @@ export default function AuthLockScreen({
   const [pin, setPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-  const [selectedQuickRole, setSelectedQuickRole] = useState(null);
 
   const handleKeyPress = (digit) => {
     if (pin.length >= 6) return;
@@ -51,17 +38,8 @@ export default function AuthLockScreen({
   const validatePin = (codeToTest) => {
     setIsVerifying(true);
     setTimeout(() => {
-      const match = users.find((u) => {
-        if (u.status !== "active") return false;
-        if (u.accessKey === codeToTest) return true;
-        // Alias de claves de acceso oficiales
-        if (u.role === "vendedor" && (codeToTest === "1041" || codeToTest === "1234")) return true;
-        if (u.role === "supervisor" && (codeToTest === "2022" || codeToTest === "4321")) return true;
-        if (u.role === "gerente_cedis" && (codeToTest === "3033" || codeToTest === "5678")) return true;
-        if (u.role === "director_comercial" && (codeToTest === "4044" || codeToTest === "7890")) return true;
-        if (u.role === "propietario" && codeToTest === "9999") return true;
-        return false;
-      });
+      // Solo la clave personal y única de cada usuario
+      const match = users.find((u) => u.status === "active" && u.accessKey === codeToTest);
       if (match) {
         setIsVerifying(false);
         onLoginSuccess(match);
@@ -75,21 +53,6 @@ export default function AuthLockScreen({
       }
     }, 250);
   };
-
-  const handleQuickLogin = (user) => {
-    setPin(user.accessKey);
-    setSelectedQuickRole(user.role);
-    validatePin(user.accessKey);
-  };
-
-  // Preset demo accounts for fast access
-  const demoAccounts = [
-    { roleKey: "vendedor", label: "Vendedor (Ruta 01 Ags)", pin: "1041", icon: Truck, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-    { roleKey: "supervisor", label: "Supervisor de Zona", pin: "2022", icon: ShieldCheck, color: "text-sky-700 bg-sky-50 border-sky-200" },
-    { roleKey: "gerente_cedis", label: "Gerente CEDIS Ags", pin: "3033", icon: Building2, color: "text-amber-700 bg-amber-50 border-amber-200" },
-    { roleKey: "director_comercial", label: "Director Comercial", pin: "4044", icon: BarChart3, color: "text-purple-700 bg-purple-50 border-purple-200" },
-    { roleKey: "propietario", label: "Modo Propietario", pin: "9999", icon: Crown, color: "text-rose-700 bg-rose-50 border-rose-200" },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 select-none animate-fade-in relative overflow-hidden">
@@ -113,7 +76,7 @@ export default function AuthLockScreen({
           </h1>
         </div>
         <p className="text-xs text-slate-400 max-w-xs font-medium">
-          Ingresa tu clave de acceso o selecciona tu perfil asignado
+          Ingresa tu clave de acceso personal
         </p>
       </div>
 
@@ -186,45 +149,9 @@ export default function AuthLockScreen({
         </div>
       </div>
 
-      {/* Bottom: Fast Demo Switcher / Role Shortcuts */}
-      <div className="relative z-10 pt-2 pb-2">
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-3 max-w-md mx-auto backdrop-blur-md shadow-2xl">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-              Acceso Rápido por Rol
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">1-Tap Demo</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {demoAccounts.map((acc) => {
-              const userObj = users.find((u) => u.role === acc.roleKey);
-              if (!userObj) return null;
-              const IconComp = acc.icon;
-
-              return (
-                <button
-                  key={acc.roleKey}
-                  onClick={() => handleQuickLogin(userObj)}
-                  className="tap-effect p-2 rounded-xl bg-slate-800/70 hover:bg-slate-700/80 border border-slate-700 text-left transition flex items-center gap-2 group cursor-pointer"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-slate-950 flex items-center justify-center shrink-0 border border-slate-700/50">
-                    <IconComp className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold text-white truncate leading-tight">
-                      {ROLES[acc.roleKey]?.shortName}
-                    </p>
-                    <p className="text-[9px] text-slate-400 font-mono truncate">
-                      PIN: {acc.pin}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Pie: versión publicada */}
+      <div className="relative z-10 pt-2 pb-2 text-center text-[10px] text-slate-500 font-mono">
+        Versión {BUILD_STAMP}
       </div>
     </div>
   );
