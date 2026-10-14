@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  Camera, 
-  QrCode, 
-  X, 
-  Sparkles, 
-  AlertCircle, 
-  CheckCircle2, 
-  Zap, 
-  RefreshCw,
-  Upload,
-  ArrowRight
+import {
+  Camera,
+  X,
+  AlertCircle,
+  Zap,
+  RefreshCw
 } from "lucide-react";
 import jsQR from "jsqr";
 
@@ -322,7 +317,7 @@ export default function QRScannerModal({
             type="text"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            placeholder="O escribe código (ej. FRM-0089)"
+            placeholder="O escribe el folio del sticker"
             className="flex-1 px-3 py-2 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white font-mono uppercase focus:outline-none focus:border-emerald-500"
           />
           <button
@@ -333,30 +328,6 @@ export default function QRScannerModal({
           </button>
         </form>
 
-        {/* Fast Test Pills */}
-        <div className="pt-1 flex items-center justify-center gap-2 text-[10px] text-slate-400">
-          <span>Probar códigos rápidos:</span>
-          <button
-            onClick={() => {
-              playBeep();
-              stopCamera();
-              onCodeDetected("FRM-0089");
-            }}
-            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded-md font-mono text-emerald-400 font-bold cursor-pointer"
-          >
-            FRM-0089
-          </button>
-          <button
-            onClick={() => {
-              playBeep();
-              stopCamera();
-              onCodeDetected("FRM-0520");
-            }}
-            className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded-md font-mono text-sky-400 font-bold cursor-pointer"
-          >
-            FRM-0520
-          </button>
-        </div>
       </div>
     </div>
   );

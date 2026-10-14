@@ -1,22 +1,8 @@
 import React, { useState } from "react";
-import { 
-  Building2, 
-  MapPin, 
-  TrendingUp, 
-  Users, 
-  Truck, 
-  Store, 
-  DollarSign, 
-  Package, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Search, 
-  Calendar, 
-  Layers, 
-  Snowflake, 
-  BarChart3, 
-  ChevronRight,
-  ShieldCheck
+import {
+  TrendingUp,
+  Truck,
+  ChevronRight
 } from "lucide-react";
 import { MASTER_CEDIS } from "../../data/authRolesData";
 

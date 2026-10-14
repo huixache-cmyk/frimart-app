@@ -1,24 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { 
-  Search, 
-  MapPin, 
-  CheckCircle2, 
-  Clock, 
-  Navigation, 
-  ChevronRight, 
-  Store, 
-  Snowflake, 
-  ArrowRight,
+import {
+  Search,
+  CheckCircle2,
+  Navigation,
+  ChevronRight,
+  Store,
+  Snowflake,
   TrendingUp,
-  Package,
-  DollarSign,
   Compass,
-  ExternalLink,
-  ShieldCheck,
   Truck,
   Layers
 } from "lucide-react";
-import { QrCode } from "lucide-react";
+import {
+  QrCode
+} from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
 import SectionHeader from "../SectionHeader";
 import DeliveryVanIcon from "../../icons/DeliveryVanIcon";

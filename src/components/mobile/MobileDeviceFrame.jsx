@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Wifi, 
-  Battery, 
-  Smartphone, 
+import {
+  Wifi,
+  Battery,
+  Smartphone,
   Maximize2,
-  Sparkles,
-  RefreshCw,
   QrCode,
   X,
-  ExternalLink,
   Check,
   Copy
 } from "lucide-react";
@@ -25,7 +22,7 @@ export default function MobileDeviceFrame({
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const localIpUrl = "https://192.168.100.16:5173/";
+  const localIpUrl = typeof window !== "undefined" ? window.location.origin + "/" : "";
 
   useEffect(() => {
     const checkViewport = () => {

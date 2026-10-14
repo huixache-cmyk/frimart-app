@@ -1,18 +1,9 @@
 import React, { useState } from "react";
-import { 
-  ShieldCheck, 
-  MapPin, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Thermometer, 
-  Layers, 
-  Users, 
-  TrendingUp, 
-  ExternalLink,
-  Store, 
-  Clock, 
-  Search, 
-  Filter,
+import {
+  ShieldCheck,
+  Layers,
+  Clock,
+  Search,
   Radio,
   Eye,
   CheckCircle

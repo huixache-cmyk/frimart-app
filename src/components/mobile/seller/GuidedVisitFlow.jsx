@@ -1,8 +1,27 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
-  X, MapPin, QrCode, ChevronLeft, ChevronRight, Check, Camera, Thermometer,
-  Lightbulb, DoorClosed, Sparkles, Snowflake, AlertTriangle, ClipboardCheck,
-  PackageCheck, Award, Minus, Plus, Shuffle, ArrowLeftRight, Ban, Undo2
+  X,
+  MapPin,
+  QrCode,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Camera,
+  Thermometer,
+  Lightbulb,
+  DoorClosed,
+  Sparkles,
+  Snowflake,
+  AlertTriangle,
+  ClipboardCheck,
+  PackageCheck,
+  Award,
+  Minus,
+  Plus,
+  Shuffle,
+  ArrowLeftRight,
+  Ban,
+  Undo2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import {

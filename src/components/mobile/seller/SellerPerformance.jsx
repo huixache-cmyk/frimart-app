@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { TrendingUp, Store, Star, Wallet, ShoppingBag } from "lucide-react";
+import {
+  TrendingUp,
+  Store,
+  Star,
+  Wallet,
+  ShoppingBag
+} from "lucide-react";
 import { fetchVisits } from "../../../lib/visitsSync";
 
 const PERIODS = [

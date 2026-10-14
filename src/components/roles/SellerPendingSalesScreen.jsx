@@ -1,23 +1,14 @@
 import React, { useState } from "react";
-import { 
-  TrendingUp, 
-  Package, 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  DollarSign, 
-  Receipt, 
-  Navigation, 
-  Plus, 
-  ArrowRight, 
-  Snowflake, 
-  MapPin, 
-  ShieldCheck, 
-  Sparkles,
-  Calendar,
-  Layers,
-  ChevronRight,
-  Filter
+import {
+  TrendingUp,
+  Package,
+  CheckCircle2,
+  Clock,
+  Navigation,
+  Plus,
+  ArrowRight,
+  MapPin,
+  ChevronRight
 } from "lucide-react";
 
 export default function SellerPendingSalesScreen({

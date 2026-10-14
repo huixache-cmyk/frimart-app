@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { KeyRound, Copy, Check, XCircle, Clock } from "lucide-react";
+import {
+  KeyRound,
+  Copy,
+  Check,
+  XCircle,
+  Clock
+} from "lucide-react";
 import { createAuthCode, fetchAuthCodes, cancelAuthCode, AUTH_CODE_MINUTES } from "../../lib/catalogSync";
 
 const REASONS = ["Ruta directa a tienda", "Falla de vehículo", "Cita en tienda temprano", "Otro"];

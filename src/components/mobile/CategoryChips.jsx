@@ -1,14 +1,12 @@
 import React from "react";
-import { 
-  Sparkles, 
-  Salad, 
-  Apple, 
-  Beef, 
-  Fish, 
-  UtensilsCrossed, 
-  IceCream,
-  Flame,
-  Tag
+import {
+  Sparkles,
+  Salad,
+  Apple,
+  Beef,
+  Fish,
+  UtensilsCrossed,
+  IceCream
 } from "lucide-react";
 
 export default function CategoryChips({ 

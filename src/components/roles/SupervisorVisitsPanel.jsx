@@ -1,7 +1,21 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
-  Camera, CheckCircle2, XCircle, AlertTriangle, Thermometer, Award, Clock,
-  PackageCheck, RefreshCw, X, MapPin, Wifi, Lightbulb, DoorClosed, Sparkles, Snowflake
+  Camera,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Thermometer,
+  Award,
+  Clock,
+  PackageCheck,
+  RefreshCw,
+  X,
+  MapPin,
+  Wifi,
+  Lightbulb,
+  DoorClosed,
+  Sparkles,
+  Snowflake
 } from "lucide-react";
 import {
   fetchVisits, fetchOpenAlerts, reviewVisit, resolveAlert, subscribeVisitsAndAlerts

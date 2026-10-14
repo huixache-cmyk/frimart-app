@@ -1,22 +1,15 @@
 import React from "react";
-import { 
-  Crown, 
-  KeyRound, 
-  Zap, 
-  Users, 
-  Building2, 
-  BarChart3, 
-  Truck, 
-  ShieldCheck, 
-  Smartphone, 
-  Sliders, 
-  Send, 
-  ChevronRight, 
-  CheckCircle2, 
-  Radio, 
-  Activity,
-  Layers,
-  Sparkles
+import {
+  KeyRound,
+  Zap,
+  Building2,
+  BarChart3,
+  Truck,
+  ShieldCheck,
+  Smartphone,
+  ChevronRight,
+  Radio,
+  Activity
 } from "lucide-react";
 import { ROLES, MASTER_CEDIS } from "../../data/authRolesData";
 

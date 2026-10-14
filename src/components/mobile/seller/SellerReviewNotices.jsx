@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { XCircle, CheckCircle2, X } from "lucide-react";
+import {
+  XCircle,
+  CheckCircle2,
+  X
+} from "lucide-react";
 import { fetchReviewedForVendor, subscribeVisitsAndAlerts } from "../../../lib/visitsSync";
 
 const ACK_KEY = "frimart_ack_reviews";

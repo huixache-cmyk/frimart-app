@@ -1,5 +1,10 @@
 import React from "react";
-import { AlertTriangle, RotateCcw, Home, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  RotateCcw,
+  Home,
+  Sparkles
+} from "lucide-react";
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {

@@ -1,25 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { 
-  X, 
-  Store, 
-  User, 
-  Phone, 
-  MapPin, 
-  LocateFixed, 
-  Route, 
-  Building2, 
-  Truck, 
-  Snowflake, 
-  QrCode, 
-  Sliders, 
-  CheckCircle2, 
-  AlertCircle, 
-  Camera, 
-  Sparkles,
-  ShieldCheck,
-  Compass,
-  Radio
+import {
+  X,
+  Store,
+  User,
+  Phone,
+  MapPin,
+  LocateFixed,
+  Route,
+  Snowflake,
+  CheckCircle2,
+  AlertCircle,
+  Compass
 } from "lucide-react";
 import QRScannerModal from "../QRScannerModal";
 import AppSelect from "../ui/AppSelect";
@@ -29,7 +21,8 @@ export default function NewStoreOnboardingModal({
   onClose,
   onSave,
   existingStores = [],
-  defaultGps = null
+  defaultGps = null,
+  vendors = []
 }) {
   // Form State
   const [businessName, setBusinessName] = useState("");
@@ -37,58 +30,19 @@ export default function NewStoreOnboardingModal({
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
 
-  // GPS Coordinates & Status
-  const [coordinates, setCoordinates] = useState(() => {
-    return defaultGps || { lat: 21.8853, lng: -102.2916, accuracy: 5 };
-  });
+  // GPS: obligatorio capturarlo en sitio (sin coordenadas por defecto)
+  const [coordinates, setCoordinates] = useState(() => defaultGps || null);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsLocked, setGpsLocked] = useState(false);
   const [gpsError, setGpsError] = useState("");
 
-  // Route & CEDIS Selection
-  const [routeNumber, setRouteNumber] = useState("Ruta 01 - Ags Norte & Pocitos");
-  const [cedis, setCedis] = useState("CEDIS Aguascalientes (1205)");
-  const [assignedSeller, setAssignedSeller] = useState("Juan Pablo Morales (Ruta 01)");
-
-  // Freezer Equipment
-  const [freezerClass, setFreezerClass] = useState("Vertical Puerta Cristal (Imbera VR-12 / 320L)");
-  const [freezerQrCode, setFreezerQrCode] = useState("");
-  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
-
-  // Freezer Configuration
-  const [targetTemp, setTargetTemp] = useState(-19.5); // °C
-  const [boxCapacity, setBoxCapacity] = useState(24);
-  const [planogramModel, setPlanogramModel] = useState("Planograma A1 - Verduras & Frutas IQF La Huerta");
-  const [iotActive, setIotActive] = useState(true);
+  // Vendedor asignado (de los usuarios reales); la ruta y el CEDIS se toman de él
+  const [vendorId, setVendorId] = useState(vendors[0]?.id || "");
+  const selectedVendor = vendors.find((v) => v.id === vendorId) || null;
 
   // Form Validation & Feedback
   const [formError, setFormError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  // Automatic CEDIS determination based on GPS latitude
-  useEffect(() => {
-    if (coordinates?.lat) {
-      const lat = coordinates.lat;
-      if (lat >= 21.6 && lat <= 22.3) {
-        setCedis("CEDIS Aguascalientes (1205)");
-      } else if (lat >= 20.8 && lat <= 21.5) {
-        setCedis("CEDIS Aguascalientes (1205)");
-      } else if (lat >= 20.5 && lat <= 21.1) {
-        setCedis("CEDIS Aguascalientes (1205)");
-      }
-    }
-  }, [coordinates?.lat]);
-
-  // Synchronize assigned seller when route changes
-  useEffect(() => {
-    if (routeNumber.includes("01")) {
-      setAssignedSeller("Juan Pablo Morales (Ruta 01)");
-    } else if (routeNumber.includes("02")) {
-      setAssignedSeller("Carlos Estrada Rincón (Ruta 02)");
-    } else if (routeNumber.includes("03")) {
-      setAssignedSeller("María Elena Delgado (Ruta 03)");
-    }
-  }, [routeNumber]);
 
   // Live GPS capture on the spot
   const handleCaptureLiveGps = () => {
@@ -119,12 +73,6 @@ export default function NewStoreOnboardingModal({
     );
   };
 
-  // Generate automatic QR code for freezer if none available
-  const handleGenerateNextQr = () => {
-    const randomNum = Math.floor(100 + Math.random() * 900);
-    setFreezerQrCode(`FRM-0${randomNum}`);
-  };
-
   // Submit Handler
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -139,82 +87,47 @@ export default function NewStoreOnboardingModal({
       return;
     }
 
+    if (!gpsLocked || !coordinates) {
+      setFormError("Fija las coordenadas GPS estando dentro de la tienda.");
+      return;
+    }
+    if (!selectedVendor) {
+      setFormError("Selecciona el vendedor asignado.");
+      return;
+    }
+
     setIsSaving(true);
-
-    const storeId = `STORE-AGS-${Date.now().toString().slice(-4)}`;
-    const hasFreezer = freezerClass !== "Sin Congelador";
-    const assignedFreezerId = hasFreezer ? (freezerQrCode.trim() || `FRM-0${Math.floor(100 + Math.random() * 900)}`) : null;
-
+    const storeId = `STORE-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     const newStore = {
       id: storeId,
-      code: `AGS-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: storeId.slice(6),
       name: businessName.trim(),
       chain: businessName.trim(),
       type: "Punto de Venta Frimart",
-      contactName: contactName.trim() || "Encargado de Tienda",
-      phone: phone.trim() || "449-000-0000",
+      contactName: contactName.trim(),
+      phone: phone.trim(),
       address: address.trim(),
       lat: coordinates.lat,
       lng: coordinates.lng,
-      geofenceRadius: 60,
+      gpsAccuracy: coordinates.accuracy ?? null,
       status: "pending",
-      checkInTime: null,
-      checkOutTime: null,
       salesToday: 0,
       boxesToday: 0,
-      freezersCount: hasFreezer ? 1 : 0,
-      freezerIds: assignedFreezerId ? [assignedFreezerId] : [],
-      managerName: contactName.trim() || "Encargado",
+      freezersCount: 0,
+      freezerIds: [],
       compliancePercent: 0,
-      clientCode: `CL-${Math.floor(100000 + Math.random() * 900000)}`,
-      sector: "Clientes Detalle Ags",
-      cedis: cedis,
-      route: routeNumber,
-      sellerAssigned: assignedSeller,
+      routeId: selectedVendor.routeId || null,
+      route: selectedVendor.routeName || selectedVendor.routeId || "",
+      vendorId: selectedVendor.id,
+      sellerAssigned: selectedVendor.name,
+      cedisId: selectedVendor.cedisId || null,
+      cedis: selectedVendor.cedisName || selectedVendor.cedisId || "",
       createdAt: new Date().toISOString()
     };
 
-    let newFreezer = null;
-    if (hasFreezer && assignedFreezerId) {
-      newFreezer = {
-        id: assignedFreezerId,
-        qrCode: assignedFreezerId,
-        storeId: storeId,
-        storeName: businessName.trim(),
-        model: freezerClass,
-        brand: "Frimart / La Huerta",
-        serialNumber: `SN-${assignedFreezerId}-2026`,
-        capacityPcs: boxCapacity * 10,
-        currentStock: 0,
-        temperature: targetTemp,
-        shelvesCount: 4,
-        doorShelvesCount: 4,
-        facingsPerShelf: 4,
-        facingsPerDoorShelf: 4,
-        installedAt: new Date().toISOString().split("T")[0],
-        lastAuditedAt: null,
-        planogramModel: planogramModel,
-        iotActive: iotActive,
-        locationCoordinates: {
-          lat: coordinates.lat,
-          lng: coordinates.lng,
-          accuracy: coordinates.accuracy || 5
-        },
-        conditions: {
-          compressor: "Nuevo / Óptimo",
-          doorSeals: "Hermético",
-          ledLighting: "100% Funcional",
-          frostLevel: "Limpio / Sin Escarcha",
-          cleanliness: "Excelente"
-        }
-      };
-    }
-
-    setTimeout(() => {
-      onSave?.(newStore, newFreezer);
-      setIsSaving(false);
-      onClose();
-    }, 400);
+    onSave?.(newStore, null);
+    setIsSaving(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -234,7 +147,7 @@ export default function NewStoreOnboardingModal({
                 Nuevo Punto de Venta
               </h2>
               <p className="text-[11px] text-emerald-100 font-medium truncate">
-                Alta de cliente y enrolamiento de congelador en campo
+                Alta de cliente con ubicación GPS
               </p>
             </div>
           </div>
@@ -368,13 +281,13 @@ export default function NewStoreOnboardingModal({
             <div className="p-2.5 rounded-xl bg-white border border-sky-200 text-[11px] font-mono flex items-center justify-between text-slate-700">
               <div>
                 <span className="font-bold text-slate-500">Lat: </span>
-                <span className="font-bold text-sky-700">{coordinates.lat}</span>
+                <span className="font-bold text-sky-700">{coordinates ? coordinates.lat : "—"}</span>
                 <span className="text-slate-400 mx-2">|</span>
                 <span className="font-bold text-slate-500">Lng: </span>
-                <span className="font-bold text-sky-700">{coordinates.lng}</span>
+                <span className="font-bold text-sky-700">{coordinates ? coordinates.lng : "—"}</span>
               </div>
               <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                ±{coordinates.accuracy || 5}m satélite
+                {coordinates ? `±${coordinates.accuracy}m` : "Sin capturar"}
               </span>
             </div>
 
@@ -383,195 +296,29 @@ export default function NewStoreOnboardingModal({
             )}
           </div>
 
-          {/* 3. ASIGNACIÓN OPERATIVA (RUTA, CEDIS, VENDEDOR) */}
-          <div className="space-y-3">
+          {/* 3. VENDEDOR ASIGNADO (define ruta y CEDIS) */}
+          <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
               <Route className="w-3.5 h-3.5 text-sky-600" />
-              <span>3. Asignación de Ruta y CEDIS</span>
+              <span>3. Vendedor asignado *</span>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* CEDIS (Predeterminada según ubicación GPS) */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  CEDIS (Detectado x GPS) *
-                </label>
-                <AppSelect
-                  value={cedis}
-                  onChange={(e) => setCedis(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                >
-                  <option value="CEDIS Aguascalientes (1205)">CEDIS Aguascalientes (1205)</option>
-                </AppSelect>
-              </div>
-
-              {/* Asignar Número de Ruta */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  Número de Ruta *
-                </label>
-                <AppSelect
-                  value={routeNumber}
-                  onChange={(e) => setRouteNumber(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                >
-                  <option value="Ruta 01 - Ags Norte & Pocitos">Ruta 01 - Ags Norte & Pocitos</option>
-                  <option value="Ruta 02 - Ags Centro & San Marcos">Ruta 02 - Ags Centro & San Marcos</option>
-                  <option value="Ruta 03 - Ags Sur & Cd. Industrial">Ruta 03 - Ags Sur & Cd. Industrial</option>
-                  <option value="Ruta 04 - Especial Foránea">Ruta 04 - Especial Foránea</option>
-                </AppSelect>
-              </div>
-
-              {/* Vendedor Asignado */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                  Vendedor Asignado *
-                </label>
-                <AppSelect
-                  value={assignedSeller}
-                  onChange={(e) => setAssignedSeller(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                >
-                  <option value="Juan Pablo Morales (Ruta 01)">Juan Pablo Morales (R01)</option>
-                  <option value="Carlos Estrada Rincón (Ruta 02)">Carlos Estrada Rincón (R02)</option>
-                  <option value="María Elena Delgado (Ruta 03)">María Elena Delgado (R03)</option>
-                </AppSelect>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. EQUIPAMIENTO DE FRÍO (CLASE CONGELADOR, ESCANEO Y CONFIGURACIÓN) */}
-          <div className="space-y-3 pt-1 border-t border-slate-100">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
-              <Snowflake className="w-3.5 h-3.5 text-emerald-600" />
-              <span>4. Congelador, Escaneo QR & Configuración</span>
-            </div>
-
-            {/* Clase de Congelador */}
-            <div>
-              <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                Clase / Modelo de Congelador Asignado
-              </label>
-              <AppSelect
-                value={freezerClass}
-                onChange={(e) => setFreezerClass(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-              >
-                <option value="Vertical Puerta Cristal (Imbera VR-12 / 320L)">Vertical Puerta Cristal (Imbera VR-12 / 320L)</option>
-                <option value="Vertical Doble Puerta Cristal (Imbera VR-24 / 650L)">Vertical Doble Puerta Cristal (Imbera VR-24 / 650L)</option>
-                <option value="Horizontal Tapa Cofre Metálica 1.5m (Frimart CF-150)">Horizontal Tapa Cofre Metálica 1.5m (Frimart CF-150)</option>
-                <option value="Horizontal Tapa Vidrio Curvo Deslizable (Frimart HD-200)">Horizontal Tapa Vidrio Curvo Deslizable (Frimart HD-200)</option>
-                <option value="Isla Panorámica Autoservicio 2.5m (La Huerta Master)">Isla Panorámica Autoservicio 2.5m (La Huerta Master)</option>
-                <option value="Sin Congelador">Sin Congelador (Solo Producto)</option>
-              </AppSelect>
-            </div>
-
-            {freezerClass !== "Sin Congelador" && (
-              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-3">
-                {/* Escaneo QR de Congelador */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-bold text-emerald-950 flex items-center gap-1.5">
-                      <QrCode className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Escaneo de Código QR de Congelador *</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleGenerateNextQr}
-                      className="text-[10px] text-emerald-700 font-bold underline hover:text-emerald-900"
-                    >
-                      Asignar siguiente QR libre
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={freezerQrCode}
-                      onChange={(e) => setFreezerQrCode(e.target.value.toUpperCase())}
-                      placeholder="Ej: FRM-0520"
-                      className="flex-1 px-3 py-2.5 rounded-xl border border-emerald-300 text-xs font-mono font-bold text-emerald-900 uppercase bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setIsQrScannerOpen(true)}
-                      className="tap-effect px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Escanear QR</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Configuración del Congelador */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-200/80">
-                  {/* Temperatura Objetivo */}
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Temperatura Objetivo: {targetTemp}°C
-                    </label>
-                    <AppSelect
-                      value={targetTemp}
-                      onChange={(e) => setTargetTemp(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
-                    >
-                      <option value={-18.0}>-18.0°C (Estándar Comercial)</option>
-                      <option value={-19.5}>-19.5°C (Recomendado Frimart)</option>
-                      <option value={-22.0}>-22.0°C (Pulpa & Frutas)</option>
-                      <option value={-25.0}>-25.0°C (IQF La Huerta)</option>
-                    </AppSelect>
-                  </div>
-
-                  {/* Capacidad en Cajas */}
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Capacidad Asignada (Cajas)
-                    </label>
-                    <AppSelect
-                      value={boxCapacity}
-                      onChange={(e) => setBoxCapacity(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
-                    >
-                      <option value={18}>18 Cajas (~180 piezas)</option>
-                      <option value={24}>24 Cajas (~240 piezas)</option>
-                      <option value={36}>36 Cajas (~360 piezas)</option>
-                      <option value={48}>48 Cajas (~480 piezas)</option>
-                    </AppSelect>
-                  </div>
-
-                  {/* Planograma Asignado */}
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Planograma Maestro La Huerta Asignado
-                    </label>
-                    <AppSelect
-                      value={planogramModel}
-                      onChange={(e) => setPlanogramModel(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-300 text-xs text-slate-900 bg-white"
-                    >
-                      <option value="Planograma A1 - Verduras & Frutas IQF La Huerta">Planograma A1 - Verduras & Frutas IQF La Huerta</option>
-                      <option value="Planograma B2 - 50% La Huerta / 50% Helados & Paletas">Planograma B2 - 50% La Huerta / 50% Helados & Paletas</option>
-                      <option value="Planograma C3 - Mixto Carnicerías & Tiendas Detalle">Planograma C3 - Mixto Carnicerías & Tiendas Detalle</option>
-                    </AppSelect>
-                  </div>
-                </div>
-
-                {/* IoT Sensor Switch */}
-                <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-950 font-bold">
-                    <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                    <span>Monitoreo Térmico & Sensor IoT Satelital</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={iotActive}
-                    onChange={(e) => setIotActive(e.target.checked)}
-                    className="w-4 h-4 text-emerald-600 rounded-sm border-slate-300 focus:ring-emerald-500"
-                  />
-                </div>
+            {vendors.length === 0 ? (
+              <p className="text-[12px] text-slate-500">No tienes vendedores asignados.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {vendors.map((v) => (
+                  <button key={v.id} type="button" onClick={() => setVendorId(v.id)} className={`px-3 py-1.5 rounded-full text-[12px] font-bold border cursor-pointer ${vendorId === v.id ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200"}`}>
+                    {v.name}{v.routeId ? ` · ${v.routeId}` : ""}
+                  </button>
+                ))}
               </div>
             )}
+          </div>
+
+          {/* 4. CONGELADOR: se enrola después escaneando su QR */}
+          <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex items-start gap-2 text-[12px] text-emerald-900">
+            <Snowflake className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <span>Después de guardar, abre la tienda y usa <strong>Agregar congelador</strong> para escanear su QR y configurar su planograma.</span>
           </div>
 
           {/* Action Buttons */}
@@ -596,17 +343,6 @@ export default function NewStoreOnboardingModal({
         </form>
       </div>
 
-      {/* Camera QR Scanner Integration Modal */}
-      {isQrScannerOpen && (
-        <QRScannerModal
-          isOpen={isQrScannerOpen}
-          onClose={() => setIsQrScannerOpen(false)}
-          onScan={(scannedCode) => {
-            setFreezerQrCode(scannedCode.toUpperCase());
-            setIsQrScannerOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 

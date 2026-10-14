@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Download, Share2, PlusSquare, X, Smartphone, CheckCircle2 } from "lucide-react";
+import {
+  Download,
+  Share2,
+  PlusSquare,
+  X,
+  Smartphone,
+  CheckCircle2
+} from "lucide-react";
 
 export default function PwaInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);

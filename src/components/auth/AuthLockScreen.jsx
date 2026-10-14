@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { ShieldCheck, Delete, AlertCircle } from "lucide-react";
+import {
+  ShieldCheck,
+  Delete,
+  AlertCircle
+} from "lucide-react";
 
 // Sello de compilación (inyectado por Vite) para confirmar qué versión publica Vercel
 const BUILD_STAMP = typeof __BUILD_STAMP__ !== "undefined" ? __BUILD_STAMP__ : "dev";

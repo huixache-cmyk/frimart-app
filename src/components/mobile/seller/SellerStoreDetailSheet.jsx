@@ -1,17 +1,12 @@
 import React from "react";
-import { 
-  X, 
-  Store, 
-  MapPin, 
-  Phone, 
-  Snowflake, 
-  Navigation, 
-  Clock, 
-  CheckCircle2, 
-  Calendar,
+import {
+  X,
+  Store,
+  MapPin,
+  Phone,
+  Snowflake,
+  Navigation,
   Layers,
-  ChevronRight,
-  PlusCircle,
   Compass,
   QrCode
 } from "lucide-react";

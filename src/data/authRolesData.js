@@ -244,90 +244,12 @@ export const INITIAL_USERS = [
 // ----------------------------------------------------------------------------
 // Pendientes Operativos para Vendedor (Ruta, Metas, Pendientes, Ventas)
 // ----------------------------------------------------------------------------
-export const INITIAL_SELLER_PENDIENTES = [
-  {
-    id: "PEND-01",
-    vendorId: "USR-VEND-104",
-    storeId: "STORE-02",
-    storeName: "Cremería Nueva Benjamín de Alba",
-    type: "audit_urgent",
-    priority: "alta",
-    title: "Auditoría prioritaria de Congelador FRM-0089",
-    description: "Detectadas solo 2 bolsas de Brócoli La Huerta. Validar planograma y registrar temperatura.",
-    dueTime: "12:30 PM",
-    completed: false,
-    badge: "Stock Crítico"
-  },
-  {
-    id: "PEND-02",
-    vendorId: "USR-VEND-104",
-    storeId: "STORE-03",
-    storeName: "Súper Avenida",
-    type: "order_delivery",
-    priority: "media",
-    title: "Entrega de pedido programado (38 cajas)",
-    description: "Entregar orden #ORD-9821 con factura contra entrega en área de recibo.",
-    dueTime: "02:00 PM",
-    completed: false,
-    badge: "Entrega Facturada"
-  },
-  {
-    id: "PEND-03",
-    vendorId: "USR-VEND-104",
-    storeId: "STORE-07",
-    storeName: "Tiendamax Pocitos Universidad",
-    type: "onboarding",
-    priority: "media",
-    title: "Alta de Nuevo Congelador con QR",
-    description: "Instalar sticker metálico FRM-0520 y tomar coordenadas GPS del local.",
-    dueTime: "04:15 PM",
-    completed: false,
-    badge: "Enrolamiento GPS"
-  },
-  {
-    id: "PEND-04",
-    vendorId: "USR-VEND-104",
-    storeId: "STORE-01",
-    storeName: "Supermarket Las Fuentes",
-    type: "collection",
-    priority: "baja",
-    title: "Firma de contrarecibo de cobro",
-    description: "Recoger contrarecibo firmado de la entrega de la mañana ($9,850 MXN).",
-    dueTime: "05:00 PM",
-    completed: true,
-    badge: "Completado"
-  }
-];
+export const INITIAL_SELLER_PENDIENTES = []; // Piloto: sin pendientes ficticios
 
 // ----------------------------------------------------------------------------
 // Ventas del Día del Vendedor
 // ----------------------------------------------------------------------------
-export const INITIAL_SELLER_SALES_LOG = [
-  {
-    id: "SALE-101",
-    vendorId: "USR-VEND-104",
-    storeName: "Supermarket Las Fuentes",
-    time: "09:18 AM",
-    amount: 9850,
-    boxes: 38,
-    ticketNumber: "TK-2026-9041",
-    paymentType: "Crédito Frimart Comercial",
-    itemsSummary: "18 Mezcla California, 12 Brócoli La Huerta, 8 Papas Francesa",
-    commission: 394.0
-  },
-  {
-    id: "SALE-102",
-    vendorId: "USR-VEND-104",
-    storeName: "Cremería Nueva Benjamín de Alba",
-    time: "10:45 AM",
-    amount: 17000,
-    boxes: 66,
-    ticketNumber: "TK-2026-9042",
-    paymentType: "Transferencia Bancaria",
-    itemsSummary: "32 Mezcla California, 20 Papas, 14 Frutas IQF",
-    commission: 680.0
-  }
-];
+export const INITIAL_SELLER_SALES_LOG = []; // Piloto: sin ventas ficticias
 
 // ----------------------------------------------------------------------------
 // Versiones y Módulo de Despliegue de Actualizaciones OTA (Over-The-Air)

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, RefreshCw, X, CheckCircle2, Zap } from "lucide-react";
+import {
+  RefreshCw,
+  X,
+  Zap
+} from "lucide-react";
 
 export default function OtaDeviceUpdateBanner() {
   const [incomingUpdate, setIncomingUpdate] = useState(null);

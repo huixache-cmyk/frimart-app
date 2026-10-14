@@ -1,19 +1,8 @@
 import React, { useState } from "react";
-import { 
-  BarChart3, 
-  Building2, 
-  TrendingUp, 
-  MapPin, 
-  Users, 
-  Award, 
-  Snowflake, 
-  Calendar, 
-  ArrowUpRight, 
-  ChevronRight, 
-  Filter, 
-  Globe, 
-  Sparkles,
-  PieChart
+import {
+  Building2,
+  Award,
+  Filter
 } from "lucide-react";
 import { MASTER_CEDIS } from "../../data/authRolesData";
 

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { 
-  Navigation, 
-  Layers, 
-  QrCode, 
-  Grid, 
+import {
+  Navigation,
+  QrCode,
+  Grid,
   User,
   Snowflake,
   ShieldCheck,
@@ -12,7 +11,6 @@ import {
   BarChart3,
   Crown,
   Clock,
-  TrendingUp,
   LayoutGrid,
   X
 } from "lucide-react";

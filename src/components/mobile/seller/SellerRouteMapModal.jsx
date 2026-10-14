@@ -1,28 +1,22 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { 
-  ArrowLeft, 
-  Compass, 
-  Navigation, 
-  Store, 
-  Snowflake, 
-  CheckCircle2, 
-  Clock, 
+import {
+  ArrowLeft,
+  Compass,
+  Navigation,
+  Store,
+  Snowflake,
+  CheckCircle2,
   AlertCircle,
   LocateFixed,
   Car,
   ChevronRight,
-  MapPin,
-  ExternalLink,
-  Layers,
-  Sparkles,
   Play,
   Pause,
   Square,
   FastForward,
   RotateCcw,
-  Zap,
   Radio
 } from "lucide-react";
 import { calculateDistanceMeters } from "../../../data/mockData";
@@ -108,39 +102,23 @@ export default function SellerRouteMapModal({
   const lastRecalcTimeRef = useRef(0);
   const isRecalculatingRef = useRef(false);
 
-  // Map Location Mode: 'real_phone_gps' (default) vs 'cancun_demo' vs 'ags_route'
+  // Map Location Mode: 'real_phone_gps' (default) vs 'ags_route'
   const [mapLocationMode, setMapLocationMode] = useState("real_phone_gps");
 
   // Determine effective origin coordinates for the delivery van or supervisor car
   const isUsingRealPhoneGps = mapLocationMode === "real_phone_gps" && phoneGpsLocation !== null;
-  const isCancunMode = mapLocationMode === "cancun_demo";
   const rawLat = isUsingRealPhoneGps 
     ? phoneGpsLocation.lat 
-    : isCancunMode 
-    ? 21.1485 
     : (seller?.currentLocation?.lat || 21.8853);
   const rawLng = isUsingRealPhoneGps 
     ? phoneGpsLocation.lng 
-    : isCancunMode 
-    ? -86.8402 
     : (seller?.currentLocation?.lng || -102.2916);
 
-  // When not in Cancun mode, guarantee coordinates are firmly placed within Aguascalientes bounds
-  const sellerLat = (!isCancunMode && rawLng > -95) ? 21.8845 : rawLat;
-  const sellerLng = (!isCancunMode && rawLng > -95) ? -102.2930 : rawLng;
+  const sellerLat = rawLat;
+  const sellerLng = rawLng;
 
-  // Effective stores: Cancun demo mode uses Cancun points, otherwise always use real database stores
-  const effectiveStores = useMemo(() => {
-    if (isCancunMode) {
-      return [
-        { id: "STORE-CUN-01", code: "50XLG", name: "OXXO Constitución II CUN", address: "Av. Constitución #42, Cancún", lat: 21.1619, lng: -86.8515, status: "completed", freezersCount: 1, freezerIds: ["FRM-0042"], geofenceRadius: 60 },
-        { id: "STORE-CUN-02", code: "50NCP", name: "OXXO Nichupté Mz 12", address: "Av. Nichupté esq. La Luna, Cancún", lat: 21.1482, lng: -86.8398, status: "in_progress", freezersCount: 1, freezerIds: ["FRM-0089"], geofenceRadius: 60 },
-        { id: "STORE-CUN-03", code: "SOR-KB", name: "Soriana Híper Kabah", address: "Av. Kabah s/n, Cancún", lat: 21.1390, lng: -86.8520, status: "pending", freezersCount: 1, freezerIds: ["FRM-0115"], geofenceRadius: 90 },
-        { id: "STORE-CUN-04", code: "50PLZ", name: "OXXO Plaza Las Américas", address: "Av. Tulum Sur #260, Cancún", lat: 21.1465, lng: -86.8225, status: "pending", freezersCount: 1, freezerIds: ["FRM-0198"], geofenceRadius: 60 }
-      ];
-    }
-    return stores;
-  }, [stores, isCancunMode]);
+  // Solo tiendas con coordenadas válidas (evita errores del mapa)
+  const effectiveStores = useMemo(() => stores.filter((s) => Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lng))), [stores]);
 
   // Calculate distances for all stores and find the nearest one
   const storesWithDistance = useMemo(() => {
@@ -162,24 +140,6 @@ export default function SellerRouteMapModal({
 
   // Dynamic Fleet of assigned vendors for live GPS monitoring
   const activeFleet = useMemo(() => {
-    if (isCancunMode) {
-      return [
-        {
-          id: "CUN-TRUCK-01",
-          name: "Camioneta Cancún (Ruta 01)",
-          firstName: "Cancún",
-          routeId: "RUTA-CUN",
-          routeName: "Ruta 01 - Cancún Zona Hotelera",
-          lat: 21.1485,
-          lng: -86.8402,
-          truckStatus: "En Ruta",
-          currentActivity: "Ruta Hotelera",
-          color: "#10b981",
-          isCurrentDevice: true
-        }
-      ];
-    }
-
     // Solo los vendedores autorizados para el usuario actual (calculados en App.jsx por rol)
     const vendors = Array.isArray(assignedVendors) ? assignedVendors : [];
 
@@ -258,7 +218,7 @@ export default function SellerRouteMapModal({
         hasInProgress: !!inProgressStore
       };
     });
-  }, [assignedVendors, effectiveStores, currentUser, isUsingRealPhoneGps, phoneGpsLocation, isCancunMode, isNavigating, isSupervisor]);
+  }, [assignedVendors, effectiveStores, currentUser, isUsingRealPhoneGps, phoneGpsLocation, isNavigating, isSupervisor]);
 
   // Supervisor Inspection Vehicle (Live GPS tracking on supervisor device with no fixed route)
   const supervisorCar = useMemo(() => {
@@ -403,7 +363,7 @@ export default function SellerRouteMapModal({
     );
   };
 
-  // Switch between Real Phone GPS, Aguascalientes Route, and Cancun Demo modes
+  // Switch between Real Phone GPS and Aguascalientes Route
   const handleSwitchMode = (newMode) => {
     setMapLocationMode(newMode);
     setIsNavigating(false);
@@ -427,18 +387,9 @@ export default function SellerRouteMapModal({
       } else if (newMode === "ags_route") {
         const agsPoints = [
           [21.8853, -102.2916],
-          ...stores.map(s => [s.lat, s.lng])
+          ...effectiveStores.map(s => [s.lat, s.lng])
         ];
         mapInstanceRef.current.fitBounds(L.latLngBounds(agsPoints), { padding: [40, 40], maxZoom: 15 });
-      } else {
-        const cancunPoints = [
-          [21.1485, -86.8402],
-          [21.1619, -86.8515],
-          [21.1482, -86.8398],
-          [21.1390, -86.8520],
-          [21.1465, -86.8225]
-        ];
-        mapInstanceRef.current.fitBounds(L.latLngBounds(cancunPoints), { padding: [40, 40], maxZoom: 15 });
       }
     }, 150);
   };

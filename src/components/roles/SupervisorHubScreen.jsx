@@ -1,24 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { 
-  ShieldCheck, 
-  Users, 
-  MapPin, 
-  TrendingUp, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
-  Phone, 
-  MessageSquare, 
-  Search, 
-  Filter, 
-  Snowflake, 
-  BarChart3, 
-  ChevronRight, 
-  Radio, 
-  Eye, 
-  Package, 
+import {
+  Users,
+  MapPin,
+  CheckCircle2,
+  Snowflake,
+  ChevronRight,
   Send,
-  Navigation,
   PlusCircle,
   Store,
   Compass
@@ -98,7 +85,7 @@ export default function SupervisorHubScreen({
         complianceScore: complianceScore,
         lastAudit: currentFreezer ? `Hoy 10:45 AM - Congelador ${currentFreezer.id}` : "Auditoría en curso",
         tempReading: currentFreezer?.temp || -19.5,
-        freezerId: currentFreezer?.id || "FRM-0089",
+        freezerId: currentFreezer?.id || null,
         phone: v.phone || "449-123-4567"
       };
     });

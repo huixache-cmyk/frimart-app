@@ -1,19 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { 
-  Snowflake, 
-  Thermometer, 
-  Store, 
-  Plus, 
-  Minus, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Camera, 
-  RefreshCw,
-  Search,
-  Sparkles,
+import {
+  Snowflake,
+  Thermometer,
+  Plus,
+  Minus,
   ShieldCheck,
-  ChevronRight,
-  Layers,
   Check
 } from "lucide-react";
 import confetti from "canvas-confetti";

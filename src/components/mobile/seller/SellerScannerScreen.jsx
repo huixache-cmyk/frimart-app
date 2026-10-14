@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  QrCode, 
-  Camera, 
-  Sparkles, 
-  CheckCircle2, 
-  PlusCircle, 
-  Zap, 
-  Search, 
-  Layers, 
-  RefreshCw, 
+import {
+  QrCode,
+  Camera,
+  RefreshCw,
   AlertCircle,
   Snowflake,
   DoorOpen,
@@ -175,7 +169,7 @@ function FreezerTypeChanger({ freezers, onChangeFreezerType }) {
 export default function SellerScannerScreen({
   onCodeDetected,
   onOpenBatchGenerator,
-  existingCodes = ["FRM-0089", "FRM-0142", "FRM-0034"],
+  existingCodes = [],
   pendingEnrollStore = null,
   onCancelEnroll,
   freezers = [],
@@ -415,7 +409,7 @@ export default function SellerScannerScreen({
             type="text"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            placeholder="O escribe el código (ej. FRM-0089)..."
+            placeholder="O escribe el folio del sticker…"
             className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-[#e2e8f0] text-xs font-mono uppercase text-slate-800 placeholder-slate-400 outline-none focus:border-[#059669]"
           />
           <button
@@ -425,43 +419,6 @@ export default function SellerScannerScreen({
             Buscar
           </button>
         </form>
-      </div>
-
-      {/* Fast Testing Simulation Pills */}
-      <div className="px-4 space-y-2.5">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-          Simular Detección de Código
-        </span>
-
-        <div className="space-y-2.5">
-          <button
-            onClick={() => {
-              stopCamera();
-              onCodeDetected("FRM-0520");
-            }}
-            className="tap-effect w-full p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-left cursor-pointer flex items-center justify-between"
-          >
-            <div>
-              <span className="text-xs font-bold text-emerald-900 font-mono block">QR Virgen: FRM-0520</span>
-              <span className="text-[10px] text-emerald-700">Abre Asistente de Alta GPS de Congelador Nuevo</span>
-            </div>
-            <span className="text-xs font-bold text-emerald-700">Probar ➔</span>
-          </button>
-
-          <button
-            onClick={() => {
-              stopCamera();
-              onCodeDetected("FRM-0089");
-            }}
-            className="tap-effect w-full p-3 rounded-2xl bg-sky-50 border border-sky-200 text-left cursor-pointer flex items-center justify-between"
-          >
-            <div>
-              <span className="text-xs font-bold text-sky-900 font-mono block">QR Enrolado: FRM-0089</span>
-              <span className="text-[10px] text-sky-700">Abre Planograma y Auditoría de Cremería Nueva Benjamín de Alba (Agropecuario AGS)</span>
-            </div>
-            <span className="text-xs font-bold text-sky-700">Probar ➔</span>
-          </button>
-        </div>
       </div>
 
       {canChangeFreezerType && (

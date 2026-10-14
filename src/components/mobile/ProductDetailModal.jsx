@@ -1,17 +1,13 @@
 import React, { useState } from "react";
-import { 
-  ArrowLeft, 
-  Heart, 
-  Minus, 
-  Plus, 
-  ChevronDown, 
-  ChevronUp, 
-  Clock, 
-  ShieldCheck, 
-  Check, 
-  Snowflake,
-  Share2,
-  Sparkles
+import {
+  ArrowLeft,
+  Heart,
+  Minus,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Snowflake
 } from "lucide-react";
 import ProductCard from "./ProductCard";
 

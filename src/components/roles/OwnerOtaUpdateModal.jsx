@@ -1,22 +1,12 @@
 import React, { useState } from "react";
-import { 
-  Radio, 
-  Send, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Smartphone, 
-  Sparkles, 
-  RefreshCw, 
-  Sliders, 
-  Layers, 
-  Clock, 
-  X, 
-  Check, 
-  FileText, 
-  Play, 
-  Flame,
+import {
+  Radio,
+  Send,
+  RefreshCw,
+  Sliders,
+  X,
+  Play,
   Zap,
-  ShieldCheck,
   Cpu
 } from "lucide-react";
 import AppSelect from "../ui/AppSelect";

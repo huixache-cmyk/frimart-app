@@ -1,25 +1,16 @@
 import React, { useState } from "react";
-import { 
-  Crown, 
-  KeyRound, 
-  Users, 
-  Sliders, 
-  ShieldCheck, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Check, 
-  X, 
-  Search, 
-  AlertCircle, 
-  Lock, 
-  Unlock, 
-  Eye, 
-  EyeOff, 
-  Save, 
-  Sparkles,
-  Building2,
-  Truck
+import {
+  Crown,
+  KeyRound,
+  Sliders,
+  Plus,
+  Pencil,
+  Check,
+  X,
+  Search,
+  Eye,
+  EyeOff,
+  Save
 } from "lucide-react";
 import { ROLES, MASTER_CEDIS } from "../../data/authRolesData";
 import AppSelect from "../ui/AppSelect";

@@ -1,33 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { 
-  Layers, 
-  Search, 
-  Printer, 
-  FileText, 
-  Camera, 
-  CheckCircle2, 
-  Plus, 
-  Minus, 
+import {
+  FileText,
+  Camera,
   ArrowLeft,
-  SlidersHorizontal,
-  Info,
   Sparkles,
   RefreshCw,
   QrCode,
   Thermometer,
-  Calendar,
-  PackageCheck,
-  ShieldCheck,
-  ChevronRight,
-  X,
   Snowflake,
   DoorOpen,
-  LayoutGrid,
-  Check,
-  Settings,
-  Eye,
-  Sliders,
-  Store,
   Tag
 } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -322,7 +303,7 @@ export default function PlanogramViewer({
     setTimeout(() => setAuditSuccess(false), 3000);
 
     if (onSaveAudit) {
-      onSaveAudit(freezer?.id || "FRM-0089", {
+      onSaveAudit(freezer?.id, {
         modelType: activeModelType,
         modelName: FREEZER_MODEL_CONFIGS[activeModelType].name,
         complianceScore,
@@ -612,7 +593,7 @@ export default function PlanogramViewer({
                     extra: (
                       <span className="flex items-center gap-1 bg-white border border-amber-200 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-slate-800">
                         <QrCode className="w-3 h-3" />
-                        {freezer?.qrCode || "FRM-0089"}
+                        {freezer?.qrCode || "—"}
                       </span>
                     ),
                     children: imberaPlanogram.shelves.map((shelf) =>
@@ -856,7 +837,7 @@ export default function PlanogramViewer({
           setIsPhotoModalOpen(false);
         }}
         freezerName={freezer?.storeName || "Congelador La Huerta"}
-        qrCode={freezer?.qrCode || "FRM-0089"}
+        qrCode={freezer?.qrCode || ""}
       />
     </div>
   );

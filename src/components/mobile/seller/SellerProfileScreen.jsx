@@ -1,29 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  User, 
-  Settings, 
-  LogOut, 
-  ChevronRight, 
+import {
+  User,
+  Settings,
+  LogOut,
+  ChevronRight,
   Snowflake,
   MessageCircle,
   Phone,
   X,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   Camera,
   Upload,
-  Play,
-  Square,
-  Award,
-  Truck,
   ShieldCheck,
   QrCode,
-  Store,
-  Layers,
-  MapPin,
-  Users,
-  PlusCircle
+  Store
 } from "lucide-react";
 import { isAtLeast, LEVEL } from "../../../data/permissions";
 import NewStoreOnboardingModal from "../../supervisor/NewStoreOnboardingModal";
@@ -37,46 +26,17 @@ export default function SellerProfileScreen({
   onLockSession,
   onOpenBatchGenerator,
   onAddNewStore,
-  stores = []
+  stores = [],
+  assignedCount = 0,
+  vendors = []
 }) {
   // Supervisor en adelante usa su propio perfil (jerarquía: gerente y director heredan)
   const isSupervisor = isAtLeast(currentUser?.role, LEVEL.SUPERVISOR);
 
   const [modalType, setModalType] = useState(null); // 'supervisor_contact' | 'cold_protocol' | 'account_settings'
   const [isNewStoreModalOpen, setIsNewStoreModalOpen] = useState(false);
-  
-  // Shift state persisted in localStorage
-  const [isShiftActive, setIsShiftActive] = useState(() => {
-    return localStorage.getItem("frimart_shift_active") !== "false";
-  });
-  const [shiftStartTime, setShiftStartTime] = useState(() => {
-    return localStorage.getItem("frimart_shift_start") || "07:30 AM";
-  });
-
   const fileInputRef = useRef(null);
-
-  // Toggle Shift Handler
-  const handleToggleShift = () => {
-    if (isShiftActive) {
-      const promptMsg = isSupervisor 
-        ? "¿Deseas finalizar tu turno de supervisión de campo de hoy? Se guardará el reporte operativo en el CEDIS Aguascalientes."
-        : "¿Deseas finalizar tu turno de ruta de hoy? Se registrará el cierre de jornada y el resumen de visitas en el CEDIS.";
-      if (confirm(promptMsg)) {
-        setIsShiftActive(false);
-        localStorage.setItem("frimart_shift_active", "false");
-        alert("Turno finalizado con éxito. Jornada cerrada.");
-      }
-    } else {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setIsShiftActive(true);
-      setShiftStartTime(timeStr);
-      localStorage.setItem("frimart_shift_active", "true");
-      localStorage.setItem("frimart_shift_start", timeStr);
-      alert(`¡Turno iniciado a las ${timeStr}! Buen viaje en tu jornada.`);
-    }
-  };
-
+  
   // Profile Picture Upload Handler
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -125,16 +85,16 @@ export default function SellerProfileScreen({
   };
 
   // Active display profile info
-  const profileName = isSupervisor ? (currentUser?.name || "Ing. Roberto Almanza") : seller.name;
-  const profileAvatar = isSupervisor ? (currentUser?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80") : seller.avatar;
+  const profileName = currentUser?.name || seller?.name || "";
+  const profileAvatar = currentUser?.avatar || seller?.avatar || "/icon-192.png";
   const ROLE_SUBTITLE = {
     supervisor: "Supervisor de Rutas y Operaciones Frimart",
     gerente_cedis: "Gerente de CEDIS Frimart",
     director_comercial: "Director Comercial Frimart",
     propietario: "Propietario · Acceso total"
   };
-  const profileSubtitle = isSupervisor ? (ROLE_SUBTITLE[currentUser?.role] || "Mando Operativo Frimart") : seller.route;
-  const profileCedis = isSupervisor ? (currentUser?.cedisName || "CEDIS Aguascalientes (1205)") : seller.cedis;
+  const profileSubtitle = isSupervisor ? (ROLE_SUBTITLE[currentUser?.role] || "Mando Operativo Frimart") : (currentUser?.routeName || currentUser?.routeId || "Vendedor de ruta");
+  const profileCedis = currentUser?.cedisName || currentUser?.cedisId || "CEDIS Aguascalientes";
 
   return (
     <div className="pb-32 bg-white min-h-screen font-sans animate-fade-in">
@@ -149,15 +109,6 @@ export default function SellerProfileScreen({
           </p>
         </div>
 
-        {/* Shift Badge Indicator */}
-        <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 ${
-          isShiftActive 
-            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-            : "bg-slate-100 text-slate-600 border-slate-300"
-        }`}>
-          <span className={`w-2 h-2 rounded-full ${isShiftActive ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
-          <span>{isShiftActive ? "En Turno" : "Fuera de Turno"}</span>
-        </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
@@ -191,128 +142,12 @@ export default function SellerProfileScreen({
               </span>
               <span className="text-[11px] text-slate-400 font-medium">
                 {isSupervisor 
-                  ? "• 3 Vendedores Asignados"
+                  ? `• ${assignedCount} vendedores asignados`
                   : `• ${storesCount} Tiendas Asignadas`
                 }
               </span>
             </div>
           </div>
-        </div>
-
-        {/* 3. Performance Banner */}
-        {isSupervisor ? (
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-sky-900 via-slate-900 to-slate-950 text-white shadow-md space-y-3 relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-sky-200 text-[10px] font-black tracking-wider uppercase border border-white/20">
-                SUPERVISIÓN AGUASCALIENTES
-              </span>
-              <div className="flex items-center gap-1 text-[11px] text-sky-200 font-medium">
-                <Users className="w-3.5 h-3.5 text-sky-300" />
-                <span>3 Rutas de Campo Activas</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-2xl font-black font-mono">
-                $92,950.00 MXN
-              </div>
-              <p className="text-xs text-sky-200/90 mt-0.5">
-                Venta acumulada del equipo hoy en Zona Aguascalientes.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between border-t border-white/20 text-xs">
-              <span className="text-sky-200">
-                Meta de Zona: <strong>80.1% alcanzado</strong>
-              </span>
-              <span className="text-white font-bold">
-                347 cajas entregadas
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-md space-y-3 relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-950/40 text-emerald-200 text-[10px] font-black tracking-wider uppercase border border-white/20">
-                MES EN CURSO
-              </span>
-              <div className="flex items-center gap-1 text-[11px] text-emerald-100 font-medium">
-                <Award className="w-3.5 h-3.5 text-amber-300" />
-                <span>Rendimiento Oro</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-2xl font-black font-mono">
-                $18,450.00 MXN
-              </div>
-              <p className="text-xs text-emerald-100/90 mt-0.5">
-                Comisión acumulada del mes por colocación y resurtido en ruta.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between border-t border-white/20 text-xs">
-              <span className="text-emerald-200">
-                Cumplimiento: <strong>94% de cuota</strong>
-              </span>
-              <span className="text-white font-bold">
-                342 cajas entregadas
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* 4. Shift Management Card (OPCIÓN 1: INICIAR / FINALIZAR TURNO) */}
-        <div className="p-4 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                isShiftActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
-              }`}>
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-slate-900">
-                  {isShiftActive 
-                    ? (isSupervisor ? "Turno de Supervisión Activo" : "Turno de Ruta Activo") 
-                    : (isSupervisor ? "Supervisión Fuera de Servicio" : "Turno Fuera de Servicio")
-                  }
-                </h3>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {isShiftActive ? `Iniciado a las ${shiftStartTime}` : "Jornada laboral no iniciada"}
-                </p>
-              </div>
-            </div>
-
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
-              isShiftActive 
-                ? "bg-emerald-50 text-emerald-700 border-emerald-300" 
-                : "bg-slate-100 text-slate-500 border-slate-300"
-            }`}>
-              {isShiftActive ? "En Servicio" : "Inactivo"}
-            </span>
-          </div>
-
-          <button
-            onClick={handleToggleShift}
-            className={`tap-effect w-full py-3 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${
-              isShiftActive
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-                : "bg-emerald-600 hover:bg-emerald-500 text-white"
-            }`}
-          >
-            {isShiftActive ? (
-              <>
-                <Square className="w-3.5 h-3.5 fill-current" />
-                <span>{isSupervisor ? "Finalizar Turno de Supervisión" : "Finalizar Turno de Ruta"}</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>{isSupervisor ? "Iniciar Turno de Supervisión" : "Iniciar Turno de Ruta"}</span>
-              </>
-            )}
-          </button>
         </div>
 
         {/* 5. MENÚ OFICIAL SEGÚN ROL */}
@@ -444,9 +279,7 @@ export default function SellerProfileScreen({
           {/* OPCIÓN: CERRAR SESIÓN / SALIR */}
           <button
             onClick={() => {
-              if (confirm("¿Deseas cerrar sesión en este dispositivo?")) {
-                onLockSession?.();
-              }
+              onLockSession?.();
             }}
             className="tap-effect w-full p-4 flex items-center justify-between text-left hover:bg-rose-50/50 transition cursor-pointer group"
           >
@@ -790,6 +623,7 @@ export default function SellerProfileScreen({
       {/* VISTA NUEVA EXCLUSIVA DE SUPERVISOR: NUEVO PUNTO DE VENTA */}
       <NewStoreOnboardingModal
         isOpen={isNewStoreModalOpen}
+        vendors={vendors}
         onClose={() => setIsNewStoreModalOpen(false)}
         onSave={(newStore, newFreezer) => {
           onAddNewStore?.(newStore, newFreezer);

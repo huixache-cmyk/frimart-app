@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Layers, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  Layers,
+  AlertTriangle,
+  CheckCircle2
+} from "lucide-react";
 import { fetchVisits, subscribeVisitsAndAlerts } from "../../lib/visitsSync";
 import VisitReviewCard from "./VisitReviewCard";
 

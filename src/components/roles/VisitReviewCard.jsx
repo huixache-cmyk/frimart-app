@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { ShieldCheck, Check, X, Thermometer, Camera, Shuffle, RefreshCw, CloudOff } from "lucide-react";
+import {
+  ShieldCheck,
+  Check,
+  X,
+  Thermometer,
+  Camera,
+  Shuffle,
+  RefreshCw,
+  CloudOff
+} from "lucide-react";
 import { reviewVisit, fetchLatestVisitForFreezer } from "../../lib/visitsSync";
 
 /** Normaliza una fila de Supabase (frimart_visitas) al formato de la tarjeta */

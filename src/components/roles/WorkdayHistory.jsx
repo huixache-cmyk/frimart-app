@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { History, Bot, XCircle } from "lucide-react";
+import {
+  History,
+  Bot,
+  XCircle
+} from "lucide-react";
 import { fetchWorkdays } from "../../lib/workday";
 import { fetchVisits } from "../../lib/visitsSync";
 

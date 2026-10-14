@@ -1,12 +1,10 @@
 import React, { useState } from "react";
-import { 
-  X, 
-  DollarSign, 
-  Package, 
-  Store, 
-  CheckCircle2, 
-  Sparkles, 
-  TrendingUp 
+import {
+  X,
+  DollarSign,
+  Package,
+  Store,
+  CheckCircle2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import AppSelect from "../../ui/AppSelect";

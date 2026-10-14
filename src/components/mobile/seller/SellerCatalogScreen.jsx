@@ -1,15 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { 
-  Search, 
-  Sparkles, 
-  Tag, 
-  Package, 
-  TrendingUp, 
-  Plus, 
-  Check, 
-  Info,
-  DollarSign,
-  ChevronRight
+import {
+  Search,
+  Plus,
+  Check
 } from "lucide-react";
 import CategoryChips from "../CategoryChips";
 import SectionHeader from "../SectionHeader";

@@ -1,20 +1,10 @@
 import React from "react";
-import { 
-  MapPin, 
-  ChevronDown, 
-  Bell, 
-  QrCode, 
-  Radio, 
-  Sparkles,
-  ShieldCheck,
-  TrendingUp,
+import {
+  Bell,
+  QrCode,
   LogOut,
   KeyRound,
   Zap,
-  Crown,
-  Building2,
-  BarChart3,
-  Truck,
   RefreshCw
 } from "lucide-react";
 import { ROLES } from "../../../data/authRolesData";

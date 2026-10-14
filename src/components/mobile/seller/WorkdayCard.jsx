@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Play, Square, Clock, MapPin, Store, X, History } from "lucide-react";
+import {
+  Play,
+  Square,
+  Clock,
+  MapPin,
+  Store,
+  X,
+  History
+} from "lucide-react";
 import { WORKDAY_CONFIG, getCedisLocation } from "../../../data/workdayConfig";
 import WorkdayHistory from "../../roles/WorkdayHistory";
 import SellerPerformance from "./SellerPerformance";

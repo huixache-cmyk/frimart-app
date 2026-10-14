@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Check, X } from "lucide-react";
+import {
+  ChevronDown,
+  Check,
+  X
+} from "lucide-react";
 
 /**
  * AppSelect — reemplazo directo de <select> nativo.

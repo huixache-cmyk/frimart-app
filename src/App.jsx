@@ -80,13 +80,12 @@ import {
   CATEGORIES 
 } from "./data/mobileFrimartData";
 
-import { 
-  CheckCircle2, 
-  Info, 
-  Sparkles, 
-  Snowflake, 
-  QrCode, 
-  Bell, 
+import {
+  CheckCircle2,
+  Sparkles,
+  Snowflake,
+  QrCode,
+  Bell,
   X,
   Layers,
   BarChart3,
@@ -98,12 +97,13 @@ import {
 
 // Piloto Aguascalientes: al cambiar la versión de datos se borran del teléfono los datos
 // de prueba guardados (otras plazas). Se ejecuta una sola vez por dispositivo.
-const DATA_VERSION = "ags-piloto-3";
+const DATA_VERSION = "ags-piloto-4";
 try {
   if (localStorage.getItem("frimart_data_version") !== DATA_VERSION) {
     ["frimart_users", "frimart_cedisList", "frimart_sellersList", "frimart_routesList", "frimart_goalsList",
      "frimart_seller", "frimart_active_session", "frimart_active_target_store_id",
-     "frimart_stores", "frimart_freezers", "frimart_catalog_synced"] // piloto-3: sin tiendas demo
+     "frimart_stores", "frimart_freezers", "frimart_catalog_synced",
+     "frimart_seller_pendientes", "frimart_shift_active", "frimart_shift_start"] // piloto-4: sin datos demo
       .forEach((k) => localStorage.removeItem(k));
     localStorage.setItem("frimart_data_version", DATA_VERSION);
   }
@@ -129,54 +129,20 @@ export default function App() {
 
   // Vendedor State (Persisted in LocalStorage with Aguascalientes DB auto-migration)
   const [seller, setSeller] = useState(() => {
-    const saved = localStorage.getItem("frimart_seller");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.cedis?.includes("Cancún")) {
-          localStorage.setItem("frimart_seller", JSON.stringify(INITIAL_SELLER));
-          return INITIAL_SELLER;
-        }
-        return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_SELLER;
+    try { return JSON.parse(localStorage.getItem("frimart_seller")) || INITIAL_SELLER; } catch { return INITIAL_SELLER; }
   });
 
+  // Copia local (para trabajar sin señal). La fuente oficial es Supabase (ver catálogo más abajo).
   const [stores, setStores] = useState(() => {
-    const saved = localStorage.getItem("frimart_stores");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const hasAllStores = Array.isArray(parsed) && INITIAL_STORES.every(is => parsed.some(ps => ps.id === is.id));
-        const isCancunOrBroken = parsed.some(s => s.address?.includes("Cancún") || s.name?.includes("Nichupté") || !s.routeId);
-        if (!hasAllStores || isCancunOrBroken) {
-          localStorage.setItem("frimart_stores", JSON.stringify(INITIAL_STORES));
-          return INITIAL_STORES;
-        }
-        return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_STORES;
+    try { const v = JSON.parse(localStorage.getItem("frimart_stores")); return Array.isArray(v) ? v : INITIAL_STORES; } catch { return INITIAL_STORES; }
   });
 
   const [freezers, setFreezers] = useState(() => {
-    const saved = localStorage.getItem("frimart_freezers");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.some(f => f.storeName?.includes("Nichupté"))) {
-          localStorage.setItem("frimart_freezers", JSON.stringify(INITIAL_FREEZERS));
-          return INITIAL_FREEZERS;
-        }
-        return parsed;
-      } catch (e) {}
-    }
-    return INITIAL_FREEZERS;
+    try { const v = JSON.parse(localStorage.getItem("frimart_freezers")); return Array.isArray(v) ? v : INITIAL_FREEZERS; } catch { return INITIAL_FREEZERS; }
   });
 
   const [qrBatch] = useState(() => generateQRBatch(2000));
-  const [selectedFreezerId, setSelectedFreezerId] = useState("FRM-0089");
+  const [selectedFreezerId, setSelectedFreezerId] = useState(null);
 
   // Active Store for Detail Sheet
   const [selectedStore, setSelectedStore] = useState(null);
@@ -278,7 +244,7 @@ export default function App() {
 
   // Route Map Interactive In-App Modal & Persistent Target Store
   const [activeTargetStoreId, setActiveTargetStoreId] = useState(() => {
-    return localStorage.getItem("frimart_active_target_store_id") || "STORE-01";
+    return localStorage.getItem("frimart_active_target_store_id") || null;
   });
   const [isRouteMapOpen, setIsRouteMapOpen] = useState(false);
   const [routeMapTargetStoreId, setRouteMapTargetStoreId] = useState(null);
@@ -311,7 +277,7 @@ export default function App() {
   // Full Screen Operational Modals
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-  const [pendingScannedCode, setPendingScannedCode] = useState("FRM-0520");
+  const [pendingScannedCode, setPendingScannedCode] = useState("");
   const [activeOperationalModal, setActiveOperationalModal] = useState(null); // 'batch' | 'supervision' | 'admin' | 'notifications'
 
   // Product Detail Modal
@@ -727,7 +693,7 @@ export default function App() {
 
     const newSaleItem = {
       id: `SALE-${Date.now()}`,
-      vendorId: currentUser?.id || "USR-VEND-104",
+      vendorId: currentUser?.id,
       storeName: saleData.storeName,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       amount: saleData.amount,
@@ -960,6 +926,8 @@ export default function App() {
               onOpenBatchGenerator={() => setActiveOperationalModal("batch")}
               onAddNewStore={handleAddNewStore}
               stores={scopedStores}
+              assignedCount={assignedVendors.length}
+              vendors={assignedVendors}
             />
           )}
         </main>
@@ -1123,7 +1091,7 @@ export default function App() {
           isOpen={isOnboardingOpen}
           onClose={() => setIsOnboardingOpen(false)}
           qrCode={pendingScannedCode}
-          stores={stores}
+          stores={scopedStores}
           initialStoreId={pendingEnrollStoreId}
           onSave={handleSaveNewFreezer}
         />
@@ -1241,36 +1209,8 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <Snowflake className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-rose-900">Alerta de Stock Crítico</span>
-                      <span className="text-[10px] text-rose-600 font-bold">Hace 15 min</span>
-                    </div>
-                    <p className="text-xs text-rose-700 mt-1">
-                      El congelador <strong className="font-mono">FRM-0089</strong> en Cremería Nueva Benjamín de Alba tiene solo 2 piezas de Brócoli La Huerta. Se requiere resurtido prioritario hoy.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-[#ecfdf5] border border-[#a7f3d0] flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full bg-[#059669] text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-900">CEDIS Aguascalientes (1205) Abastecido</span>
-                      <span className="text-[10px] text-slate-400">Hoy 06:45 AM</span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Llegó embarque con 400 cajas de Franuí Pink y Mezcla California La Huerta disponibles para entrega inmediata.
-                    </p>
-                  </div>
-                </div>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                Sin avisos nuevos. Las alertas de temperatura, quiebres y equipo llegan en línea a Supervisión.
               </div>
 
               <button
@@ -1289,6 +1229,7 @@ export default function App() {
           onClose={() => setIsNewStoreModalOpen(false)}
           onSave={handleAddNewStore}
           existingStores={stores}
+          vendors={assignedVendors}
         />
       </div>
     </MobileDeviceFrame>

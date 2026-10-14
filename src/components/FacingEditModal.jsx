@@ -1,17 +1,11 @@
 import React, { useState, useMemo } from "react";
-import { 
-  X, 
-  Search, 
-  Check, 
-  Plus, 
-  Minus, 
-  Sparkles, 
-  Tag, 
-  Trash2, 
-  Copy, 
-  Layers, 
-  DollarSign, 
-  Box, 
+import {
+  X,
+  Search,
+  Check,
+  Trash2,
+  Copy,
+  Box,
   CheckCircle2,
   Package
 } from "lucide-react";

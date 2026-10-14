@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { 
-  QrCode, 
-  MapPin, 
-  Store, 
-  Thermometer, 
-  Sliders, 
-  CheckCircle, 
-  Camera, 
-  AlertTriangle, 
-  X, 
-  Check, 
-  Sparkles,
-  Layers,
-  ArrowRight,
-  ShieldCheck,
+import {
+  QrCode,
+  MapPin,
+  Store,
+  X,
   CheckCircle2,
   Snowflake,
   DoorOpen
@@ -33,20 +23,17 @@ export default function FreezerOnboardingModal({
   onClose, 
   scannedCode, 
   qrCode,
-  currentGps = { lat: 21.1482, lng: -86.8398, accuracy: 8 }, 
   stores = [], 
   onSaveNewFreezer,
   onSave,
   initialStoreId
 }) {
-  const activeCode = scannedCode || qrCode || "FRM-0520";
+  const activeCode = (scannedCode || qrCode || "").trim().toUpperCase();
   const saveCallback = onSave || onSaveNewFreezer;
   const storeHasNoFreezer = (s) => !(s.freezerCount || s.freezersCount);
 
   // Form states
-  const [selectedStoreId, setSelectedStoreId] = useState(initialStoreId || stores.find(storeHasNoFreezer)?.id || stores[0]?.id || "custom");
-  const [customStoreName, setCustomStoreName] = useState("");
-  const [customStoreAddress, setCustomStoreAddress] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState(initialStoreId || stores.find(storeHasNoFreezer)?.id || stores[0]?.id || "");
   
   // Model state: Imbera Glass vs Metal Door
   const [modelType, setModelType] = useState(FREEZER_MODEL_TYPES.GLASS_IMBERA);
@@ -61,28 +48,23 @@ export default function FreezerOnboardingModal({
     frostLevel: "bajo", // 'bajo' | 'medio' | 'alto'
     cleanliness: "excelente" // 'excelente' | 'bueno' | 'regular'
   });
-  const [photoEvidence, setPhotoEvidence] = useState("https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80");
+  const [photoEvidence, setPhotoEvidence] = useState(null);
 
   // Al abrir con otra tienda preseleccionada, sincronizarla
   useEffect(() => {
     if (isOpen && initialStoreId) setSelectedStoreId(initialStoreId);
   }, [isOpen, initialStoreId]);
 
+  const selectedStore = stores.find((s) => s.id === selectedStoreId) || null;
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    let storeName = "";
-    let storeId = selectedStoreId;
-
-    if (selectedStoreId === "custom") {
-      storeName = customStoreName || "Punto de Venta Independiente";
-      storeId = `STORE-${Date.now()}`;
-    } else {
-      const found = stores.find(s => s.id === selectedStoreId);
-      storeName = found?.name || "Tienda Comercial";
-    }
+    const found = stores.find(s => s.id === selectedStoreId);
+    if (!found || !activeCode) return; // requiere tienda registrada y folio QR
+    const storeId = found.id;
+    const storeName = found.name;
 
     const isMetal = modelType === FREEZER_MODEL_TYPES.METAL_DOOR;
     const modelConfig = FREEZER_MODEL_CONFIGS[modelType];
@@ -100,17 +82,17 @@ export default function FreezerOnboardingModal({
       brand: modelConfig.brand,
       serialNumber: `VFR-2026-${activeCode.replace("FRM-", "")}`,
       capacityPcs: isMetal ? (shelvesCount * 40 + doorShelvesCount * 24) : (shelvesCount * imberaFacings * 10),
-      currentStock: isMetal ? (shelvesCount * 35 + doorShelvesCount * 20) : (shelvesCount * imberaFacings * 8),
+      currentStock: 0,
       temperature: Number(temperature),
       shelvesCount,
       doorShelvesCount: isMetal ? doorShelvesCount : 0,
       facingsPerShelf: isMetal ? 5 : imberaFacings,
       installedAt: new Date().toISOString(),
-      lastAuditedAt: new Date().toISOString(),
+      lastAuditedAt: null,
       locationCoordinates: {
-        lat: currentGps.lat,
-        lng: currentGps.lng,
-        accuracy: currentGps.accuracy
+        lat: found.lat ?? null,
+        lng: found.lng ?? null,
+        accuracy: found.gpsAccuracy ?? null
       },
       conditions: {
         compressor: conditions.compressor ? "Optimo" : "Falla",
@@ -170,12 +152,12 @@ export default function FreezerOnboardingModal({
         <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between mb-5 text-xs">
           <div className="flex items-center gap-2 text-slate-700 font-mono">
             <MapPin className="w-4 h-4 text-emerald-600" />
-            <span>GPS Capturado: <strong className="text-slate-900">{currentGps.lat.toFixed(4)}° N, {Math.abs(currentGps.lng).toFixed(4)}° W</strong></span>
+            <span>Ubicación: <strong className="text-slate-900">{selectedStore && selectedStore.lat != null ? `${Number(selectedStore.lat).toFixed(5)}, ${Number(selectedStore.lng).toFixed(5)}` : "la de la tienda"}</strong></span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-[11px] font-mono">Precisión: ±{currentGps.accuracy}m</span>
+            
             <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold font-mono border border-emerald-200">
-              FOLIO: {activeCode}
+              FOLIO: {activeCode || "—"}
             </span>
           </div>
         </div>
@@ -196,29 +178,8 @@ export default function FreezerOnboardingModal({
                   {s.name} ({s.address}) - {storeHasNoFreezer(s) ? "Sin congelador" : `${s.freezerCount || s.freezersCount} congelador`}
                 </option>
               ))}
-              <option value="custom">+ Registrar Tienda Nueva en esta ubicación GPS</option>
             </AppSelect>
 
-            {selectedStoreId === "custom" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <input
-                  type="text"
-                  placeholder="Nombre de la nueva tienda"
-                  value={customStoreName}
-                  onChange={(e) => setCustomStoreName(e.target.value)}
-                  required
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-sky-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Dirección comercial"
-                  value={customStoreAddress}
-                  onChange={(e) => setCustomStoreAddress(e.target.value)}
-                  required
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-sky-500"
-                />
-              </div>
-            )}
           </div>
 
           {/* Section 2: Technical Specifications & Initial Hardware Setup */}
@@ -469,9 +430,13 @@ export default function FreezerOnboardingModal({
             >
               Cancelar
             </button>
+            {(!selectedStore || !activeCode) && (
+              <span className="text-[11px] text-rose-600 mr-auto">{!activeCode ? "Falta el folio QR del congelador" : "Selecciona la tienda"}</span>
+            )}
             <button
               type="submit"
-              className="tactile-btn px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-2"
+              disabled={!selectedStore || !activeCode}
+              className="tactile-btn px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-600/30 cursor-pointer flex items-center gap-2 disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Guardar y Enrolar Congelador</span>

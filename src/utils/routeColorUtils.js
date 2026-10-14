@@ -238,7 +238,7 @@ export const SUPERVISOR_THEME = {
   short: "SUP"
 };
 
-// Fixed anchors for known standard routes (e.g. Aguascalientes & Cancún)
+// Fixed anchors for known standard routes (Aguascalientes)
 export const ROUTE_PALETTE = {
   "RUTA-01": {
     routeId: "RUTA-01",
@@ -274,13 +274,6 @@ export const ROUTE_PALETTE = {
     short: "R-05",
     name: "Ags Poniente & Calvillo",
     ...EXPANDED_ROUTE_PALETTES[4]
-  },
-  "RUTA-CUN": {
-    routeId: "RUTA-CUN",
-    label: "Ruta Cancún",
-    short: "R-CUN",
-    name: "Cancún Zona Hotelera",
-    ...EXPANDED_ROUTE_PALETTES[5] // Cyan / Teal
   }
 };
 

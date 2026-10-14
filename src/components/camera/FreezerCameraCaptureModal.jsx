@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  Camera, 
-  X, 
-  Check, 
-  RotateCcw, 
-  RefreshCw, 
-  Zap, 
-  Sparkles, 
+import {
+  Camera,
+  X,
+  Check,
+  RotateCcw,
+  RefreshCw,
   AlertCircle,
-  MapPin,
-  Clock,
   ShieldCheck
 } from "lucide-react";
 
@@ -18,7 +14,7 @@ export default function FreezerCameraCaptureModal({
   onClose,
   onCapture,
   freezerName = "Congelador La Huerta",
-  qrCode = "FRM-0089",
+  qrCode = "",
   gpsCoordinates = null
 }) {
   const videoRef = useRef(null);

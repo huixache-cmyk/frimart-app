@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { Heart, Plus, Check } from "lucide-react";
+import {
+  Heart,
+  Plus,
+  Check
+} from "lucide-react";
 
 export default function ProductCard({ 
   product, 

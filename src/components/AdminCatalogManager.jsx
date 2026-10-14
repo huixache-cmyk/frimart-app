@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Users, 
-  MapPin, 
-  Store, 
-  Building2, 
-  Target, 
-  Layers, 
-  Receipt, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Search, 
-  Check, 
-  X, 
-  AlertCircle,
-  Sparkles,
-  DollarSign,
-  Package,
-  Calendar
+import {
+  Users,
+  MapPin,
+  Store,
+  Building2,
+  Target,
+  Layers,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  Sparkles
 } from "lucide-react";
 import { LA_HUERTA_SKUS } from "../data/mockData";
 import AppSelect from "./ui/AppSelect";
