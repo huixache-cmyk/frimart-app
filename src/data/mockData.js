@@ -449,7 +449,8 @@ export const AGUASCALIENTES_STORES = [
 
 
 // Piloto: Ruta 01 arranca sin tiendas demo (el supervisor da de alta las reales con GPS)
-export const INITIAL_STORES = AGUASCALIENTES_STORES.filter((s) => s.routeId !== "RUTA-01");
+export const INITIAL_STORES = []; // Piloto: sin tiendas demo; el catálogo real vive en Supabase
+export const DEMO_STORES_REFERENCE = AGUASCALIENTES_STORES;
 
 const DEMO_FREEZERS = [
   {
@@ -618,4 +619,5 @@ export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * c);
 }
 
-export const INITIAL_FREEZERS = DEMO_FREEZERS.filter((f) => INITIAL_STORES.some((st) => st.id === f.storeId));
+export const INITIAL_FREEZERS = []; // Piloto: sin congeladores demo
+export const DEMO_FREEZERS_REFERENCE = DEMO_FREEZERS;
