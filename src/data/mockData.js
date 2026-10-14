@@ -448,9 +448,10 @@ export const AGUASCALIENTES_STORES = [
 ];
 
 
-export const INITIAL_STORES = AGUASCALIENTES_STORES;
+// Piloto: Ruta 01 arranca sin tiendas demo (el supervisor da de alta las reales con GPS)
+export const INITIAL_STORES = AGUASCALIENTES_STORES.filter((s) => s.routeId !== "RUTA-01");
 
-export const INITIAL_FREEZERS = [
+const DEMO_FREEZERS = [
   {
     id: "FRM-0042",
     qrCode: "FRM-0042",
@@ -616,3 +617,5 @@ export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 
   return Math.round(R * c);
 }
+
+export const INITIAL_FREEZERS = DEMO_FREEZERS.filter((f) => INITIAL_STORES.some((st) => st.id === f.storeId));

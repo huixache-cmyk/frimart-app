@@ -96,11 +96,12 @@ import {
 
 // Piloto Aguascalientes: al cambiar la versión de datos se borran del teléfono los datos
 // de prueba guardados (otras plazas). Se ejecuta una sola vez por dispositivo.
-const DATA_VERSION = "ags-piloto-1";
+const DATA_VERSION = "ags-piloto-2";
 try {
   if (localStorage.getItem("frimart_data_version") !== DATA_VERSION) {
     ["frimart_users", "frimart_cedisList", "frimart_sellersList", "frimart_routesList", "frimart_goalsList",
-     "frimart_seller", "frimart_active_session", "frimart_active_target_store_id"]
+     "frimart_seller", "frimart_active_session", "frimart_active_target_store_id",
+     "frimart_stores", "frimart_freezers"] // piloto-2: sin tiendas demo de Ruta 01
       .forEach((k) => localStorage.removeItem(k));
     localStorage.setItem("frimart_data_version", DATA_VERSION);
   }
@@ -380,10 +381,16 @@ export default function App() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id]);
-  const handleOpenWorkday = async () => {
-    const w = await openWorkday(currentUser, scopedStores.length);
+  const handleOpenWorkday = async (opts = {}) => {
+    let authorizedBy = null;
+    if (opts.authCode) {
+      // Autorización excepcional: clave personal de un supervisor (o superior) activo
+      authorizedBy = users.find((u) => u.status === "active" && u.accessKey === opts.authCode && isAtLeast(u.role, LEVEL.SUPERVISOR));
+      if (!authorizedBy) throw new Error("Clave de autorización inválida.");
+    }
+    const w = await openWorkday(currentUser, scopedStores.length, authorizedBy);
     setWorkday(w);
-    showToast("Jornada abierta. ¡Buen día!", "success");
+    showToast(authorizedBy ? `Jornada abierta con autorización de ${authorizedBy.name}` : "Jornada abierta. ¡Buen día!", "success");
   };
   const handleCloseWorkday = async (notVisited) => {
     await closeWorkday(currentUser.id, { notVisited });

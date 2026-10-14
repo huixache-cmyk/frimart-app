@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Play, Square, Clock, MapPin, Store, X, History } from "lucide-react";
 import { WORKDAY_CONFIG, getCedisLocation } from "../../../data/workdayConfig";
 import WorkdayHistory from "../../roles/WorkdayHistory";
+import SellerPerformance from "./SellerPerformance";
 
 const REASONS = ["Tienda cerrada", "Sin acceso", "Sin tiempo", "Sin producto", "Otro"];
 
@@ -30,9 +31,12 @@ export default function WorkdayCard({ user, workday, stores = [], onOpen, onClos
   const elapsed = useClock(workday?.startedAt);
   const cedis = getCedisLocation(user?.cedisId);
 
-  const handleOpen = async () => {
+  const [authCode, setAuthCode] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
+
+  const handleOpen = async (opts) => {
     setBusy(true); setError(null);
-    try { await onOpen(); } catch (e) { setError(e.message || "No se pudo abrir la jornada."); } finally { setBusy(false); }
+    try { await onOpen(opts); setShowAuth(false); setAuthCode(""); } catch (e) { setError(e.message || "No se pudo abrir la jornada."); } finally { setBusy(false); }
   };
 
   const visited = new Set(workday?.visitedStoreIds || []);
@@ -52,7 +56,7 @@ export default function WorkdayCard({ user, workday, stores = [], onOpen, onClos
       <button type="button" onClick={() => setShowHistory((v) => !v)} className="w-full flex items-center justify-center gap-1.5 text-[12px] font-bold text-emerald-700 py-1.5 cursor-pointer">
         <History className="w-3.5 h-3.5" />{showHistory ? "Ocultar mi historial" : "Ver mi historial"}
       </button>
-      {showHistory && <div className="-mx-4"><WorkdayHistory vendorIds={[user.id]} title="Mi historial" showVendor={false} /></div>}
+      {showHistory && <div className="-mx-4 space-y-1"><SellerPerformance user={user} /><WorkdayHistory vendorIds={[user.id]} title="Mis jornadas" showVendor={false} /></div>}
     </>
   );
 
@@ -68,9 +72,18 @@ export default function WorkdayCard({ user, workday, stores = [], onOpen, onClos
             </div>
           </div>
           {error && <p className="flex items-start gap-1.5 text-[12px] text-rose-700 bg-rose-50 p-2.5 rounded-xl"><MapPin className="w-4 h-4 shrink-0 mt-0.5" />{error}</p>}
-          <button type="button" disabled={busy} onClick={handleOpen} className="tap-effect w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 shadow-md shadow-emerald-600/25">
+          <button type="button" disabled={busy} onClick={() => handleOpen()} className="tap-effect w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 shadow-md shadow-emerald-600/25">
             <Play className="w-4 h-4" />{busy ? "Verificando ubicación…" : "Abrir jornada"}
           </button>
+          {error && !showAuth && (
+            <button type="button" onClick={() => setShowAuth(true)} className="w-full text-[12px] font-bold text-slate-500 underline cursor-pointer">Abrir con autorización del supervisor</button>
+          )}
+          {showAuth && (
+            <div className="flex gap-2">
+              <input type="password" inputMode="numeric" maxLength={6} value={authCode} onChange={(e) => setAuthCode(e.target.value.replace(/\D/g, ""))} placeholder="Clave de autorización" className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 text-[14px] font-bold tracking-widest focus:outline-none focus:border-emerald-500" />
+              <button type="button" disabled={busy || authCode.length < 4} onClick={() => handleOpen({ authCode })} className="tap-effect px-4 rounded-xl bg-emerald-600 text-white text-[13px] font-bold cursor-pointer disabled:opacity-50">Abrir</button>
+            </div>
+          )}
           {historyBlock}
         </div>
       </div>

@@ -67,14 +67,22 @@ async function push(w) {
   } catch { return false; }
 }
 
-/** Abre jornada: exige GPS dentro del radio del CEDIS asignado. */
-export async function openWorkday(user, scheduled) {
+/** Abre jornada: exige GPS dentro del radio del CEDIS asignado, salvo autorización de supervisor. */
+export async function openWorkday(user, scheduled, authorizedBy = null) {
   const cedis = getCedisLocation(user?.cedisId);
-  if (!cedis) throw new Error("Tu CEDIS no tiene ubicación registrada. Pide a tu supervisor que la configure.");
-  const pos = await getPosition();
-  if (pos.accuracy > WORKDAY_CONFIG.maxGpsAccuracyM) throw new Error(`Señal GPS imprecisa (±${pos.accuracy} m). Sal a cielo abierto y reintenta.`);
-  const { ok, distanceM } = checkGeofence(pos, cedis, WORKDAY_CONFIG.cedisRadiusM);
-  if (!ok) throw new Error(`Estás a ${distanceM >= 1000 ? (distanceM / 1000).toFixed(1) + " km" : distanceM + " m"} de ${cedis.name}. La jornada se abre en el CEDIS (máx. ${WORKDAY_CONFIG.cedisRadiusM} m).`);
+  if (!cedis && !authorizedBy) throw new Error("Tu CEDIS no tiene ubicación registrada. Pide a tu supervisor que la configure.");
+  let pos = null;
+  let distanceM = null;
+  if (authorizedBy) {
+    // Se intenta registrar la ubicación, pero no se bloquea
+    try { pos = await getPosition(); distanceM = cedis ? checkGeofence(pos, cedis, WORKDAY_CONFIG.cedisRadiusM).distanceM : null; } catch { /* sin GPS */ }
+  } else {
+    pos = await getPosition();
+    if (pos.accuracy > WORKDAY_CONFIG.maxGpsAccuracyM) throw new Error(`Señal GPS imprecisa (±${pos.accuracy} m). Sal a cielo abierto y reintenta.`);
+    const g = checkGeofence(pos, cedis, WORKDAY_CONFIG.cedisRadiusM);
+    distanceM = g.distanceM;
+    if (!g.ok) throw new Error(`Estás a ${distanceM >= 1000 ? (distanceM / 1000).toFixed(1) + " km" : distanceM + " m"} de ${cedis.name}. La jornada se abre en el CEDIS (máx. ${WORKDAY_CONFIG.cedisRadiusM} m).`);
+  }
   const now = new Date();
   const w = {
     id: `JOR-${user.id}-${todayStr(now)}`,
@@ -87,6 +95,7 @@ export async function openWorkday(user, scheduled) {
     startGps: pos,
     startDistanceM: distanceM,
     scheduled,
+    authorizedBy: authorizedBy ? { id: authorizedBy.id, name: authorizedBy.name } : null,
     visitedStoreIds: [],
     sales: 0,
     bags: 0,
