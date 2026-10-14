@@ -168,6 +168,26 @@ export async function fetchOpenAlerts({ vendorIds = null } = {}) {
   return data || [];
 }
 
+/** Última visita registrada en línea para un congelador. */
+export async function fetchLatestVisitForFreezer(freezerId) {
+  const { data, error } = await supabase
+    .from("frimart_visitas").select("*").eq("congelador_id", freezerId)
+    .order("fin", { ascending: false }).limit(1);
+  if (error) throw error;
+  return data?.[0] ? fromRow(data[0]) : null;
+}
+
+/** Visitas del vendedor ya revisadas por su supervisor (para avisarle). */
+export async function fetchReviewedForVendor(vendorId, sinceDays = 7) {
+  const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("frimart_visitas").select("id,tienda_nombre,estado,comentario,revisado_nombre,revisado_en,fin,cumplimiento,calificacion")
+    .eq("vendedor_id", vendorId).in("estado", ["aprobada", "rechazada"]).gte("fin", since)
+    .order("revisado_en", { ascending: false }).limit(30);
+  if (error) throw error;
+  return data || [];
+}
+
 export async function reviewVisit(visitId, { estado, comentario, reviewer }) {
   const { error } = await supabase
     .from("frimart_visitas")
@@ -187,7 +207,7 @@ export async function resolveAlert(alertId, reviewer) {
 /** Suscripción en tiempo real a visitas y alertas. Devuelve función para cancelar. */
 export function subscribeVisitsAndAlerts(onChange) {
   const channel = supabase
-    .channel("frimart-visitas-alertas")
+    .channel(`frimart-visitas-alertas-${Math.random().toString(36).slice(2, 8)}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "frimart_visitas" }, (p) => onChange({ table: "visitas", ...p }))
     .on("postgres_changes", { event: "*", schema: "public", table: "frimart_alertas" }, (p) => onChange({ table: "alertas", ...p }))
     .subscribe();

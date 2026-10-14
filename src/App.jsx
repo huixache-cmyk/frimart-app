@@ -11,6 +11,8 @@ import {
 import { canSeeTabForRole, canDo, HOME_TAB } from "./data/permissions";
 import GuidedVisitFlow from "./components/mobile/seller/GuidedVisitFlow";
 import SupervisorVisitsPanel from "./components/roles/SupervisorVisitsPanel";
+import VisitReviewQueue from "./components/roles/VisitReviewQueue";
+import SellerReviewNotices from "./components/mobile/seller/SellerReviewNotices";
 import { submitVisit, startVisitQueueWorker } from "./lib/visitsSync";
 
 // Authentication & Roles
@@ -697,6 +699,13 @@ export default function App() {
 
           {/* 2. SUPERVISOR HUB */}
           {activeTab === "supervision" && canSeeTab("supervision") && (
+            <VisitReviewQueue
+              reviewer={currentUser}
+              vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)}
+              onToast={(m) => showToast(m, "info")}
+            />
+          )}
+          {activeTab === "supervision" && canSeeTab("supervision") && (
             <SupervisorVisitsPanel
               reviewer={currentUser}
               vendorIds={hasGlobalScope ? null : assignedVendors.map((v) => v.id)}
@@ -766,6 +775,7 @@ export default function App() {
           )}
 
           {/* VENDEDOR: RUTA */}
+          {activeTab === "ruta" && currentUser?.id && <SellerReviewNotices vendorId={currentUser.id} />}
           {activeTab === "ruta" && canSeeTab("ruta") && (
             <SellerRouteScreen
               seller={seller}
